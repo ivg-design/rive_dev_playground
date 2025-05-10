@@ -1,125 +1,166 @@
 // parser_modules/stateMachineParser.js
 
-const SM_INPUT_TYPE_CODE_MAP = {
-    56: "Number",  // From user summary
-    58: "Trigger", // From user summary
-    59: "Boolean", // From user summary
-};
+// Definitive numeric type codes from Rive runtime for SM inputs
+const SM_INPUT_TYPE_TRIGGER = 58;
+const SM_INPUT_TYPE_BOOLEAN = 59;
+const SM_INPUT_TYPE_NUMBER = 56;
 
 /**
- * Parses State Machines and their inputs for a given artboard definition.
- *
- * @param {object} artboardDef - The Rive ArtboardDefinition object.
- * @param {object} riveInstance - The main Rive runtime instance (for riveInstance.contents).
- * @param {object} [dynamicSmInputTypeMap={}] - Optional map for dynamically calibrated SM input types.
- * @returns {Array<object>} An array of parsed state machine objects,
- *                          e.g., [{ name: "SM Name", inputs: [{ name: "InputName", type: "Boolean" }] }]
+ * Calibrates State Machine input types by observing live inputs from a specified State Machine.
+ * THIS FUNCTION IS KEPT FOR POTENTIAL FUTURE USE OR COMPLEX SCENARIOS BUT IS NOT
+ * THE PRIMARY MECHANISM IF DIRECT TYPE CODES FROM .contents ARE RELIABLE.
+ * @param {object} riveInstance - The Rive runtime instance.
+ * @param {string} artboardName - The name of the artboard containing the state machine.
+ * @param {string} stateMachineName - The name of the state machine to calibrate inputs for.
+ * @returns {object} A map where keys are numeric types from '.contents' and values are string types.
  */
-export function parseStateMachinesForArtboard(artboardDef, riveInstance, dynamicSmInputTypeMap = {}) {
-    const parsedStateMachines = [];
-    if (!artboardDef) {
-        console.error("[stateMachineParser] Artboard definition is null/undefined.");
-        return parsedStateMachines;
-    }
+export function calibrateSmInputTypes(riveInstance, artboardName, stateMachineName) {
+	const dynamicSmInputTypeMap = {};
+	if (!riveInstance || !artboardName || !stateMachineName) {
+		// console.warn('[calibrateSmInputTypes] Missing arguments for calibration.');
+		return dynamicSmInputTypeMap;
+	}
 
-    const artboardName = artboardDef.name;
-    const artboardContents = riveInstance.contents?.artboards?.[artboardName];
+	// Ensure the target artboard and state machine are active for calibration if RiveJS requires it
+	// This might involve temporarily setting them on the riveInstance if not already set,
+	// though the Rive constructor params in orchestrator should handle this.
 
-    if (!artboardContents) {
-        console.warn(`[stateMachineParser] No contents found for artboard '${artboardName}' in riveInstance.contents. Cannot parse SM inputs from contents.`);
-    }
+	try {
+		const liveInputs = riveInstance.stateMachineInputs(stateMachineName); // Requires SM to be active on the instance
 
-    const smCount = artboardDef.stateMachineCount();
-    for (let i = 0; i < smCount; i++) {
-        const smDefFromFile = artboardDef.stateMachineByIndex(i);
-        const smNameFromFile = smDefFromFile.name;
-        const currentSmData = { name: smNameFromFile, inputs: [] };
+		if (liveInputs && Array.isArray(liveInputs)) {
+			let artboardFromContents = null;
+			if (riveInstance.contents && riveInstance.contents.artboards) {
+				if (Array.isArray(riveInstance.contents.artboards)) {
+					artboardFromContents = riveInstance.contents.artboards.find((ab) => ab.name === artboardName);
+				} else if (typeof riveInstance.contents.artboards === 'object' && riveInstance.contents.artboards[artboardName]) {
+					artboardFromContents = riveInstance.contents.artboards[artboardName];
+				}
+			}
 
-        const smFromContents = artboardContents?.stateMachines?.[smNameFromFile];
-
-        if (smFromContents && Array.isArray(smFromContents.inputs)) {
-            smFromContents.inputs.forEach(inputFromContents => {
-                let typeString = "Unknown";
-                if (typeof inputFromContents.type === 'string') {
-                    typeString = inputFromContents.type;
-                } else if (typeof inputFromContents.type === 'number') {
-                    if (SM_INPUT_TYPE_CODE_MAP.hasOwnProperty(inputFromContents.type)) {
-                        typeString = SM_INPUT_TYPE_CODE_MAP[inputFromContents.type];
-                    } else if (dynamicSmInputTypeMap && dynamicSmInputTypeMap.hasOwnProperty(inputFromContents.type)) {
-                        typeString = dynamicSmInputTypeMap[inputFromContents.type];
-                        console.log(`[stateMachineParser] Used dynamic map for SM input type '${inputFromContents.type}' -> '${typeString}' for input '${inputFromContents.name}' in SM '${smNameFromFile}'.`);
-                    } else {
-                        console.warn(`[stateMachineParser] Unknown numeric SM input type code '${inputFromContents.type}' for input '${inputFromContents.name}' in SM '${smNameFromFile}'.`);
-                    }
-                } else {
-                    console.warn(`[stateMachineParser] SM input '${inputFromContents.name}' in SM '${smNameFromFile}' has an unexpected type format: ${typeof inputFromContents.type}`);
-                }
-                currentSmData.inputs.push({ name: inputFromContents.name, type: typeString });
-            });
-        } else {
-            // Even if not in contents, list the SM, just with empty inputs from contents perspective.
-            // The Rive API (smDefFromFile.inputCount()) could be a fallback but summary emphasizes contents.
-            console.warn(`[stateMachineParser] State machine '${smNameFromFile}' on artboard '${artboardName}' not found in riveInstance.contents or has no inputs array there. Inputs (if any) from contents will be empty.`);
-        }
-        parsedStateMachines.push(currentSmData);
-    }
-
-    return parsedStateMachines;
+			if (artboardFromContents && artboardFromContents.stateMachines) {
+				const smFromContents = artboardFromContents.stateMachines.find((sm) => sm.name === stateMachineName);
+				if (smFromContents && smFromContents.inputs && Array.isArray(smFromContents.inputs)) {
+					liveInputs.forEach((liveInput) => {
+						const inputFromContents = smFromContents.inputs.find((i) => i.name === liveInput.name);
+						if (inputFromContents && typeof inputFromContents.type === 'number') {
+							const numericTypeInContents = inputFromContents.type;
+							// Using RiveStateMachineInputType from an assumed enum/constant file
+							// This relies on the Rive runtime's enum values.
+							if (liveInput.type === RiveStateMachineInputType.Boolean) {
+								dynamicSmInputTypeMap[numericTypeInContents] = 'Boolean';
+							} else if (liveInput.type === RiveStateMachineInputType.Number) {
+								dynamicSmInputTypeMap[numericTypeInContents] = 'Number';
+							} else if (liveInput.type === RiveStateMachineInputType.Trigger) {
+								dynamicSmInputTypeMap[numericTypeInContents] = 'Trigger';
+							} else {
+								// console.log(`[calibrateSmInputTypes] Live input '${liveInput.name}' has type ${liveInput.type} not matching known RiveStateMachineInputType constants.`);
+							}
+						}
+					});
+				}
+			}
+		}
+		// console.log('[calibrateSmInputTypes] Dynamic SM Input Type Map after calibration:', dynamicSmInputTypeMap);
+	} catch (e) {
+		console.error(`[calibrateSmInputTypes] Error during SM input type calibration for SM '${stateMachineName}' on artboard '${artboardName}':`, e);
+	}
+	return dynamicSmInputTypeMap;
 }
 
 /**
- * Calibrates and creates a dynamic map for State Machine input types.
- * This function should be called once after the Rive instance is initialized
- * with an artboard and SM that has inputs, to build the map.
+ * Parses all State Machines for a given Artboard Definition, enriching with input details from riveInstance.contents.
  *
  * @param {object} riveInstance - The main Rive runtime instance.
- * @param {string} artboardNameForCalibration - The name of the artboard used for calibration.
- * @param {string} smNameForCalibration - The name of the State Machine on that artboard used for calibration.
- * @returns {object} The dynamically generated SM input type map (e.g., {0: "Boolean", 1: "Number"}).
+ * @param {object} artboardDefFromFile - The artboard definition object from riveFile.
+ * @param {object} dynamicSmInputTypeMap - A map for dynamic type calibration (optional, primarily for fallback).
+ * @returns {Array<object>} An array of parsed state machine objects for this artboard.
  */
-export function calibrateSmInputTypes(riveInstance, artboardNameForCalibration, smNameForCalibration) {
-    const DYNAMIC_SM_INPUT_TYPE_MAP = {};
-    if (!riveInstance || !artboardNameForCalibration || !smNameForCalibration) {
-        console.warn("[calibrateSmInputTypes] Missing Rive instance, artboard name, or SM name for calibration.");
-        return DYNAMIC_SM_INPUT_TYPE_MAP;
-    }
+export function parseStateMachinesForArtboard(riveInstance, artboardDefFromFile, dynamicSmInputTypeMap = {}) {
+	const parsedStateMachines = [];
+	if (!artboardDefFromFile) return parsedStateMachines;
 
-    const liveSmInstance = riveInstance.stateMachineInstance(smNameForCalibration, artboardNameForCalibration);
-    const smFromContents = riveInstance.contents?.artboards?.[artboardNameForCalibration]?.stateMachines?.[smNameForCalibration];
+	const artboardName = artboardDefFromFile.name;
+	let artboardFromContents = null;
 
-    if (liveSmInstance && smFromContents && Array.isArray(smFromContents.inputs)) {
-        const liveInputs = liveSmInstance.inputs;
-        if (liveInputs.length !== smFromContents.inputs.length) {
-            console.warn(`[calibrateSmInputTypes] Mismatch between live inputs count (${liveInputs.length}) and contents inputs count (${smFromContents.inputs.length}) for SM '${smNameForCalibration}'. Calibration may be inaccurate.`);
-        }
+	// 1. Find the corresponding artboard in riveInstance.contents
+	if (riveInstance.contents && riveInstance.contents.artboards) {
+		if (Array.isArray(riveInstance.contents.artboards)) {
+			artboardFromContents = riveInstance.contents.artboards.find(ab => ab.name === artboardName);
+		} else if (typeof riveInstance.contents.artboards === 'object') { // Should not be the case based on logs, but good to have
+			artboardFromContents = riveInstance.contents.artboards[artboardName];
+		}
+	}
 
-        for (let i = 0; i < liveInputs.length; i++) {
-            const liveInput = liveInputs[i];
-            // Find corresponding input in contents by name, as order might not be guaranteed or match
-            const contentInput = smFromContents.inputs.find(ci => ci.name === liveInput.name);
+	if (!artboardFromContents) {
+		console.warn(`[stateMachineParser] Artboard '${artboardName}' not found in riveInstance.contents. SM inputs will be based on riveFile definitions only (likely none).`);
+		// Fallback: Create SM entries from riveFile definition but mark inputs as unavailable from contents
+		const smCount = typeof artboardDefFromFile.stateMachineCount === 'function' ? artboardDefFromFile.stateMachineCount() : 0;
+		for (let i = 0; i < smCount; i++) {
+			const smDef = artboardDefFromFile.stateMachineByIndex(i);
+			if (smDef) {
+				parsedStateMachines.push({
+					name: smDef.name,
+					inputs: [], // riveFile's SM definition doesn't typically list inputs in detail needed
+					sourceNote: "Artboard not found in riveInstance.contents, input details unavailable."
+				});
+			}
+		}
+		return parsedStateMachines;
+	}
 
-            if (liveInput && contentInput && typeof contentInput.type === 'number' &&
-                !SM_INPUT_TYPE_CODE_MAP.hasOwnProperty(contentInput.type)) { // Only map if not a definitive known code
-                
-                let liveTypeString = "Unknown";
-                if (liveInput.type === riveInstance.rive.StateMachineInputType.Boolean) {
-                    liveTypeString = "Boolean";
-                } else if (liveInput.type === riveInstance.rive.StateMachineInputType.Number) {
-                    liveTypeString = "Number";
-                } else if (liveInput.type === riveInstance.rive.StateMachineInputType.Trigger) {
-                    liveTypeString = "Trigger";
-                }
+	// 2. Iterate through State Machines defined in riveFile for this artboard
+	const smCountOnArtboardDef = typeof artboardDefFromFile.stateMachineCount === 'function' ? artboardDefFromFile.stateMachineCount() : 0;
 
-                if (DYNAMIC_SM_INPUT_TYPE_MAP.hasOwnProperty(contentInput.type) && DYNAMIC_SM_INPUT_TYPE_MAP[contentInput.type] !== liveTypeString) {
-                    console.warn(`[calibrateSmInputTypes] Conflicting type for code ${contentInput.type}: already mapped to ${DYNAMIC_SM_INPUT_TYPE_MAP[contentInput.type]}, now seeing ${liveTypeString} for input '${liveInput.name}'. Using first mapping.`);
-                } else if (!DYNAMIC_SM_INPUT_TYPE_MAP.hasOwnProperty(contentInput.type)){
-                    DYNAMIC_SM_INPUT_TYPE_MAP[contentInput.type] = liveTypeString;
-                    console.log(`[calibrateSmInputTypes] Calibrated SM input type: Code ${contentInput.type} -> ${liveTypeString} (from input '${liveInput.name}')`);
-                }
-            }
-        }
-    } else {
-        console.warn(`[calibrateSmInputTypes] Could not perform SM input type calibration for SM '${smNameForCalibration}'. Live instance or contents not found/valid.`);
-    }
-    return DYNAMIC_SM_INPUT_TYPE_MAP;
+	for (let i = 0; i < smCountOnArtboardDef; i++) {
+		const smDefRiveFile = artboardDefFromFile.stateMachineByIndex(i);
+		if (!smDefRiveFile || !smDefRiveFile.name) continue;
+
+		const smOutput = {
+			name: smDefRiveFile.name,
+			inputs: [],
+			sourceNote: ""
+		};
+
+		// 3. Find the matching state machine in artboardFromContents
+		const smFromContents = artboardFromContents.stateMachines.find(sm => sm.name === smDefRiveFile.name);
+
+		if (smFromContents && smFromContents.inputs && Array.isArray(smFromContents.inputs)) {
+			smOutput.sourceNote = "Inputs from riveInstance.contents";
+			smFromContents.inputs.forEach(inputFromContents => {
+				let inputTypeString = 'UnknownInputType';
+				if (typeof inputFromContents.type === 'number') {
+					switch (inputFromContents.type) {
+						case SM_INPUT_TYPE_TRIGGER:
+							inputTypeString = 'Trigger';
+							break;
+						case SM_INPUT_TYPE_BOOLEAN:
+							inputTypeString = 'Boolean';
+							break;
+						case SM_INPUT_TYPE_NUMBER:
+							inputTypeString = 'Number';
+							break;
+						default:
+							// Fallback to dynamic map or mark as unmapped numeric
+							inputTypeString = dynamicSmInputTypeMap[inputFromContents.type] || `NumericType:${inputFromContents.type}`;
+							if (!dynamicSmInputTypeMap.hasOwnProperty(inputFromContents.type) && !([SM_INPUT_TYPE_TRIGGER, SM_INPUT_TYPE_BOOLEAN, SM_INPUT_TYPE_NUMBER].includes(inputFromContents.type))) {
+								console.warn(`[stateMachineParser] SM Input '${inputFromContents.name}' on SM '${smDefRiveFile.name}' (Artboard '${artboardName}'): Encountered unmapped numeric type '${inputFromContents.type}' from contents.`);
+							}
+							break;
+					}
+				} else if (typeof inputFromContents.type === 'string') { // Should not happen based on logs, but robust
+					inputTypeString = inputFromContents.type;
+				} else if (inputFromContents.type !== undefined) {
+					inputTypeString = `OtherType:${inputFromContents.type}`;
+				}
+				smOutput.inputs.push({ name: inputFromContents.name, type: inputTypeString });
+			});
+		} else {
+			smOutput.sourceNote = `SM '${smDefRiveFile.name}' not found in contents for artboard '${artboardName}', or it has no inputs array there.`;
+			console.warn(`[stateMachineParser] ${smOutput.sourceNote}`);
+			// If SM is in riveFile but not contents, or contents SM has no inputs, inputs array remains empty.
+		}
+		parsedStateMachines.push(smOutput);
+	}
+	return parsedStateMachines;
 }

@@ -1,11 +1,105 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Rive Parser</title>
-    <script src="/node_modules/@rive-app/canvas/rive.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rive Parser Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f0f2f5; color: #333; }
+        h1 { color: #1a237e; }
+        #controls { margin-bottom: 20px; padding: 15px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        #parserChoiceContainer { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        #parserChoiceContainer strong { display: block; margin-bottom: 5px; }
+        #parserChoiceContainer input { margin-right: 5px; }
+        #parserChoiceContainer label { margin-right: 15px; }
+        #riveFilePickerLabel { display: block; margin-bottom: 10px; font-weight: bold; }
+        #riveFilePicker { padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px; }
+        #calibrationInputs { margin-top:10px; padding:10px; border:1px dashed #ccc; border-radius: 4px; }
+        #calibrationInputs label { margin-right: 5px; }
+        #calibrationInputs input { margin-right: 15px; padding: 5px; border-radius: 3px; border: 1px solid #ddd; }
+        #outputContainer { margin-top: 20px; }
+        #output { 
+            white-space: pre-wrap; 
+            background-color: #282c34; /* Dark background for JSON */
+            color: #abb2bf; /* Light text for JSON */
+            border: 1px solid #ccc; 
+            padding: 15px; 
+            max-height: 75vh; 
+            overflow-y: auto; 
+            border-radius: 8px; 
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.9em;
+        }
+        .log-message { font-style: italic; color: #555; margin-bottom: 5px; }
+    </style>
 </head>
 <body>
-    <canvas id="rive-canvas" width="800" height="600"></canvas>
+    <h1>Rive File Parser</h1>
+
+    <div id="controls">
+        <div id="parserChoiceContainer" style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+            <strong>Choose Parser:</strong><br>
+            <input type="radio" name="parserChoice" value="modular" id="radioModular" checked style="margin-left: 5px; margin-right: 3px;">
+            <label for="radioModular" style="margin-right: 15px;">Modular Parser (select .riv file below)</label>
+            <br>
+            <input type="radio" name="parserChoice" value="original" id="radioOriginal" style="margin-left: 5px; margin-right: 3px;">
+            <label for="radioOriginal">Original parser.js (uses selected file if provided, else 'animations/diagram_v3.riv'. Requires 'node parse-rive.js' server for WebSocket.)</label>
+        </div>
+
+        <label id="riveFilePickerLabel" for="riveFilePicker">Select a .riv file (used by chosen parser):</label>
+        <input type="file" id="riveFilePicker" accept=".riv">
+        
+        <div id="calibrationInputs">
+            <p>Optional: For State Machine Input Type Calibration (if numeric types are not 56,58,59)</p>
+            <label for="artboardName">Artboard Name:</label>
+            <input type="text" id="artboardNameForSmCalibration" placeholder="Artboard for SM Calibration">
+            <label for="smName">SM Name:</label>
+            <input type="text" id="smNameForSmCalibration" placeholder="State Machine for Calibration">
+        </div>
+    </div>
+
+    <div id="outputContainer">
+        <p class="log-message" id="statusMessage">Please select a Rive file to begin parsing.</p>
+        <div id="output">JSON output will appear here...</div>
+    </div>
+
+    <!-- Load the Rive runtime -->
+    <!-- Make sure this path is correct for your project -->
+    <script src="./node_modules/@rive-app/canvas/rive.js"></script> 
+    
+    <!-- Load the original parser.js (non-module) -->
     <script src="parser.js"></script>
+
+    <!-- Load your main testing script as a module -->
+    <script type="module" src="main.js"></script>
+
+    <!-- DEBUG: Add a canvas if it doesn't exist, and directly call original parser -->
+    <!-- <canvas id="rive-canvas-debug" width="500" height="500" style="display: block; border: 1px solid red;"></canvas>
+    <script>
+        window.addEventListener('load', () => {
+            console.log("[DEBUG IndexHTML] Window loaded. Attempting to run original parser directly.");
+            const riveEngine = window.rive;
+            const canvasEl = document.getElementById('rive-canvas-debug');
+
+            if (!riveEngine) {
+                console.error("[DEBUG IndexHTML] Rive engine (window.rive) not found for direct call!");
+                return;
+            }
+            if (!canvasEl) {
+                console.error("[DEBUG IndexHTML] Canvas 'rive-canvas-debug' not found for direct call!");
+                return;
+            }
+            if (typeof runOriginalClientParser === 'function') {
+                try {
+                    // Force it to use its internal default path 'animations/diagram_v3.riv' by passing null
+                    runOriginalClientParser(riveEngine, canvasEl, null);
+                } catch (e) {
+                    console.error("[DEBUG IndexHTML] Error directly calling runOriginalClientParser:", e);
+                }
+            } else {
+                console.error("[DEBUG IndexHTML] runOriginalClientParser function not found for direct call. Ensure parser.js is loaded.");
+            }
+        });
+    </script> -->
 </body>
 </html> 

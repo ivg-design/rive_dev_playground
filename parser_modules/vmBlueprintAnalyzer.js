@@ -23,22 +23,21 @@ export function analyzeBlueprintFromDefinition(vmDefInput, rive) {
     const inputProps = [];
     const nestedVmPropertyNames = [];
 
-    if (vmDef && typeof vmDef.propertyCount === 'function') {
-        const propCount = vmDef.propertyCount();
-        for (let k = 0; k < propCount; k++) {
-            const p = vmDef.propertyByIndex(k); // RiveViewModelPropertyDefinition
-            if (p && p.name && p.type) {
-                allPropsForFingerprint.push({ name: p.name, type: p.type });
-                if (p.isViewModel || p.type === 'viewModel') {
-                    nestedVmPropertyNames.push(p.name);
-                } else {
-                    // This is a data input property (number, string, boolean, color, enum, trigger)
-                    inputProps.push({ name: p.name, type: p.type });
-                }
-            }
-        }
-    } else if (vmDef && vmDef.properties && Array.isArray(vmDef.properties)) {
-        // Fallback, less common based on typical Rive API usage
+    console.log(`[vmBlueprintAnalyzer] Analyzing blueprint: '${vmDefInput.name}'`);
+    console.log(`[vmBlueprintAnalyzer] vmDef object:`, vmDef);
+    console.log(`[vmBlueprintAnalyzer] typeof vmDef.propertyCount: ${typeof vmDef.propertyCount}`);
+    console.log(`[vmBlueprintAnalyzer] typeof vmDef.properties: ${typeof vmDef.properties}`);
+    if (vmDef && vmDef.properties && Array.isArray(vmDef.properties)) {
+        console.log(`[vmBlueprintAnalyzer] vmDef.properties IS an array. Length: ${vmDef.properties.length}`);
+    } else if (vmDef && vmDef.properties) {
+        console.log(`[vmBlueprintAnalyzer] vmDef.properties is an object, not an array. Keys: ${Object.keys(vmDef.properties).join(', ')}`);
+    } else {
+        console.log(`[vmBlueprintAnalyzer] vmDef.properties is null, undefined, or not an array.`);
+    }
+    console.log(`[vmBlueprintAnalyzer] Keys on vmDef: ${Object.keys(vmDef).join(', ')}`);
+
+    if (vmDef && vmDef.properties && Array.isArray(vmDef.properties)) {
+        console.log(`[vmBlueprintAnalyzer] Using direct .properties array for '${vmDefInput.name}'`);
         vmDef.properties.forEach((p) => {
             if (p && p.name && p.type) {
                 allPropsForFingerprint.push({ name: p.name, type: p.type });
@@ -49,7 +48,37 @@ export function analyzeBlueprintFromDefinition(vmDefInput, rive) {
                 }
             }
         });
-        console.warn(`[vmBlueprintAnalyzer] Used fallback .properties array for VM Definition '${vmDefInput.name}'.`);
+    } else if (vmDef && typeof vmDef.propertyCount === 'number' && typeof vmDef.propertyByIndex === 'function') {
+        const propCount = vmDef.propertyCount; 
+        console.log(`[vmBlueprintAnalyzer] Using numeric .propertyCount (${propCount}) and .propertyByIndex() for '${vmDefInput.name}'`);
+        for (let k = 0; k < propCount; k++) {
+            const p = vmDef.propertyByIndex(k);
+            if (p && p.name && p.type) {
+                allPropsForFingerprint.push({ name: p.name, type: p.type });
+                if (p.isViewModel || p.type === 'viewModel') {
+                    nestedVmPropertyNames.push(p.name);
+                } else {
+                    inputProps.push({ name: p.name, type: p.type });
+                }
+            }
+        }
+    } else if (vmDef && typeof vmDef.propertyCount === 'function' && typeof vmDef.propertyByIndex === 'function') {
+        const propCount = vmDef.propertyCount();
+        console.log(`[vmBlueprintAnalyzer] Using .propertyCount() (${propCount}) and .propertyByIndex() functions for '${vmDefInput.name}'`);
+        for (let k = 0; k < propCount; k++) {
+            const p = vmDef.propertyByIndex(k);
+            if (p && p.name && p.type) {
+                allPropsForFingerprint.push({ name: p.name, type: p.type });
+                if (p.isViewModel || p.type === 'viewModel') {
+                    nestedVmPropertyNames.push(p.name);
+                } else {
+                    inputProps.push({ name: p.name, type: p.type });
+                }
+            }
+        }
+    } else {
+        console.warn(`[vmBlueprintAnalyzer] Could not find/access properties for VM Definition '${vmDefInput.name}'. Fingerprint might be empty.`);
+        console.log(vmDef.propertyByIndex(1));
     }
 
     allPropsForFingerprint.sort((a, b) => a.name.localeCompare(b.name));
@@ -76,19 +105,34 @@ export function generateBlueprintFingerprint(vmDef, rive) {
     if (!vmDef) return "no-definition-to-fingerprint";
     
     const propsArray = [];
-    if (vmDef && typeof vmDef.propertyCount === 'function') {
-        const propCount = vmDef.propertyCount();
+
+    if (vmDef && vmDef.properties && Array.isArray(vmDef.properties)) {
+        console.log(`[vmBlueprintAnalyzer-generateFingerprint] Using direct .properties array for '${vmDef.name || 'instance'}'`);
+        vmDef.properties.forEach((p) => {
+            if (p && p.name && p.type) propsArray.push({ name: p.name, type: p.type });
+        });
+    } else if (vmDef && typeof vmDef.propertyCount === 'number' && typeof vmDef.propertyByIndex === 'function') {
+        const propCount = vmDef.propertyCount;
+        console.log(`[vmBlueprintAnalyzer-generateFingerprint] Using numeric .propertyCount (${propCount}) and .propertyByIndex() for '${vmDef.name || 'instance'}'`);
         for (let k = 0; k < propCount; k++) {
             const p = vmDef.propertyByIndex(k);
             if (p && p.name && p.type) {
                 propsArray.push({ name: p.name, type: p.type });
             }
         }
-    } else if (vmDef && vmDef.properties && Array.isArray(vmDef.properties)) {
-        vmDef.properties.forEach((p) => {
-            if (p && p.name && p.type) propsArray.push({ name: p.name, type: p.type });
-        });
+    } else if (vmDef && typeof vmDef.propertyCount === 'function' && typeof vmDef.propertyByIndex === 'function') {
+        const propCount = vmDef.propertyCount();
+        console.log(`[vmBlueprintAnalyzer-generateFingerprint] Using .propertyCount() (${propCount}) and .propertyByIndex() functions for '${vmDef.name || 'instance'}'`);
+        for (let k = 0; k < propCount; k++) {
+            const p = vmDef.propertyByIndex(k);
+            if (p && p.name && p.type) {
+                propsArray.push({ name: p.name, type: p.type });
+            }
+        }
+    } else {
+        console.warn(`[vmBlueprintAnalyzer-generateFingerprint] Could not find/access properties for '${vmDef.name || 'instance'}'. Fingerprint might be empty.`);
     }
+
     propsArray.sort((a, b) => a.name.localeCompare(b.name));
     return propsArray.map((p) => `${p.name}:${p.type}`).join('|');
 } 
