@@ -1,99 +1,66 @@
 import { argbToHex } from './utils.js';
+import {
+    getNumberValue,
+    getStringValue,
+    getBooleanValue,
+    getEnumValue,
+    getColorValue
+} from './riveValueGetters.js';
 
-export function extractPropertyValue(vmInstanceObj, propDecl) {
-    // propDecl is expected to be an object like { name: 'propertyName', type: 'propertyType' }
-    // vmInstanceObj is the Rive ViewModelInstance object.
+/**
+ * Extracts the value of a ViewModel instance property.
+ * @param {object} vmInstanceObj - The Rive ViewModelInstance object.
+ * @param {object} propDecl - Property declaration from ViewModelDefinition { name, type, isViewModel, ... }
+ * @param {object} rive - The Rive runtime (currently unused but kept for API consistency if needed later)
+ * @returns {{ name: string, typeString: string, value: any, isColor: boolean }}
+ */
+export function extractVmInstancePropertyValue(vmInstanceObj, propDecl, rive) {
+    // rive is unused for now.
 
-    const inputInfo = { name: propDecl.name, type: propDecl.type, value: 'UNASSIGNED' };
+    let rawValue;
+    const propName = propDecl.name;
+    const propType = propDecl.type; // This is the type string from the blueprint, e.g. "number", "string", "color"
 
     try {
-        switch (propDecl.type) {
+        switch (propType) {
             case 'number':
-                if (typeof vmInstanceObj.number === 'function') {
-                    const propObj = vmInstanceObj.number(propDecl.name);
-                    if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
-                        inputInfo.value = propObj._viewModelInstanceValue.value === undefined ? null : propObj._viewModelInstanceValue.value;
-                    } else {
-                        inputInfo.value = 'Number propObj._viewModelInstanceValue.value not found';
-                    }
-                } else {
-                    inputInfo.value = 'vmInstanceObj.number is not a function';
-                }
+                rawValue = getNumberValue(vmInstanceObj, propName);
                 break;
             case 'string':
-                if (typeof vmInstanceObj.string === 'function') {
-                    const propObj = vmInstanceObj.string(propDecl.name);
-                    if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
-                        inputInfo.value = propObj._viewModelInstanceValue.value === undefined ? null : propObj._viewModelInstanceValue.value;
-                    } else {
-                        inputInfo.value = 'String propObj._viewModelInstanceValue.value not found';
-                    }
-                } else {
-                    inputInfo.value = 'vmInstanceObj.string is not a function';
-                }
+                rawValue = getStringValue(vmInstanceObj, propName);
                 break;
             case 'boolean':
-                if (typeof vmInstanceObj.boolean === 'function') {
-                    const propObj = vmInstanceObj.boolean(propDecl.name);
-                    if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
-                        inputInfo.value = propObj._viewModelInstanceValue.value === undefined ? null : propObj._viewModelInstanceValue.value;
-                    } else {
-                        inputInfo.value = 'Boolean propObj._viewModelInstanceValue.value not found';
-                    }
-                } else {
-                    inputInfo.value = 'vmInstanceObj.boolean is not a function';
-                }
+                rawValue = getBooleanValue(vmInstanceObj, propName);
                 break;
-            case 'enumType': // Assuming propDecl.type from blueprint is 'enumType'
-                if (typeof vmInstanceObj.enum === 'function') {
-                    const propObj = vmInstanceObj.enum(propDecl.name);
-                    if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
-                        inputInfo.value = propObj._viewModelInstanceValue.value === undefined ? null : propObj._viewModelInstanceValue.value;
-                    } else {
-                        inputInfo.value = 'Enum (via .enum) propObj._viewModelInstanceValue.value not found';
-                    }
-                } else {
-                    // Fallback for enum if .enum() is not available
-                    if (typeof vmInstanceObj.string === 'function') {
-                        const propObj = vmInstanceObj.string(propDecl.name);
-                        if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
-                            inputInfo.value = propObj._viewModelInstanceValue.value === undefined ? null : propObj._viewModelInstanceValue.value;
-                        } else {
-                            inputInfo.value = 'Enum (via .string fallback) propObj._viewModelInstanceValue.value not found';
-                        }
-                    } else {
-                        inputInfo.value = 'vmInstanceObj.enum (and .string) is not a function for enumType';
-                    }
-                }
+            case 'enumType': // Assuming propDecl.type from blueprint is 'enumType' for enums
+                rawValue = getEnumValue(vmInstanceObj, propName);
                 break;
             case 'color':
-                if (typeof vmInstanceObj.color === 'function') {
-                    const propObj = vmInstanceObj.color(propDecl.name);
-                    if (propObj && propObj._viewModelInstanceValue && typeof propObj._viewModelInstanceValue.value === 'number') {
-                        inputInfo.value = argbToHex(propObj._viewModelInstanceValue.value);
-                    } else if (propObj && propObj._viewModelInstanceValue && typeof propObj._viewModelInstanceValue.value === 'string') {
-                        inputInfo.value = propObj._viewModelInstanceValue.value;
-                    } else if (propObj && typeof propObj.value === 'number') {
-                        inputInfo.value = argbToHex(propObj.value);
-                    } else if (propObj && typeof propObj.value === 'string') {
-                        inputInfo.value = propObj.value;
-                    } else if (typeof propObj === 'number') {
-                        inputInfo.value = argbToHex(propObj);
-                    } else {
-                        inputInfo.value = `Color not in expected ARGB format (propObj: ${JSON.stringify(propObj)})`;
-                    }
-                } else {
-                    inputInfo.value = 'vmInstanceObj.color is not a function';
-                }
+                rawValue = getColorValue(vmInstanceObj, propName);
                 break;
             case 'trigger':
-                inputInfo.value = 'N/A (Trigger)';
+                rawValue = 'N/A (Trigger)';
                 break;
             default:
-                inputInfo.value = `UNHANDLED_PROPERTY_TYPE: ${propDecl.type}`;
+                rawValue = `UNHANDLED_PROPERTY_TYPE: ${propType}`;
         }
     } catch (e) {
-        inputInfo.value = `ERROR_IN_PROPERTY_EXTRACTION: ${e.message}`;
+        rawValue = `ERROR_IN_PROPERTY_EXTRACTION: ${e.message}`;
     }
-    return inputInfo; // Returns the whole inputInfo object { name, type, value }
+
+    const isColorType = propType === 'color';
+    let finalValue = rawValue;
+
+    // If it's a color and the rawValue is a number, convert to hex.
+    // If rawValue is already a string (potentially hex), it's used as is.
+    if (isColorType && typeof rawValue === 'number') {
+        finalValue = argbToHex(rawValue);
+    }
+
+    return {
+        name: propName,
+        typeString: propType, // The original type string from the definition
+        value: finalValue,
+        isColor: isColorType, // Flag to indicate if the original type was 'color'
+    };
 } 
