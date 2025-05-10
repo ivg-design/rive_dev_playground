@@ -8,29 +8,36 @@ import { argbToHex } from './utils.js';
  *
  * @param {object} vmInstanceObj - The Rive ViewModelInstance object.
  * @param {object} propDecl - The property declaration object (ViewModelPropertyDefinition).
- * @param {object} rive - The Rive runtime instance (currently unused here but good for consistency).
+ * @param {object} rive - The Rive runtime instance.
  * @returns {object} An object representing the parsed input property { name, type, value }.
  */
 export function handleInputProperty(vmInstanceObj, propDecl, rive) {
 	const inputProperty = {
 		name: propDecl.name,
-		type: propDecl.type, // Type from the declaration (e.g., "boolean", "number", "string", "color", "enumType")
+		type: propDecl.type,
 		value: 'UNINITIALIZED_VALUE'
 	};
 
-	let propObj = null; // This will hold the object returned by vmInstanceObj.type(name)
+	let propObj = null;
 
 	try {
 		switch (propDecl.type) {
 			case 'number':
+				// console.log(`[processInputProperty DEBUG] Property: '${propDecl.name}', Type: '${propDecl.type}'`, { vmInstanceObj, propDecl });
 				if (typeof vmInstanceObj.number === 'function') {
 					propObj = vmInstanceObj.number(propDecl.name);
+					// console.log(`[processInputProperty DEBUG] propObj for '${propDecl.name}':`, propObj);
+					// if (propObj) {
+					// 	console.log(`[processInputProperty DEBUG] propObj.value for '${propDecl.name}':`, propObj.value);
+					// 	console.log(`[processInputProperty DEBUG] propObj._viewModelInstanceValue for '${propDecl.name}':`, propObj._viewModelInstanceValue);
+					// 	if (propObj._viewModelInstanceValue) console.log(`[processInputProperty DEBUG] propObj._viewModelInstanceValue.value for '${propDecl.name}':`, propObj._viewModelInstanceValue.value);
+					// }
 					if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
 						inputProperty.value = propObj._viewModelInstanceValue.value === undefined ? null : propObj._viewModelInstanceValue.value;
-					} else if (propObj && propObj.hasOwnProperty('value')) { // Fallback, less common
+					} else if (propObj && propObj.hasOwnProperty('value')) { // Fallback to direct .value if _viewModelInstanceValue is not present
 						inputProperty.value = propObj.value === undefined ? null : propObj.value;
 					} else {
-						inputProperty.value = `Value not found for Number (propObj: ${JSON.stringify(propObj)})`;
+						inputProperty.value = `Value not found (propObj: ${JSON.stringify(propObj)})`;
 					}
 				} else {
 					inputProperty.value = 'vmInstanceObj.number is not a function';
@@ -44,27 +51,34 @@ export function handleInputProperty(vmInstanceObj, propDecl, rive) {
 					} else if (propObj && propObj.hasOwnProperty('value')) {
 						inputProperty.value = propObj.value === undefined ? null : propObj.value;
 					} else {
-						inputProperty.value = `Value not found for String (propObj: ${JSON.stringify(propObj)})`;
+						inputProperty.value = `Value not found (propObj: ${JSON.stringify(propObj)})`;
 					}
 				} else {
 					inputProperty.value = 'vmInstanceObj.string is not a function';
 				}
 				break;
 			case 'boolean':
+				// console.log(`[processInputProperty DEBUG] Property: '${propDecl.name}', Type: '${propDecl.type}'`, { vmInstanceObj, propDecl });
 				if (typeof vmInstanceObj.boolean === 'function') {
 					propObj = vmInstanceObj.boolean(propDecl.name);
+					// console.log(`[processInputProperty DEBUG] propObj for '${propDecl.name}':`, propObj);
+					// if (propObj) {
+					// 	console.log(`[processInputProperty DEBUG] propObj.value for '${propDecl.name}':`, propObj.value);
+					// 	console.log(`[processInputProperty DEBUG] propObj._viewModelInstanceValue for '${propDecl.name}':`, propObj._viewModelInstanceValue);
+					// 	if (propObj._viewModelInstanceValue) console.log(`[processInputProperty DEBUG] propObj._viewModelInstanceValue.value for '${propDecl.name}':`, propObj._viewModelInstanceValue.value);
+					// }
 					if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
 						inputProperty.value = propObj._viewModelInstanceValue.value === undefined ? null : propObj._viewModelInstanceValue.value;
 					} else if (propObj && propObj.hasOwnProperty('value')) {
 						inputProperty.value = propObj.value === undefined ? null : propObj.value;
 					} else {
-						inputProperty.value = `Value not found for Boolean (propObj: ${JSON.stringify(propObj)})`;
+						inputProperty.value = `Value not found (propObj: ${JSON.stringify(propObj)})`;
 					}
 				} else {
 					inputProperty.value = 'vmInstanceObj.boolean is not a function';
 				}
 				break;
-			case 'enumType': // Assuming 'enumType' is the type string from propDecl
+			case 'enumType':
 				if (typeof vmInstanceObj.enum === 'function') {
 					propObj = vmInstanceObj.enum(propDecl.name);
 					if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
@@ -72,21 +86,34 @@ export function handleInputProperty(vmInstanceObj, propDecl, rive) {
 					} else if (propObj && propObj.hasOwnProperty('value')) {
 						inputProperty.value = propObj.value === undefined ? null : propObj.value;
 					} else {
-						inputProperty.value = `Value not found for Enum (propObj: ${JSON.stringify(propObj)})`;
+						inputProperty.value = `Value not found (propObj: ${JSON.stringify(propObj)})`;
 					}
 				} else {
-					inputProperty.value = 'vmInstanceObj.enum is not a function (for enumType)';
+					// Original parser had a fallback to .string for enums, this might be specific to some Rive versions
+					console.warn(`[processInputProperty] vmInstanceObj.enum is not a function for '${propDecl.name}'. Consider if a fallback to .string is needed like in original parser.`);
+					inputProperty.value = 'vmInstanceObj.enum is not a function';
 				}
 				break;
 			case 'color':
 				if (typeof vmInstanceObj.color === 'function') {
 					propObj = vmInstanceObj.color(propDecl.name);
+					let colorValue = undefined;
 					if (propObj && propObj._viewModelInstanceValue && typeof propObj._viewModelInstanceValue.value === 'number') {
-						inputProperty.value = argbToHex(propObj._viewModelInstanceValue.value);
-					} else if (propObj && typeof propObj.value === 'number') { // Fallback
-						inputProperty.value = argbToHex(propObj.value);
+						colorValue = propObj._viewModelInstanceValue.value;
+					} else if (propObj && typeof propObj.value === 'number') { // Fallback for direct .value if it's a number
+						colorValue = propObj.value;
+					} else if (propObj && propObj._viewModelInstanceValue && typeof propObj._viewModelInstanceValue.value === 'string') { // Handle if color is already string hex
+						colorValue = propObj._viewModelInstanceValue.value; // Will be returned as is if not numeric
+					} else if (propObj && typeof propObj.value === 'string') {
+						colorValue = propObj.value;
+					}
+
+					if (typeof colorValue === 'number') {
+						inputProperty.value = argbToHex(colorValue);
+					} else if (typeof colorValue === 'string') { // If it was already a string (e.g. hex from Rive)
+						inputProperty.value = colorValue;
 					} else {
-						inputProperty.value = `Value not found for Color or not numeric (propObj: ${JSON.stringify(propObj)})`;
+						inputProperty.value = `Value not found or not numeric/string (propObj: ${JSON.stringify(propObj)}, colorValue: ${colorValue})`;
 					}
 				} else {
 					inputProperty.value = 'vmInstanceObj.color is not a function';
@@ -95,7 +122,7 @@ export function handleInputProperty(vmInstanceObj, propDecl, rive) {
 			case 'trigger':
 				inputProperty.value = 'N/A (Trigger type has no persistent value to get)';
 				break;
-			case 'viewModel': // This case should ideally not be hit if vmInstanceParserRecursive routes correctly
+			case 'viewModel':
 				console.warn(`[processInputProperty] Received propDecl with type 'viewModel' (${propDecl.name}). This should be handled by handleNestedViewModelProperty.`);
 				inputProperty.value = `UNHANDLED_AS_INPUT_PROPERTY: ${propDecl.type}`;
 				break;

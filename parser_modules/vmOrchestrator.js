@@ -1,105 +1,96 @@
 import { fetchAllRawViewModelDefinitions } from './vmDefinitionProvider.js';
-import { analyzeBlueprintFromDefinition } from './vmBlueprintAnalyzer.js';
+import { analyzeBlueprintFromDefinition, generateBlueprintFingerprint } from './vmBlueprintAnalyzer.js';
 import { parseViewModelInstanceRecursive } from './vmInstanceParserRecursive.js';
 
 /**
  * Orchestrates the fetching, analyzing of all ViewModel blueprints,
- * and parsing of the main ViewModel instance from the default artboard (if one is active and has a default VM).
+ * and parsing of discoverable ViewModel instances, starting from the default
+ * ViewModel instance of the active artboard.
  *
- * @param {object} riveFile - The RiveFile object.
+ * @param {object} riveFile - The RiveFile object (currently unused here as definitions come from riveInstance).
  * @param {object} riveInstance - The main Rive runtime instance.
  * @returns {object} An object containing:
- *                   - allAnalyzedBlueprints: Array of all discovered ViewModel blueprint objects.
- *                   - parsedDefaultVmInstance: The parsed structure of the main ViewModel instance.
- *                                              Null if no default VM instance is found or parsed.
+ *                   - allViewModelDefinitionsAndInstances: Array of blueprint objects,
+ *                     each augmented with an `instances` array containing its parsed instances.
  */
 export function orchestrateViewModelParsing(riveFile, riveInstance) {
 	// Phase 1: Discover and Analyze All ViewModel Blueprints (Definitions)
 	const rawDefinitions = fetchAllRawViewModelDefinitions(riveFile, riveInstance);
-	const allAnalyzedBlueprints = rawDefinitions.map(
-		(rawDefInput) => analyzeBlueprintFromDefinition(rawDefInput)
+	const allViewModelDefinitionsAndInstances = rawDefinitions.map(
+		(vmDefInput) => ({ // vmDefInput is { def: RiveViewModelDefinition, name: "VmName" }
+			...analyzeBlueprintFromDefinition(vmDefInput, riveInstance),
+			instances: [], // Initialize an empty array for instances
+		})
 	);
 
-	// Phase 2: Parse the Main/Default ViewModel Instance
-	let parsedDefaultVmInstance = null;
-	let mainVmInstance = null;
-	let mainVmBlueprint = null;
-	let mainVmInstanceName = 'DefaultVmInstance'; // Default output name if specific name can't be derived
+	// Phase 2: Parse ViewModel Instances, starting with the default VM of the active artboard
+	console.log("[vmOrchestrator] Attempting to find and parse default ViewModel instance of the active artboard.");
 
-	console.log("[vmOrchestrator] Attempting to get main ViewModel instance (logic inspired by original parser.js).");
+	let mainEntryPointInstance = null;
+	let mainEntryPointBlueprintDef = null; // This will be the Rive ViewModelDefinition
+	let suggestedInstanceName = "DefaultArtboardVmInstance";
 
-	// The original parser.js used riveInstance.artboard to know which artboard was default,
-	// then riveInstance.defaultViewModel() to get its blueprint, then tried to get an instance.
-	const activeArtboard = riveInstance.artboard; // The artboard currently active on the Rive instance
+	const activeArtboard = riveInstance.artboard; // Rive ArtboardInstance
 
-	if (!activeArtboard) {
-		console.warn("[vmOrchestrator] No active artboard found on riveInstance. Cannot determine default ViewModel to parse.");
-	} else {
+	if (activeArtboard) {
 		console.log(`[vmOrchestrator] Active artboard: '${activeArtboard.name}'. Attempting to get its default ViewModel blueprint.`);
-
-		// Try getting the default ViewModelDefinition from the Rive instance itself.
-		// This assumes defaultViewModel() is a method on the main Rive instance, as per parser.js inspection.
 		if (typeof riveInstance.defaultViewModel === 'function') {
-			try {
-				mainVmBlueprint = riveInstance.defaultViewModel(); // This should be a ViewModelDefinition
+			mainEntryPointBlueprintDef = riveInstance.defaultViewModel(); // Should return a Rive ViewModelDefinition
 
-				if (mainVmBlueprint && mainVmBlueprint.name) {
-					console.log(`[vmOrchestrator] Successfully obtained default ViewModel blueprint: '${mainVmBlueprint.name}' for active artboard '${activeArtboard.name}'.`);
-					mainVmInstanceName = mainVmBlueprint.name; // Use blueprint name as default instance name
+			if (mainEntryPointBlueprintDef && mainEntryPointBlueprintDef.name) {
+				console.log(`[vmOrchestrator] Default ViewModel blueprint for artboard '${activeArtboard.name}' is '${mainEntryPointBlueprintDef.name}'.`);
+				suggestedInstanceName = mainEntryPointBlueprintDef.name; // Default to blueprint name
 
-					// Attempt 1: Check riveInstance.viewModelInstance (object property) - direct instance binding
-					// This is if a VM was specified in Rive constructor and autobind=true made it directly available.
-					console.log(`[vmOrchestrator] Checking riveInstance.viewModelInstance (type: ${typeof riveInstance.viewModelInstance})`);
-					if (riveInstance.viewModelInstance && 
-						typeof riveInstance.viewModelInstance === 'object' && 
-						riveInstance.viewModelInstance.source && 
-						riveInstance.viewModelInstance.source.name === mainVmBlueprint.name) {
-						
-						mainVmInstance = riveInstance.viewModelInstance;
-						mainVmInstanceName = mainVmInstance.name || `${mainVmBlueprint.name}_instance_from_property`;
-						console.log(`[vmOrchestrator] Success: Main VM instance found via riveInstance.viewModelInstance property. Instance name: '${mainVmInstanceName}'.`);
+				// Attempt 1: Check if riveInstance.viewModelInstance is this default, auto-bound instance
+				if (riveInstance.viewModelInstance && 
+					typeof riveInstance.viewModelInstance === 'object' && 
+					riveInstance.viewModelInstance.source && 
+					riveInstance.viewModelInstance.source.name === mainEntryPointBlueprintDef.name) {
+					
+					mainEntryPointInstance = riveInstance.viewModelInstance;
+					suggestedInstanceName = mainEntryPointInstance.name || `${mainEntryPointBlueprintDef.name}_autobound`;
+					console.log(`[vmOrchestrator] Found main instance via riveInstance.viewModelInstance matching default blueprint: '${suggestedInstanceName}'.`);
+				
+				// Attempt 2: If not directly bound or doesn't match, try getting default instance from the blueprint
+				} else if (typeof mainEntryPointBlueprintDef.defaultInstance === 'function') {
+					console.log(`[vmOrchestrator] riveInstance.viewModelInstance not the one, or no .source. Trying ${mainEntryPointBlueprintDef.name}.defaultInstance().`);
+					mainEntryPointInstance = mainEntryPointBlueprintDef.defaultInstance();
+					if (mainEntryPointInstance) {
+						suggestedInstanceName = mainEntryPointInstance.name || `${mainEntryPointBlueprintDef.name}_fromDefaultInstance`;
+						console.log(`[vmOrchestrator] Found main instance via ${mainEntryPointBlueprintDef.name}.defaultInstance(): '${suggestedInstanceName}'.`);
 					} else {
-						console.log("[vmOrchestrator] riveInstance.viewModelInstance property is not the direct instance or doesn't match blueprint. Trying blueprint.defaultInstance().");
-						// Attempt 2: Try to get an instance from the blueprint's defaultInstance() method
-						if (typeof mainVmBlueprint.defaultInstance === 'function') {
-							mainVmInstance = mainVmBlueprint.defaultInstance();
-							if (mainVmInstance) {
-								mainVmInstanceName = mainVmInstance.name || `${mainVmBlueprint.name}_instance_from_defaultInstance`;
-								console.log(`[vmOrchestrator] Success: Main VM instance found via mainVmBlueprint.defaultInstance(). Instance name: '${mainVmInstanceName}'.`);
-							} else {
-								console.warn("[vmOrchestrator] mainVmBlueprint.defaultInstance() did not return an instance.");
-							}
-						} else {
-							console.warn("[vmOrchestrator] mainVmBlueprint.defaultInstance is not a function.");
-						}
+						console.warn(`[vmOrchestrator] Call to ${mainEntryPointBlueprintDef.name}.defaultInstance() did not return an instance.`);
+						mainEntryPointBlueprintDef = null; // Clear blueprint if instance cannot be obtained
 					}
 				} else {
-					console.warn("[vmOrchestrator] riveInstance.defaultViewModel() did not return a valid blueprint or blueprint has no name.");
+					console.warn(`[vmOrchestrator] Default VM blueprint '${mainEntryPointBlueprintDef.name}' does not have a .defaultInstance() method.`);
+					mainEntryPointBlueprintDef = null; // Clear blueprint if instance cannot be obtained
 				}
-			} catch (e) {
-				console.error("[vmOrchestrator] Error calling riveInstance.defaultViewModel():", e);
+			} else {
+				console.warn("[vmOrchestrator] riveInstance.defaultViewModel() did not return a valid blueprint or blueprint has no name.");
 			}
 		} else {
-			console.warn("[vmOrchestrator] riveInstance.defaultViewModel is not a function. Cannot get default blueprint.");
+			console.warn("[vmOrchestrator] riveInstance.defaultViewModel is not a function. Cannot get default blueprint for active artboard.");
 		}
+	} else {
+		console.warn("[vmOrchestrator] No active artboard found (riveInstance.artboard is null/undefined). Cannot determine default ViewModel to parse.");
 	}
 
-	// If a main ViewModel instance and its blueprint were found, parse it recursively
-	if (mainVmInstance && mainVmBlueprint) {
-		console.log(`[vmOrchestrator] Parsing main VM instance: '${mainVmInstanceName}' (Blueprint: '${mainVmBlueprint.name}')`);
-		parsedDefaultVmInstance = parseViewModelInstanceRecursive(
-			mainVmInstance,
-			mainVmInstanceName,
-			mainVmBlueprint,
-			allAnalyzedBlueprints, // Context of all known blueprints
-			riveInstance
+	// If a main entry point instance and its blueprint definition were found, parse it recursively
+	if (mainEntryPointInstance && mainEntryPointBlueprintDef) {
+		console.log(`[vmOrchestrator] Parsing entry point instance: '${suggestedInstanceName}' (Blueprint Definition: '${mainEntryPointBlueprintDef.name}')`);
+		parseViewModelInstanceRecursive(
+			mainEntryPointInstance,         // The Rive ViewModelInstance to parse
+			suggestedInstanceName,        // Name for output
+			mainEntryPointBlueprintDef,   // The Rive ViewModelDefinition for this instance
+			allViewModelDefinitionsAndInstances, // The global list for updates and context
+			riveInstance                  // The Rive runtime
 		);
 	} else {
-		console.warn('[vmOrchestrator] Could not determine a main ViewModel instance and/or its blueprint to parse for the active artboard.');
+		console.warn("[vmOrchestrator] Could not determine a main entry point ViewModel instance to start parsing. Instance list may be empty or incomplete.");
 	}
 
 	return {
-		allAnalyzedBlueprints,
-		parsedDefaultVmInstance,
+		allViewModelDefinitionsAndInstances,
 	};
 }

@@ -85,46 +85,46 @@ export function handleNestedViewModelProperty(parentVmInstance, propDecl, allAna
 					return { instanceName: outputInstanceName, error: "Cannot attempt fingerprint matching." };
 				}
 			}
+
+			// If we have a blueprint, proceed to parse the nested instance
+			if (nestedVmBlueprint) {
+				console.log(`[processNestedViewModel] Blueprint '${nestedVmBlueprint.name}' found for nested VM '${nestedVmPropertyName}' (Instance: '${outputInstanceName}'). Proceeding to recursive parse.`);
+
+				const nestedParsedResult = recursiveParseFunc(
+					nestedVmInstance,
+					outputInstanceName, // Pass the property name as the suggested instance name for the output
+					nestedVmBlueprint,  // This is the ViewModelDefinition for the nested VM
+					allAnalyzedBlueprints,
+					rive
+				);
+
+				// The recursiveParseFunc is expected to return a fully parsed object like:
+				// { instanceNameForOutput, blueprintName, properties, nestedViewModels }
+				// We want to ensure the instanceName in our list is the property name.
+				// The blueprintName should already be correct from the recursive call.
+				return {
+					instanceName: outputInstanceName, // This is the key/property name on the parent
+					blueprintName: nestedVmBlueprint.name, // Ensure this is from the identified blueprint
+					...nestedParsedResult // Spread the rest of the parsed data (properties, nested VMs etc.)
+				};
+
+			} else {
+				console.warn(`[processNestedViewModel] Could not determine blueprint for nested VM '${nestedVmPropertyName}' (Instance: '${outputInstanceName}').`);
+				return { instanceName: outputInstanceName, error: "Could not determine blueprint for nested VM.", blueprint: null };
+			}
+
 		} else {
 			console.warn(`[processNestedViewModel] Nested VM instance is null for property '${nestedVmPropertyName}'.`);
-			return { instanceName: outputInstanceName, error: "Nested VM instance is null." };
+			return { instanceName: outputInstanceName, error: "Nested VM instance is null.", blueprint: null };
 		}
 	} catch (error) {
 		console.error(`[processNestedViewModel] Error handling nested VM property '${nestedVmPropertyName}':`, error);
-		return { instanceName: outputInstanceName, error: "Error handling nested VM property." };
+		return { instanceName: outputInstanceName, error: `Error handling nested VM property: ${error.message}`, blueprint: null };
 	}
 
-	// If a nestedVmBlueprint was found, recursively parse it.
-	if (nestedVmInstance && nestedVmBlueprint) {
-		console.log(`[processNestedViewModel] Found blueprint. Recursively parsing nested instance '${outputInstanceName}' with blueprint '${nestedVmBlueprint.name}'.`);
-		return recursiveParseFunc(
-			nestedVmInstance,
-			outputInstanceName, // This is propDecl.name
-			nestedVmBlueprint,
-			allAnalyzedBlueprints,
-			rive // Pass the Rive instance along
-		);
-	} else if (nestedVmInstance && !nestedVmBlueprint) {
-		// Instance exists, but blueprint could not be determined after all strategies.
-		const riveNestedInstanceNameForError = nestedVmInstance.name; // Capture before potential modification
-		console.warn(`[processNestedViewModel] CRITICAL: Nested VM instance '${outputInstanceName}' (Rive name '${riveNestedInstanceNameForError || 'undefined'}') exists BUT its blueprint could NOT be determined after all strategies.`);
-		return {
-			instanceName: outputInstanceName,
-			sourceBlueprintName: `Error_Blueprint_Not_Found_For_Instance_${riveNestedInstanceNameForError || 'undefined'}`,
-			inputs: [],
-			nestedViewModels: [],
-			error: "Blueprint not found for nested instance."
-		};
-	} else {
-		// This case implies nestedVmInstance was null, which should have been handled earlier and returned.
-		// Or, if somehow nestedVmBlueprint is set but nestedVmInstance is not (highly unlikely path).
-		console.warn(`[processNestedViewModel] Could not parse nested VM '${outputInstanceName}'. Instance was null or blueprint determined without instance.`);
-		return {
-			instanceName: outputInstanceName,
-			sourceBlueprintName: 'Error_Instance_Was_Null_Or_Blueprint_Found_Without_Instance',
-			inputs: [],
-			nestedViewModels: [],
-			error: "Nested instance was null, or blueprint found without an instance."
-		};
-	}
+	// This part should ideally not be reached if logic above is complete.
+	// However, as a fallback, if somehow nestedVmBlueprint was identified but parsing didn't return:
+	// This was the original return, which is insufficient.
+	// console.warn(`[processNestedViewModel] Fallback return for '${nestedVmPropertyName}'. This might indicate an issue.`);
+	// return { instanceName: outputInstanceName, blueprint: nestedVmBlueprint, error: "Reached fallback return, recursive parse might have been skipped." };
 }

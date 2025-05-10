@@ -14,7 +14,25 @@ import { handleNestedViewModelProperty } from './processNestedViewModel.js';
  * @returns {object} A structured object representing the parsed ViewModel instance.
  */
 export function parseViewModelInstanceRecursive(vmInstanceObj, instanceNameForOutput, sourceBlueprint, allFoundViewModelDefinitions, rive) {
-	console.log(`[vmInstanceParserRecursive] Parsing instance: '${instanceNameForOutput}', Blueprint: '${sourceBlueprint ? sourceBlueprint.name : 'UnknownBlueprint'}'`);
+	let finalInstanceName = instanceNameForOutput;
+
+	if (vmInstanceObj && sourceBlueprint) {
+		const riveInstanceName = vmInstanceObj.name; // Name of this specific instance in Rive (from editor)
+
+		// Condition A: Is it the sole instance of its definition globally in the Rive file?
+		// sourceBlueprint is ViewModelDefinition. It should have instanceCount.
+		const isSoleDefinedInstance = (typeof sourceBlueprint.instanceCount === 'number' && sourceBlueprint.instanceCount === 1);
+
+		// Condition B: Is this specific Rive instance's name (from editor) an empty string?
+		const isRiveInstanceNameEmpty = (riveInstanceName === '');
+
+		// If it's the sole instance defined for its blueprint, OR if its specific Rive editor name is empty, use "Instance".
+		if (isSoleDefinedInstance || isRiveInstanceNameEmpty) {
+			finalInstanceName = "Instance";
+		}
+	} // If vmInstanceObj or sourceBlueprint is null, finalInstanceName remains instanceNameForOutput
+
+	console.log(`[vmInstanceParserRecursive] Parsing instance. Suggested: '${instanceNameForOutput}', Final: '${finalInstanceName}', Blueprint: '${sourceBlueprint ? sourceBlueprint.name : 'UnknownBlueprint'}'`);
 	if (sourceBlueprint) {
 		console.log("[vmInstanceParserRecursive] Inspecting received sourceBlueprint:", sourceBlueprint);
 		console.log("[vmInstanceParserRecursive] Keys on sourceBlueprint:", Object.keys(sourceBlueprint));
@@ -29,7 +47,7 @@ export function parseViewModelInstanceRecursive(vmInstanceObj, instanceNameForOu
 	}
 
 	const parsedInstance = {
-		instanceName: instanceNameForOutput,
+		instanceName: finalInstanceName,
 		blueprintName: sourceBlueprint ? sourceBlueprint.name : 'Unknown Blueprint',
 		properties: [],
 		nestedViewModels: [],
@@ -93,5 +111,32 @@ export function parseViewModelInstanceRecursive(vmInstanceObj, instanceNameForOu
 			parsedInstance.properties.push(inputPropertyResult);
 		}
 	}
+
+	// After fully parsing this instance (including its own nested VMs),
+	// add it to the `instances` array of its blueprint in the global list.
+	if (sourceBlueprint && sourceBlueprint.name && allFoundViewModelDefinitions) {
+		const targetBlueprintEntry = allFoundViewModelDefinitions.find(
+			bp => bp.blueprintName === sourceBlueprint.name
+		);
+		if (targetBlueprintEntry) {
+			// Avoid adding duplicates if this instance (by name) is already there
+			// This is a simple check; more robust might be needed if instance names aren't unique within a blueprint scope
+			// or if an instance could be processed multiple times by direct calls to this function (unlikely with current orchestrator).
+			const alreadyExists = targetBlueprintEntry.instances.some(
+				inst => inst.instanceName === parsedInstance.instanceName
+			);
+			if (!alreadyExists) {
+				targetBlueprintEntry.instances.push(parsedInstance);
+				console.log(`[vmInstanceParserRecursive] Added instance '${parsedInstance.instanceName}' to blueprint '${sourceBlueprint.name}' in global list.`);
+			} else {
+				console.log(`[vmInstanceParserRecursive] Instance '${parsedInstance.instanceName}' (Blueprint: '${sourceBlueprint.name}') already in global list. Skipping add.`);
+			}
+		} else {
+			console.warn(`[vmInstanceParserRecursive] Could not find blueprint '${sourceBlueprint.name}' in allFoundViewModelDefinitions to add parsed instance '${parsedInstance.instanceName}'.`);
+		}
+	} else {
+		console.warn(`[vmInstanceParserRecursive] Cannot add parsed instance '${parsedInstance.instanceName}' to global list due to missing sourceBlueprint, name, or definitions list.`);
+	}
+
 	return parsedInstance;
 }

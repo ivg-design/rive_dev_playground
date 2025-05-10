@@ -6,7 +6,8 @@
  * @param {object} rive - The Rive runtime instance (currently unused, but for future API consistency).
  * @returns {object} A structured blueprint object:
  *                   { blueprintName, rawDef, properties (non-VM inputs), fingerprint, 
- *                     instanceNamesFromDefinition (VM property names), instanceCountFromDefinition (VM property count) }
+ *                     nestedViewModelPropertyNames (VM property names), nestedViewModelPropertyCount (VM property count),
+ *                     globalInstanceCount (global instance count), globalInstanceNames (global instance names) }
  */
 export function analyzeBlueprintFromDefinition(vmDefInput, rive) {
     const vmDef = vmDefInput.def; // RiveViewModelDefinition
@@ -15,8 +16,15 @@ export function analyzeBlueprintFromDefinition(vmDefInput, rive) {
         rawDef: vmDef,
         properties: [], // For non-VM input properties (number, string, boolean, color, enum, trigger)
         fingerprint: '',
-        instanceNamesFromDefinition: [], // Names of properties that ARE themselves ViewModels
-        instanceCountFromDefinition: 0,  // Count of such ViewModel properties
+        
+        // Properties describing nested ViewModels *defined by this blueprint*
+        nestedViewModelPropertyNames: [], // Names of properties that ARE themselves ViewModels (previously instanceNamesFromDefinition)
+        nestedViewModelPropertyCount: 0,  // Count of such ViewModel properties (previously instanceCountFromDefinition)
+
+        // Properties describing how this blueprint *itself* is instanced globally in the Rive file
+        // (These come directly from the Rive ViewModelDefinition object like vmDef.instanceCount)
+        globalInstanceCount: (vmDef && typeof vmDef.instanceCount === 'number') ? vmDef.instanceCount : 0,
+        globalInstanceNames: (vmDef && Array.isArray(vmDef.instanceNames)) ? [...vmDef.instanceNames] : [],
     };
 
     const allPropsForFingerprint = [];
@@ -87,8 +95,10 @@ export function analyzeBlueprintFromDefinition(vmDefInput, rive) {
 
     blueprintOutputEntry.properties = inputProps;
     blueprintOutputEntry.fingerprint = allPropsForFingerprint.map((p) => `${p.name}:${p.type}`).join('|');
-    blueprintOutputEntry.instanceNamesFromDefinition = nestedVmPropertyNames;
-    blueprintOutputEntry.instanceCountFromDefinition = nestedVmPropertyNames.length;
+    
+    // Assign to the new clarified keys for nested VM properties
+    blueprintOutputEntry.nestedViewModelPropertyNames = nestedVmPropertyNames;
+    blueprintOutputEntry.nestedViewModelPropertyCount = nestedVmPropertyNames.length;
     
     return blueprintOutputEntry;
 }

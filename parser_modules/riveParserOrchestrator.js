@@ -125,24 +125,34 @@ export function parseRiveFile(riveEngine, riveFileBuffer, artboardNameForSmCalib
 					}
 
 					const globalEnums = parseGlobalEnums(riveInstanceToUse, riveFile);
-					const { allAnalyzedBlueprints, parsedDefaultVmInstance } = orchestrateViewModelParsing(riveFile, riveInstanceToUse);
+					const { allViewModelDefinitionsAndInstances } = orchestrateViewModelParsing(riveFile, riveInstanceToUse);
 
 					// Log the structure of riveInstanceToUse.contents for debugging SM input parsing
 					console.log('[RiveParserOrchestrator] riveInstanceToUse.contents:', JSON.stringify(riveInstanceToUse.contents, null, 2));
 
-					const artboards = parseArtboards(riveFile, riveInstanceToUse, parsedDefaultVmInstance, dynamicSmInputTypeMap);
+					// The `parsedDefaultVmInstance` is no longer a separate top-level item, 
+					// instances are within allViewModelDefinitionsAndInstances.
+					// The parseArtboards function might need to be revisited if it relied on a single defaultVmInstance structure.
+					// For now, we'll pass null or a relevant part if parseArtboards specifically needs one instance.
+					// Let's find the "Diagram" instance if it exists, as a placeholder for previous parsedDefaultVmInstance logic.
+					let diagramInstanceForArtboardParser = null;
+					if (allViewModelDefinitionsAndInstances) {
+						const diagramBlueprint = allViewModelDefinitionsAndInstances.find(def => def.blueprintName === 'Diagram');
+						if (diagramBlueprint && diagramBlueprint.instances && diagramBlueprint.instances.length > 0) {
+							// Find an instance named "Instance" or take the first one.
+							diagramInstanceForArtboardParser = diagramBlueprint.instances.find(inst => inst.instanceName === 'Instance') || diagramBlueprint.instances[0];
+						}
+					}
+
+					const artboards = parseArtboards(riveFile, riveInstanceToUse, diagramInstanceForArtboardParser, dynamicSmInputTypeMap);
 					const assets = collectedAssets;
 
 					const result = {
 						artboards,
 						assets,
-						allViewModelDefinitionsAndInstances: allAnalyzedBlueprints.map((bp) => ({
-							blueprintName: bp.blueprintName,
-							blueprintProperties: bp.properties,
-							instanceNamesFromDefinition: bp.instanceNamesFromDefinition,
-							instanceCountFromDefinition: bp.instanceCountFromDefinition,
-							parsedInstances: [],
-						})),
+						// Directly use the already structured allViewModelDefinitionsAndInstances
+						// This array now contains blueprint objects, each with its blueprintProperties and a populated `instances` array.
+						allViewModelDefinitionsAndInstances: allViewModelDefinitionsAndInstances, 
 						globalEnums,
 					};
 
