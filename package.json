@@ -1,0 +1,18 @@
+{
+  "name": "rive-tester",
+  "version": "1.0.0",
+  "description": "A testing environment for Rive animations",
+  "type": "module",
+  "scripts": {
+    "test": "node test.js",
+    "dev": "node test.js --watch"
+  },
+  "dependencies": {
+    "@rive-app/canvas": "^2.27.2",
+    "@rive-app/webgl2": "^2.27.2",
+    "chalk": "^5.3.0",
+    "express": "^4.18.2",
+    "puppeteer": "^24.8.2",
+    "ws": "^8.16.0"
+  }
+}
