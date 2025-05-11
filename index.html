@@ -4,305 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rive Parser Test</title>
-    <!-- REMOVE JsonTree.js CSS -->
-    <!-- <link rel="stylesheet" href="./node_modules/jjsontree.js/dist/jsontree.js.css"> -->
-    <!-- <link rel="stylesheet" href="./node_modules/jjsontree.js/dist/themes/dark/jsontree.js.default.theme.css"> -->
     
-    <!-- ADD JSONEditor CSS -->
+    <!-- JSONEditor CSS -->
     <link href="./node_modules/jsoneditor/dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
-
-    <style>
-        /* JSONEditor Dark Theme CSS from examples */
-        /* dark styling of the editor */
-        div.jsoneditor,
-        div.jsoneditor-menu {
-          border-color: #4b4b4b;
-        }
-        div.jsoneditor-menu {
-          background-color: #4b4b4b;
-        }
-        div.jsoneditor-tree,
-        div.jsoneditor textarea.jsoneditor-text {
-          background-color: #666666;
-          color: #ffffff;
-        }
-        div.jsoneditor-field,
-        div.jsoneditor-value {
-          color: #ffffff;
-        }
-        table.jsoneditor-search div.jsoneditor-frame {
-          background: #808080;
-        }
-        tr.jsoneditor-highlight,
-        tr.jsoneditor-selected {
-          background-color: #808080;
-        }
-        div.jsoneditor-field[contenteditable=true]:focus,
-        div.jsoneditor-field[contenteditable=true]:hover,
-        div.jsoneditor-value[contenteditable=true]:focus,
-        div.jsoneditor-value[contenteditable=true]:hover,
-        div.jsoneditor-field.jsoneditor-highlight,
-        div.jsoneditor-value.jsoneditor-highlight {
-          background-color: #808080;
-          border-color: #808080;
-        }
-        div.jsoneditor-field.highlight-active,
-        div.jsoneditor-field.highlight-active:focus,
-        div.jsoneditor-field.highlight-active:hover,
-        div.jsoneditor-value.highlight-active,
-        div.jsoneditor-value.highlight-active:focus,
-        div.jsoneditor-value.highlight-active:hover {
-          background-color: #b1b1b1;
-          border-color: #b1b1b1;
-        }
-        div.jsoneditor-tree button:focus {
-          background-color: #868686;
-        }
-
-        /* coloring of JSON in tree mode */
-        div.jsoneditor-readonly {
-          color: #acacac;
-        }
-        div.jsoneditor td.jsoneditor-separator {
-          color: #acacac;
-        }
-        div.jsoneditor-value.jsoneditor-string {
-          color: #00ff88;
-        }
-        div.jsoneditor-value.jsoneditor-object,
-        div.jsoneditor-value.jsoneditor-array {
-          color: #bababa;
-        }
-        div.jsoneditor-value.jsoneditor-number {
-          color: #ff4040;
-        }
-        div.jsoneditor-value.jsoneditor-boolean {
-          color: #ff8048;
-        }
-        div.jsoneditor-value.jsoneditor-null {
-          color: #49a7fc;
-        }
-        div.jsoneditor-value.jsoneditor-invalid {
-          color: white; /* Rider does not seem to have its own invalid color, so it falls back to the default of white */
-        }
-        /* End JSONEditor Dark Theme CSS */
-
-        html, body { 
-            height: 100%; /* Ensure html and body take full height */
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden; /* Prevent horizontal scroll on body */
-            box-sizing: border-box;
-            height: 100vh; /* Ensure body takes full viewport height */
-        }
-        body { 
-            font-family: sans-serif; 
-            padding: 20px; 
-            background-color: #1e1e1e; /* Dark background */
-            color: #d4d4d4; /* Light text */
-            display: flex;
-            flex-direction: column;
-        }
-        h1 { 
-            color: #4a90e2; /* Brighter color for heading */
-            border-bottom: 1px solid #444;
-            padding-bottom: 10px;
-            margin-top: 0;
-            flex-shrink: 0;
-        }
-        #controls { 
-            margin-bottom: 20px; 
-            padding: 15px; 
-            background-color: #2a2a2a; /* Slightly lighter dark for controls */
-            border-radius: 8px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5); 
-            border: 1px solid #444;
-            flex-shrink: 0; /* Prevent controls from shrinking */
-        }
-        #parserChoiceContainer { 
-            margin-bottom: 15px; 
-            padding-bottom: 15px; 
-            border-bottom: 1px solid #444; 
-        }
-        #parserChoiceContainer strong { 
-            display: block; 
-            margin-bottom: 5px; 
-            color: #c8c8c8;
-        }
-        #parserChoiceContainer input { margin-right: 5px; }
-        #parserChoiceContainer label { margin-right: 15px; color: #b0b0b0; }
-        #riveFilePickerLabel { 
-            display: block; 
-            margin-bottom: 10px; 
-            font-weight: bold; 
-            color: #c8c8c8;
-        }
-        #riveFilePicker { 
-            padding: 8px; 
-            border-radius: 4px; 
-            border: 1px solid #555; 
-            margin-bottom: 10px; 
-            background-color: #333;
-            color: #d4d4d4;
-        }
-        #calibrationInputs { 
-            margin-top:10px; 
-            padding:10px; 
-            border:1px dashed #555; 
-            border-radius: 4px;
-            background-color: #252525;
-        }
-        #calibrationInputs p { color: #aaa; margin-bottom: 8px; }
-        #calibrationInputs label { margin-right: 5px; color: #b0b0b0; }
-        #calibrationInputs input { 
-            margin-right: 15px; 
-            padding: 5px; 
-            border-radius: 3px; 
-            border: 1px solid #555;
-            background-color: #333;
-            color: #d4d4d4;
-        }
-        #outputContainer { 
-            /* margin-top: 20px; Removed, let flexbox handle spacing or use padding on body */
-            display: flex; 
-            flex-direction: row;
-            gap: 20px; 
-            flex-grow: 1; /* Takes remaining vertical space */
-            overflow: hidden; /* RESTORING this */
-            /* height: calc(100vh - 250px); /* Let flex-grow manage height */
-        }
-        #rive-canvas {
-            border: 1px solid #444; 
-            width: 30vw; 
-            height: 500px; /* Or a vh value if you prefer */
-            background-color: #252525; 
-            flex-shrink: 0; 
-        }
-        #output { /* Container for JSONEditor */
-            width: 70vw; 
-            height: 100%; /* JSONEditor will fill this */
-            /* overflow-y: auto; /* JSONEditor usually handles its own scrolling */
-            border: 1px solid #444;
-            border-radius: 8px;
-            background-color: #2a2a2a; /* Background for the container */
-            box-sizing: border-box;
-            /* max-width: none !important; /* May not be needed for JSONEditor */
-        }
-        /* Remove JsonTree.js specific overrides */
-        /* #output div.json-tree-js { 
-            width: 100% !important;
-            max-width: none !important; 
-            display: block !important; 
-            box-sizing: border-box !important;
-        } */
-
-        /* Style for JSONEditor itself if needed, e.g., to blend with dark theme */
-        div.jsoneditor {
-            border: none; /* Remove default border if it conflicts with #output border */
-        }
-        div.jsoneditor-menu {
-            background-color: #3c3c3c; /* Darker menu bar */
-            border-bottom: 1px solid #444;
-        }
-        div.jsoneditor-menu > button, div.jsoneditor-menu > div.jsoneditor-modes > button {
-            color: #d4d4d4;
-        }
-        div.jsoneditor-search div.jsoneditor-frame {
-            background-color: #333;
-        }
-        div.jsoneditor-search input {
-            background-color: #252525;
-            color: #d4d4d4;
-            border: 1px solid #555;
-        }
-        /* Add more specific dark theme overrides for jsoneditor as needed */
-
-        .log-message { 
-            font-style: italic; 
-            color: #888; 
-            /* margin-bottom: 5px; */
-            margin-top: 15px; /* Added from inline style */
-            text-align: center; /* Added from inline style */
-            flex-shrink: 0; 
-        }
-    </style>
+    <!-- Link to our custom stylesheet -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="jsoneditor-dark">
-    <h1>Rive File Parser</h1>
+    <div id="main-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Rive File Parser</h1>
+        <button id="toggleViewBtn" style="padding: 8px 15px; margin-left: 20px;">Show Parsed Data Inspector</button>
+    </div>
 
-    <div id="controls">
-        <!-- REMOVE ParserChoiceContainer -->
-        <!-- <div id="parserChoiceContainer" style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #444;">
-            <strong>Choose Parser:</strong><br>
-            <input type="radio" name="parserChoice" value="modular" id="radioModular" style="margin-left: 5px; margin-right: 3px;">
-            <label for="radioModular" style="margin-right: 15px;">Modular Parser (Currently Not Active)</label>
-            <br>
-            <input type="radio" name="parserChoice" value="original" id="radioOriginal" checked style="margin-left: 5px; margin-right: 3px;">
-            <label for="radioOriginal">Original parser.js (uses selected file, or internal default if none selected)</label>
-        </div> -->
+    <!-- View for Live Dynamic Controls (Initially Visible) -->
+    <div id="liveControlsView">
+        <div id="liveControlsHeader" style="margin-bottom: 15px;">
+            <label id="riveFilePickerLabel" for="riveFilePicker">Select a .riv file to parse & control:</label>
+            <input type="file" id="riveFilePicker" accept=".riv">
+        </div>
 
-        <label id="riveFilePickerLabel" for="riveFilePicker">Select a .riv file to parse:</label>
-        <input type="file" id="riveFilePicker" accept=".riv">
+        <div id="liveViewLayout" style="display: flex; flex-direction: row; gap: 20px; flex-grow: 1; overflow: hidden;">
+            <canvas id="rive-canvas" style="width: 70vw; /* Or adjust */ height: 100%; border: 1px solid #444; background-color: #252525;"></canvas> 
+            <div id="dynamicControlsContainer" style="width: 30vw; /* Or adjust */ height: 100%; border: 1px solid #444; padding: 10px; background-color: #2a2a2a; overflow-y: auto;">
+                <p>(Dynamic Controls Will Appear Here)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- View for Parser Data Inspector (Initially Hidden) -->
+    <div id="parserInspectorView" style="display: none;">
+        <!-- REMOVED #controls div as file picker moved -->
         
-        <!-- The calibrationInputs div was removed by user in a previous step, keeping it that way -->
-        <!-- <div id="calibrationInputs">
-            <p>Optional: For State Machine Input Type Calibration (if numeric types are not 56,58,59)</p>
-            <label for="artboardName">Artboard Name:</label>
-            <input type="text" id="artboardNameForSmCalibration" placeholder="Artboard for SM Calibration">
-            <label for="smName">SM Name:</label>
-            <input type="text" id="smNameForSmCalibration" placeholder="State Machine for Calibration">
-        </div> -->
+        <!-- outputContainer will now only hold the jsoneditor -->
+        <div id="inspectorOutputContainer" style="height: calc(100vh - 150px); /* Adjust based on header/buttons */">
+            <div id="output"></div> <!-- JSONEditor goes here -->
+        </div>
+        
+        <p class="log-message" id="statusMessage">Please select a Rive file to begin parsing.</p>
+        <button id="closeInspectorBtn" style="padding: 8px 15px; margin-top: 15px;">Back to Live Controls</button>
     </div>
-
-    <div id="outputContainer">
-        <canvas id="rive-canvas"></canvas> 
-        <div id="output" data-jsontree-js="bindingOptions"></div>
-    </div>
-    
-    <p class="log-message" id="statusMessage">Please select a Rive file to begin parsing.</p>
 
     <!-- Load the Rive runtime -->
-    <script src="./node_modules/@rive-app/webgl2/rive.js"></script> 
-    
-    <!-- REMOVE JsonTree.js -->
-    <!-- <script src="./node_modules/jjsontree.js/dist/jsontree.min.js"></script> -->
-
-    <!-- ADD JSONEditor JS -->
+    <script src="./node_modules/@rive-app/webgl2/rive.js"></script>
+    <!-- Link to our custom stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- JSONEditor JS (Ensure it's loaded before scripts that use it) -->
     <script src="./node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
 
-    <!-- Load the original parser.js (non-module) -->
-    <script src="parser.js"></script>
-
-    <!-- Load your main testing script as a module -->
-    <script type="module" src="main.js"></script>
-
-    <!-- DEBUG: Add a canvas if it doesn't exist, and directly call original parser -->
-    <!-- <canvas id="rive-canvas-debug" width="500" height="500" style="display: block; border: 1px solid red;"></canvas>
-    <script>
-        window.addEventListener('load', () => {
-            console.log("[DEBUG IndexHTML] Window loaded. Attempting to run original parser directly.");
-            const riveEngine = window.rive;
-            const canvasEl = document.getElementById('rive-canvas-debug');
-
-            if (!riveEngine) {
-                console.error("[DEBUG IndexHTML] Rive engine (window.rive) not found for direct call!");
-                return;
-            }
-            if (!canvasEl) {
-                console.error("[DEBUG IndexHTML] Canvas 'rive-canvas-debug' not found for direct call!");
-                return;
-            }
-            if (typeof runOriginalClientParser === 'function') {
-                try {
-                    // Force it to use its internal default path 'animations/diagram_v3.riv' by passing null
-                    runOriginalClientParser(riveEngine, canvasEl, null);
-                } catch (e) {
-                    console.error("[DEBUG IndexHTML] Error directly calling runOriginalClientParser:", e);
-                }
-            } else {
-                console.error("[DEBUG IndexHTML] runOriginalClientParser function not found for direct call. Ensure parser.js is loaded.");
-            }
-        });
-    </script> -->
+    <!-- Core Scripts -->
+    <script src="src/parser.js"></script>
+    <script type="module" src="src/riveParserHandler.js"></script>
+    <script type="module" src="src/riveControlInterface.js"></script>
 </body>
 </html> 

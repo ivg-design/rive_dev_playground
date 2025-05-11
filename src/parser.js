@@ -12,71 +12,76 @@
  * @param {object} riveEngine - The Rive runtime engine (e.g., window.rive).
  * @param {HTMLCanvasElement} canvasElement - The HTML canvas element to render the Rive animation on.
  * @param {string | null} riveFilePathFromParam - The path or URL to the .riv file. If null, uses a default path.
- * @param {function(Error | null, object | null): void} callback - The callback function to execute after parsing.
+ * @param {function(Error | null, object | null, object | null): void} callback - The callback function to execute after parsing.
  *   It receives an error object as the first argument (or null if no error),
- *   and the parsed Rive data object as the second argument (or null if an error occurred).
+ *   the parsed Rive data object as the second argument (or null if an error occurred),
+ *   and the live Rive instance as the third argument (or null if an error occurred before instantiation).
  */
 function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromParam, callback) {
 	/**
 	 * Default callback handler to log errors or data to the console if no specific callback is provided.
 	 * @param {Error | null} err - An error object if an error occurred, otherwise null.
 	 * @param {object | null} data - The parsed data object, or null if an error occurred.
+	 * @param {object | null} instance - The live Rive instance.
 	 */
 	const finalCallback =
 		callback ||
-		function (err, data) {
-			// Default callback
+		function (err, data, instance) {
 			if (err) console.error('[Original Parser Fallback CB] Error:', err);
-			// if (data) console.log("[Original Parser Fallback CB] Data:", data); // Keep this commented unless specifically debugging callback itself
+			// if (data) console.log("[Original Parser Fallback CB] Data:", data);
+			// if (instance) console.log("[Original Parser Fallback CB] Instance:", instance);
 		};
 
+	console.log("[Parser Entry] riveEngine received:", riveEngine);
+	console.log("[Parser Entry] canvasElement received:", canvasElement);
+	console.log("[Parser Entry] riveFilePathFromParam received:", riveFilePathFromParam);
+
 	// If riveEngine is not passed, try to use window.rive as a fallback
-	const riveToUse = riveEngine || window.rive;
+	const riveToUse = window.rive;
+	console.log("[Parser Internal] riveToUse resolved to:", riveToUse);
 
 	if (!riveToUse) {
 		const errorMsg = '[Original Parser] Rive runtime not loaded or provided';
 		console.error(errorMsg);
-		// if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ error: 'Rive runtime not loaded for original parser.' })); // Conditional WS
-		finalCallback({ error: errorMsg });
+		finalCallback({ error: errorMsg }, null, null); // Pass null for instance on early error
 		return;
 	}
 	// console.log('[Original Parser] Rive object:', riveToUse); // Optional: keep if useful for user
 
 	const collectedAssets = [];
-	const riveFileToLoad = riveFilePathFromParam || 'animations/diagram_v3.riv'; // Use parameter or fallback to hardcoded
+	const riveFileToLoad = 'animations/super_simple.riv'; // TEST: Force loading a known simple file
+	// console.log("[Parser Test] Forcing load of default file:", riveFileToLoad); // Old log
+	console.log("[Parser Test] Forcing load of super_simple.riv:", riveFileToLoad);
 
 	const canvas = canvasElement || document.getElementById('rive-canvas');
+	console.log("[Parser Internal] canvas (final element for Rive):", canvas);
 	if (!canvas) {
 		const errorMsg = "[Original Parser] Canvas element 'rive-canvas' not found or not provided.";
 		console.error(errorMsg);
-		// if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ error: "Canvas element 'rive-canvas' not found for original parser." })); // Conditional WS
-		finalCallback({ error: errorMsg });
+		finalCallback({ error: errorMsg }, null, null); // Pass null for instance on early error
 		return;
 	}
 	// console.log(`[Original Parser] Using canvas:`, canvas); // Optional
-	console.log(`[Original Parser] Attempting to load Rive file from src: '${riveFileToLoad}'`);
+	// console.log(`[Original Parser] Attempting to load Rive file from src: '${riveFileToLoad}'`); // Optional
 
-	// --- WebGL2 Renderer Check ---
-	// let rendererFactoryToUse = undefined;
-	// if (riveToUse.makeRendererWebGL2) {
-	// 	try {
-	// 		rendereiFactoryToUse = riveToUse.makeRendererWebGL2();
-	// 	} catch (e) {
-	// 		console.error("[Original Parser] Error creating WebGL2 renderer factory (will use default):", e);
-	// 		rendereiFactoryToUse = undefined; 
-	// 	}
-	// }
-
-	// Instantiate the Rive animator.
 	// We are using the @rive-app/webgl2 runtime, so it should use WebGL2 by default.
-	const riveInstance = new riveToUse.Rive({
+
+	// --- DEBUGGING RIVE CONSTRUCTOR INPUTS ---
+	console.log("[Parser Debug] About to instantiate Rive. src:", riveFileToLoad);
+	console.log("[Parser Debug] Canvas element:", canvas);
+	if (canvas) {
+		console.log("[Parser Debug] Canvas clientWidth:", canvas.clientWidth, "clientHeight:", canvas.clientHeight, "offsetParent:", canvas.offsetParent);
+	}
+	// --- END DEBUGGING ---
+
+	const riveOptions = {
 		src: riveFileToLoad,
 		canvas: canvas,
+		// artboard: 'Diagram', // TEST: Remove explicit artboard, rely on autobind
 		autobind: true,
 		autoplay: true,
-		// rendererFactory: rendererFactoryToUse, // REMOVED - Rely on @rive-app/webgl2 runtime default
-		assetLoader: (asset, bytes) => {
-			// console.log("[Original Parser] assetLoader called for:", asset.name); // Optional
+		assetLoader: (asset) => {
+			// console.log("[Parser] assetLoader (single arg) called for:", asset.name);
 			collectedAssets.push({
 				name: asset.name,
 				type: asset.type,
@@ -103,8 +108,7 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 			if (!riveFile) {
 				const errorMsg = 'Rive file object not available after load.';
 				console.error(errorMsg);
-				// if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(result)); // Conditional WS - though result might be empty
-				finalCallback({ error: errorMsg }, result); // Send partially formed result if any
+				finalCallback({ error: errorMsg }, result, riveInstance); // Pass instance even on partial error
 				return;
 			}
 
@@ -305,14 +309,12 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 			// --- Phase 1: List All ViewModel Blueprints ---
 			const allFoundViewModelDefinitions = [];
 			let vmdIndex = 0;
-
-			// Get count from riveInstance.file but fetch definitions from riveInstance directly if possible
-			const vmDefinitionCount = riveFile && typeof riveFile.viewModelCount === 'function' ? riveFile.viewModelCount() : 0;
-
-			// console.log(`[Original Parser] Found ${vmDefinitionCount} ViewModel definitions according to riveFile.viewModelCount().`);
-
+			const vmDefinitionCount = (riveFile && typeof riveFile.viewModelCount === 'function') 
+									? riveFile.viewModelCount() 
+									: 0;
+			// console.log(`[Original Parser] Found ${vmDefinitionCount} ViewModel definitions...`); // Optional debug
 			if (typeof riveInstance.viewModelByIndex === 'function') {
-				// console.log("[Original Parser] Using riveInstance.viewModelByIndex() to fetch definitions.");
+				// console.log("[Original Parser] Using riveInstance.viewModelByIndex() to fetch definitions."); // Optional debug
 				for (vmdIndex = 0; vmdIndex < vmDefinitionCount; vmdIndex++) {
 					try {
 						const vmDef = riveInstance.viewModelByIndex(vmdIndex);
@@ -352,33 +354,10 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 					}
 				}
 			} else {
-				console.error('riveFile.viewModelByIndex is not a function. Cannot parse ViewModel definitions.');
+				console.error('Cannot parse ViewModel definitions: no viewModelByIndex method found on Rive instance or file.');
 			}
 
-			// Pre-loop test for structure of viewModelByIndex(1) from riveFile
-			if (riveFile && typeof riveFile.viewModelByIndex === 'function') {
-				try {
-					const testVmDefFromFile = riveFile.viewModelByIndex(1); // Get the second one (index 1)
-					if (testVmDefFromFile) {
-						// console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1).name:", testVmDefFromFile.name);
-						// console.log("[Original Parser - PreLoopTest] typeof riveFile.viewModelByIndex(1).properties:", typeof testVmDefFromFile.properties);
-						if (testVmDefFromFile.properties && Array.isArray(testVmDefFromFile.properties)) {
-							// console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1).properties IS an array. Length:", testVmDefFromFile.properties.length, testVmDefFromFile.properties);
-						} else {
-							// console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1).properties IS NOT an array.");
-						}
-						// console.log("[Original Parser - PreLoopTest] typeof riveFile.viewModelByIndex(1).propertyCount:", typeof testVmDefFromFile.propertyCount);
-						if (typeof testVmDefFromFile.propertyCount === 'number') {
-							// console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1).propertyCount VALUE:", testVmDefFromFile.propertyCount);
-						}
-					} else {
-						// console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1) returned null or undefined.");
-					}
-				} catch (e) {
-					console.error('[Original Parser - PreLoopTest] Error testing riveFile.viewModelByIndex(1):', e);
-				}
-			}
-
+			// Process each found ViewModel definition to extract its properties and create a fingerprint.
 			allFoundViewModelDefinitions.forEach((vmDefElement) => {
 				const vmDef = vmDefElement.def;
 				// console.log(`[Original Parser - BlueprintLoop] Processing blueprint for: '${vmDef.name}'`, vmDef);
@@ -567,13 +546,29 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 				globalEnums: result.globalEnums,
 				// Add any other top-level keys you expect from your parser
 			};
-			finalCallback(null, cleanResult);
+			finalCallback(null, cleanResult, riveInstance); // Pass the live riveInstance here
 		},
 		onError: (err) => {
-			const errorMsg = 'Error loading Rive file';
-			console.error(errorMsg + ':', err);
-			// if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ error: err.toString() })); // Conditional WS
-			finalCallback({ error: errorMsg, details: err.toString() });
+			const errorMsg = 'Problem loading file; may be corrupt!'; // More prominent error message
+			console.error(`[Parser Rive Error] ${errorMsg}`, err); 
+			console.error("[Parser Rive Error] Options used for new Rive():", JSON.stringify(riveOptions, null, 2)); // Log options on error
+			finalCallback({ error: errorMsg, details: err.toString() }, null, null); // Pass null for instance on load error
 		},
+	};
+
+	console.log("[Parser Pre-Init] Options for new Rive (exampleIndex.mjs inspired):");
+	// Custom logger for options because functions won't stringify well
+	Object.keys(riveOptions).forEach(key => {
+		if (typeof riveOptions[key] === 'function') {
+			console.log(`  ${key}: function`);
+		} else {
+			console.log(`  ${key}:`, riveOptions[key]);
+		}
 	});
+
+	const riveInstance = new riveToUse.Rive(riveOptions);
+	console.log("[Parser Post-Init] Rive instance created (or attempted):", riveInstance);
+
+	// The rest of the onLoad logic, including finalCallback, remains the same.
+	// The onError for the Rive constructor will handle the "corrupt file" error.
 }

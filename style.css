@@ -1,0 +1,391 @@
+/* JSONEditor Dark Theme CSS from examples */
+/* dark styling of the editor */
+div.jsoneditor,
+div.jsoneditor-menu {
+    border-color: #4b4b4b;
+}
+
+div.jsoneditor-menu {
+    background-color: #4b4b4b;
+}
+
+div.jsoneditor-tree,
+div.jsoneditor textarea.jsoneditor-text {
+    background-color: #666666;
+    color: #ffffff;
+}
+
+div.jsoneditor-field,
+div.jsoneditor-value {
+    color: #ffffff;
+}
+
+table.jsoneditor-search div.jsoneditor-frame {
+    background: #808080;
+}
+
+tr.jsoneditor-highlight,
+tr.jsoneditor-selected {
+    background-color: #808080;
+}
+
+div.jsoneditor-field[contenteditable=true]:focus,
+div.jsoneditor-field[contenteditable=true]:hover,
+div.jsoneditor-value[contenteditable=true]:focus,
+div.jsoneditor-value[contenteditable=true]:hover,
+div.jsoneditor-field.jsoneditor-highlight,
+div.jsoneditor-value.jsoneditor-highlight {
+    background-color: #808080;
+    border-color: #808080;
+}
+
+div.jsoneditor-field.highlight-active,
+div.jsoneditor-field.highlight-active:focus,
+div.jsoneditor-field.highlight-active:hover,
+div.jsoneditor-value.highlight-active,
+div.jsoneditor-value.highlight-active:focus,
+div.jsoneditor-value.highlight-active:hover {
+    background-color: #b1b1b1;
+    border-color: #b1b1b1;
+}
+
+div.jsoneditor-tree button:focus {
+    background-color: #868686;
+}
+
+/* coloring of JSON in tree mode */
+div.jsoneditor-readonly {
+    color: #acacac;
+}
+
+div.jsoneditor td.jsoneditor-separator {
+    color: #acacac;
+}
+
+div.jsoneditor-value.jsoneditor-string {
+    color: #00ff88;
+}
+
+div.jsoneditor-value.jsoneditor-object,
+div.jsoneditor-value.jsoneditor-array {
+    color: #bababa;
+}
+
+div.jsoneditor-value.jsoneditor-number {
+    color: #ff4040;
+}
+
+div.jsoneditor-value.jsoneditor-boolean {
+    color: #ff8048;
+}
+
+div.jsoneditor-value.jsoneditor-null {
+    color: #49a7fc;
+}
+
+div.jsoneditor-value.jsoneditor-invalid {
+    color: white;
+}
+
+/* End JSONEditor Dark Theme CSS */
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    background-color: #2a2a2a;
+}
+
+body {
+    font-family: sans-serif;
+    padding: 20px;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+h1 {
+    color: #4a90e2;
+    border-bottom: 1px solid #444;
+    padding-bottom: 10px;
+    margin-top: 0;
+    flex-shrink: 0;
+}
+
+#controls {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    border: 1px solid #444;
+    flex-shrink: 0;
+}
+
+
+#riveFilePickerLabel {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: #c8c8c8;
+}
+
+#riveFilePicker {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    margin-bottom: 10px;
+    background-color: #333;
+    color: #d4d4d4;
+}
+
+#outputContainer {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+#rive-canvas {
+    border: 1px solid #444;
+    width: 30vw;
+    height: 500px;
+    background-color: #252525;
+    flex-shrink: 0;
+}
+
+#output {
+    /* Container for JSONEditor */
+    width: 70vw;
+    height: 100%;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #2a2a2a;
+    box-sizing: border-box;
+
+}
+
+/* Style for JSONEditor itself */
+div.jsoneditor {
+    border: none;
+}
+
+div.jsoneditor-menu {
+    background-color: #3c3c3c;
+    border-bottom: 1px solid #444;
+}
+
+div.jsoneditor-menu>button,
+div.jsoneditor-menu>div.jsoneditor-modes>button {
+    color: #d4d4d4;
+}
+
+div.jsoneditor-search div.jsoneditor-frame {
+    background-color: #333;
+}
+
+div.jsoneditor-search input {
+    background-color: #252525;
+    color: #d4d4d4;
+    border: 1px solid #555;
+}
+
+.log-message {
+    font-style: italic;
+    color: #888;
+    margin-top: 15px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.view-hidden {
+    display: none !important;
+}
+
+#liveControlsView {
+    /* Placeholder styling, will be refined when dynamic controls are added */
+    width: 100%;
+}
+
+#dynamicControlsContainer {
+    /* Placeholder for where the floating menu will go */
+    min-height: 100px; /* Example */
+}
+
+/* Ensure outputContainer in inspector view still uses flex */
+#parserInspectorView #outputContainer {
+    display: flex; /* This was previously on #outputContainer directly */
+    flex-direction: row;
+    gap: 20px; 
+    flex-grow: 1; 
+    overflow: hidden; 
+    height: calc(100vh - 300px); /* Adjust as needed based on controls + buttons in this view */
+}
+
+#parserInspectorView #rive-canvas {
+    border: 1px solid #444; 
+    width: 30vw; 
+    height: 500px; 
+    background-color: #252525; 
+    flex-shrink: 0; 
+}
+
+#parserInspectorView #output {
+    width: 70vw; 
+    height: 100%; 
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #2a2a2a; 
+    box-sizing: border-box;
+}
+
+/* Style for the toggle buttons if needed */
+#toggleViewBtn, #closeInspectorBtn {
+    /* Add common button styling if desired */
+    cursor: pointer;
+}
+
+#liveControlsHeader {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #2a2a2a; /* Match other control areas */
+    border-radius: 8px;
+    border: 1px solid #444;
+}
+
+#liveViewLayout {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    flex-grow: 1;
+    height: calc(100vh - 280px); /* Adjust this based on total height of header, #liveControlsHeader, buttons etc. */
+    overflow: hidden;
+}
+
+#rive-canvas { /* This is now the primary canvas in liveControlsView */
+    width: 70vw; 
+    height: 100%; 
+    border: 1px solid #444; 
+    background-color: #252525; 
+    flex-shrink: 0;
+}
+
+#dynamicControlsContainer {
+    width: 30vw; 
+    height: 100%; 
+    border: 1px solid #444; 
+    padding: 10px; 
+    background-color: #2a2a2a; 
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* Styles for the Parser Inspector View */
+#parserInspectorView {
+    /* display: none; -- This will be controlled by JS via .view-hidden */
+    height: 100%; /* Try to make it take available space when shown */
+    display: flex;
+    flex-direction: column;
+}
+
+#inspectorOutputContainer { /* Was #outputContainer, now specific to inspector */
+    flex-grow: 1; 
+    overflow: hidden; /* Container for jsoneditor, jsoneditor handles its own scroll */
+    /* border: 1px dashed lime; /* For debugging layout */
+}
+
+#parserInspectorView #output { /* JSONEditor container inside inspector */
+    width: 100%; /* Take full width of its parent #inspectorOutputContainer */
+    height: 100%; 
+    /* border, background, etc., are handled by jsoneditor or its theme */
+    box-sizing: border-box;
+}
+
+/* REMOVE old styles for #outputContainer, #rive-canvas, #output that were prefixed with #parserInspectorView */
+/* as they are now more specific or handled by the new structure */
+/*
+#parserInspectorView #outputContainer { ... }
+#parserInspectorView #rive-canvas { ... }
+#parserInspectorView #output { ... }
+*/
+
+#dynamicControlsContainer h3,
+#dynamicControlsContainer h5 {
+    margin-top: 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #555;
+    padding-bottom: 5px;
+}
+
+.control-section, .control-subsection {
+    margin-bottom: 10px;
+    padding-left: 10px; /* Indent subsections */
+}
+
+.control-section > summary,
+.control-subsection > summary {
+    cursor: pointer;
+    padding: 5px;
+    background-color: #333;
+    border-radius: 3px;
+    margin-bottom: 5px;
+}
+
+.control-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 4px 0;
+}
+
+.control-row label {
+    margin-right: 10px;
+    flex-basis: 150px; /* Adjust as needed */
+    flex-shrink: 0;
+    font-size: 0.9em;
+    display: flex; /* To allow notes to be part of label flow */
+    justify-content: space-between; /* Push notes to the right */
+    align-items: center;
+}
+
+.control-row .control-notes {
+    font-size: 0.8em;
+    color: #888;
+    margin-left: 5px;
+    font-style: italic;
+}
+
+.control-row input[type="checkbox"],
+.control-row input[type="number"],
+.control-row input[type="text"],
+.control-row input[type="color"],
+.control-row select,
+.control-row textarea,
+.control-row button {
+    flex-grow: 1;
+    padding: 5px;
+    border-radius: 3px;
+    border: 1px solid #555;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    box-sizing: border-box;
+}
+
+.control-row button {
+    cursor: pointer;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+}
+
+.control-row button:hover {
+    background-color: #5aa1f2;
+}

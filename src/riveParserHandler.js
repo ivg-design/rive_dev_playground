@@ -5,16 +5,31 @@
  * It orchestrates calls to the Rive parser and updates the UI accordingly.
  */
 
+import { initDynamicControls } from './riveControlInterface.js';
+
+// Log Rive globals on script load for debugging
+console.log("[ParserHandler Pre-Init] typeof window.rive:", typeof window.rive, "Value:", window.rive);
+console.log("[ParserHandler Pre-Init] typeof window.Rive:", typeof window.Rive, "Value:", window.Rive); // Note uppercase R
+
 // DOM element references
 const riveFilePicker = document.getElementById('riveFilePicker');
 const outputDiv = document.getElementById('output'); 
 const statusMessageDiv = document.getElementById('statusMessage');
+
+// View containers
+const liveControlsView = document.getElementById('liveControlsView');
+const parserInspectorView = document.getElementById('parserInspectorView');
+
+// Buttons for view toggling
+const toggleViewBtn = document.getElementById('toggleViewBtn');
+const closeInspectorBtn = document.getElementById('closeInspectorBtn');
 
 /**
  * Holds the current instance of the JSONEditor.
  * @type {JSONEditor | null}
  */
 let jsonEditorInstance = null;
+let currentRiveInstance = null; // Store the live Rive instance globally in this module
 
 /**
  * Initializes or updates the JSONEditor instance with the provided JSON data.
@@ -97,10 +112,42 @@ function setupJsonEditor(jsonData) {
 	}
 }
 
-// Initialize JSONEditor with a placeholder message when the DOM is ready.
+/**
+ * Toggles visibility between the Live Controls View and the Parser Inspector View.
+ * @param {boolean} showInspector - If true, shows the Parser Inspector; otherwise shows Live Controls.
+ */
+function toggleViews(showInspector) {
+	if (showInspector) {
+		if(liveControlsView) liveControlsView.style.display = 'none';
+		if(parserInspectorView) parserInspectorView.style.display = 'block'; // Or 'flex' if it's a flex container
+		if(toggleViewBtn) toggleViewBtn.textContent = 'Show Live Controls';
+	} else {
+		if(parserInspectorView) parserInspectorView.style.display = 'none';
+		if(liveControlsView) liveControlsView.style.display = 'block'; // Or 'flex'
+		if(toggleViewBtn) toggleViewBtn.textContent = 'Show Parsed Data Inspector';
+	}
+}
+
+// Initialize JSONEditor and set initial view state on DOMContentLoaded.
 document.addEventListener('DOMContentLoaded', () => {
 	setupJsonEditor({ message: "Please select a Rive file to parse." });
+	// Default to live controls view (parser inspector is hidden by default via CSS in HTML)
+	if(parserInspectorView) parserInspectorView.style.display = 'none'; // Ensure it is hidden
+	if(liveControlsView) liveControlsView.style.display = 'block'; // Ensure it is visible
 });
+
+// Event listeners for view toggle buttons
+if (toggleViewBtn) {
+	toggleViewBtn.addEventListener('click', () => {
+		const isInspectorVisible = parserInspectorView && getComputedStyle(parserInspectorView).display !== 'none';
+		toggleViews(!isInspectorVisible);
+	});
+}
+if (closeInspectorBtn) {
+	closeInspectorBtn.addEventListener('click', () => {
+		toggleViews(false); // Show live controls view
+	});
+}
 
 // Event listener for the Rive file picker.
 riveFilePicker.addEventListener('change', handleFileSelect);
@@ -121,6 +168,7 @@ function handleFileSelect(event) {
 		return;
 	}
 	const riveEngine = window.rive;
+	currentRiveInstance = null; // Reset current Rive instance on new file load
 
 	let riveSrcForOriginal = null;
 	let messageForOriginal = "using internal default Rive file path";
@@ -135,23 +183,49 @@ function handleFileSelect(event) {
 	if(statusMessageDiv) statusMessageDiv.textContent = `Running Rive parser (${messageForOriginal})...`;
 
 	const riveCanvas = document.getElementById('rive-canvas');
+	console.log("[ParserHandler Debug] riveCanvas element fetched in handleFileSelect:", riveCanvas); // DEBUG LINE
 	if (!riveCanvas) {
-		// console.warn("[MainJS] Canvas with id 'rive-canvas' not found. It might be needed by the parser.");
+		console.error("[ParserHandler Error] Canvas element with ID 'rive-canvas' not found in DOM!");
+		// Optionally, update UI to reflect this critical error
+		// return; // Might be too early to return, let parser.js handle its internal fallback for now
 	} 
 
 	if (typeof runOriginalClientParser === 'function') {
 		try {
-			runOriginalClientParser(riveEngine, riveCanvas, riveSrcForOriginal, function(error, parsedData) {
+			runOriginalClientParser(riveEngine, riveCanvas, riveSrcForOriginal, function(error, parsedData, liveRiveInstanceFromParser) {
 				if (error) {
 					console.error("[MainJS] Parser reported error:", error);
 					if(statusMessageDiv) statusMessageDiv.textContent = `Error from parser: ${error.error || 'Unknown error'}`;
 					setupJsonEditor({ error: `Parser error: ${error.error || 'Unknown error'}`, details: error.details });
+					currentRiveInstance = null;
+					initDynamicControls(null, null); // Clear or show error in dynamic controls
 				} else if (parsedData) {
-					if(statusMessageDiv) statusMessageDiv.textContent = `Successfully parsed. Displaying in JSONEditor.`;
-					setupJsonEditor(parsedData);
+					if(statusMessageDiv) statusMessageDiv.textContent = `Successfully parsed. Displaying data.`;
+					setupJsonEditor(parsedData); 
+					
+					// IMPORTANT: We need the *actual* Rive instance that was created by runOriginalClientParser
+					// and is rendering on the canvas for the dynamic controls to work.
+					// The `riveEngine` passed into runOriginalClientParser is just the Rive library itself.
+					// For now, we assume liveRiveInstanceFromParser is provided by the callback.
+					currentRiveInstance = liveRiveInstanceFromParser; 
+					if (currentRiveInstance) {
+						initDynamicControls(currentRiveInstance, parsedData);
+					} else {
+						console.warn("[MainJS] Live Rive instance not received from parser. Dynamic controls may not work.");
+						// Attempt to use the global Rive instance if available, though it might not be the one with the file loaded.
+						// This is a fallback and ideally parser.js callback should provide the correct instance.
+						if(window.rive && window.rive.lastInstance) { // Speculative: check if Rive runtime exposes last created instance
+							currentRiveInstance = window.rive.lastInstance; 
+							 initDynamicControls(currentRiveInstance, parsedData);
+						} else {
+							initDynamicControls(null, parsedData); // Pass data, but no instance
+						}
+					}
 				} else {
 					if(statusMessageDiv) statusMessageDiv.textContent = "Parser finished with no data.";
 					setupJsonEditor({ message: "Parser returned no data." });
+					currentRiveInstance = null;
+					initDynamicControls(null, null);
 				}
 			}); 
 		} catch (e) {
@@ -165,5 +239,3 @@ function handleFileSelect(event) {
 		setupJsonEditor({ error: "Parser function not found." });
 	}
 }
-
-// console.log("[MainJS] Initialized for JSONEditor. Waiting for file selection.");
