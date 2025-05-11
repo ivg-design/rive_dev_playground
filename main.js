@@ -1,161 +1,169 @@
-// main.js (Client-side entry point for testing)
-import { parseRiveFile } from './parser_modules/riveParserOrchestrator.js';
+/**
+ * @file main.js
+ * Client-side script to handle user interactions for selecting a Rive file,
+ * choosing a parser, and displaying the parsed Rive data using JSONEditor.
+ * It orchestrates calls to the Rive parser and updates the UI accordingly.
+ */
 
+// DOM element references
 const riveFilePicker = document.getElementById('riveFilePicker');
-const outputDiv = document.getElementById('output');
+const outputDiv = document.getElementById('output'); 
 const statusMessageDiv = document.getElementById('statusMessage');
-const artboardNameForSmCalibrationInput = document.getElementById('artboardNameForSmCalibration');
-const smNameForSmCalibrationInput = document.getElementById('smNameForSmCalibration');
 
+/**
+ * Holds the current instance of the JSONEditor.
+ * @type {JSONEditor | null}
+ */
+let jsonEditorInstance = null;
+
+/**
+ * Initializes or updates the JSONEditor instance with the provided JSON data.
+ * If an instance already exists, it updates its content. Otherwise, it creates a new instance.
+ * @param {object | null} jsonData - The JSON data to display. Can be the parsed Rive data, 
+ *                                   an error object, or a placeholder message object.
+ */
+function setupJsonEditor(jsonData) {
+	if (!outputDiv) {
+		// console.error("[MainJS] Output div for JSONEditor not found."); 
+		return;
+	}
+
+	/**
+	 * @type {import 'jsoneditor'.JSONEditorOptions}
+	 */
+	const options = {
+		mode: 'tree',
+		modes: ['tree', 'view', 'code', 'text', 'preview'],
+		search: true,
+		enableTransform: false,
+		/**
+		 * Customizes the display name for object and array nodes in the tree view.
+		 * @param {object} params - Parameters for the node.
+		 * @param {string[]} params.path - The path to the node.
+		 * @param {'object'|'array'} params.type - The type of the node ('object' or 'array').
+		 * @param {number} params.size - The number of children in the node.
+		 * @param {object|Array} params.value - The actual JavaScript object or array.
+		 * @returns {string | undefined} The custom name to display, or undefined for default.
+		 */
+		onNodeName: function({path, type, size, value}) {
+			if (type === 'object') {
+				if (value && typeof value === 'object' && size > 0) {
+					const keys = Object.keys(value);
+					if (keys.length > 0) {
+						const firstKey = keys[0];
+						const firstValue = value[firstKey];
+						if (typeof firstValue === 'string') {
+							const maxLength = 30; 
+							let previewString = firstValue.length > maxLength ? firstValue.substring(0, maxLength) + "..." : firstValue;
+							return `\"${previewString}\"`; 
+						}
+					}
+				}
+				return undefined; 
+			}
+			if (type === 'array') {
+				return `Array [${size}]`;
+			}
+			return undefined; 
+		},
+		/**
+		 * Handles errors reported by the JSONEditor instance itself.
+		 * @param {Error} err - The error object from JSONEditor.
+		 */
+		onError: function (err) {
+			console.error("[JSONEditor] Error:", err.toString());
+			if(statusMessageDiv) statusMessageDiv.textContent = "JSONEditor error: " + err.toString();
+		}
+	};
+
+	if (jsonEditorInstance) {
+		// console.log("[MainJS] JSONEditor instance exists, setting new data.");
+		try {
+			jsonEditorInstance.set(jsonData || {}); 
+		} catch (e) {
+			console.error("[MainJS] Error setting data in JSONEditor:", e);
+			try { jsonEditorInstance.set({ error: "Failed to load new data", details: e.toString() }); } catch (e2) { /* ignore further error on setting error */ }
+		}
+	} else {
+		// console.log("[MainJS] Creating new JSONEditor instance.");
+		try {
+			if (outputDiv) { // Ensure outputDiv exists before creating editor
+				jsonEditorInstance = new JSONEditor(outputDiv, options, jsonData || { message: "No data loaded yet." });
+			}
+		} catch (e) {
+			console.error("[MainJS] Error creating JSONEditor instance:", e);
+			if(outputDiv) outputDiv.innerHTML = `<p style='color:red;'>Failed to initialize JSONEditor: ${e.message}</p>`;
+		}
+	}
+}
+
+// Initialize JSONEditor with a placeholder message when the DOM is ready.
+document.addEventListener('DOMContentLoaded', () => {
+	setupJsonEditor({ message: "Please select a Rive file to parse." });
+});
+
+// Event listener for the Rive file picker.
 riveFilePicker.addEventListener('change', handleFileSelect);
 
+/**
+ * Handles the Rive file selection event.
+ * It reads the selected file, determines which parser to use (original or modular),
+ * calls the appropriate parser function, and then updates the JSONEditor with the result.
+ * @param {Event} event - The file input change event.
+ */
 function handleFileSelect(event) {
-    const file = event.target.files[0];
-    const parserChoice = document.querySelector('input[name="parserChoice"]:checked').value;
+	const file = event.target.files[0];
 
-    if (!window.rive) {
-        console.error("[MainJS] Rive engine (window.rive) not found!");
-        statusMessageDiv.textContent = "Error: Rive engine (window.rive) not found!";
-        outputDiv.textContent = "Error: Rive engine (window.rive) not found! Make sure rive.js is loaded correctly.";
-        return;
-    }
-    const riveEngine = window.rive;
+	if (!window.rive) {
+		console.error("[MainJS] Rive engine (window.rive) not found!");
+		if(statusMessageDiv) statusMessageDiv.textContent = "Error: Rive engine (window.rive) not found!";
+		setupJsonEditor({ error: "Rive engine (window.rive) not found!" });
+		return;
+	}
+	const riveEngine = window.rive;
 
-    if (parserChoice === 'original') {
-        console.log("[MainJS] Original parser.js selected.");
-        
-        let fileToParseForOriginal = null;
-        let riveSrcForOriginal = 'animations/diagram_v3.riv'; // Default hardcoded path
-        let messageForOriginal = "using hardcoded 'animations/diagram_v3.riv'";
+	let riveSrcForOriginal = null;
+	let messageForOriginal = "using internal default Rive file path";
 
-        // if (file && file.name) { // Check if a file was selected in the input // DEBUG: Temporarily disable using selected file
-        //     fileToParseForOriginal = file;
-        //     riveSrcForOriginal = URL.createObjectURL(fileToParseForOriginal);
-        //     messageForOriginal = `using selected file '${fileToParseForOriginal.name}'`;
-        //     console.log(`[MainJS] Original parser will use selected file: ${fileToParseForOriginal.name}`);
-        // } else {
-        //     console.log("[MainJS] No file selected for original parser, using hardcoded default.");
-        // }
-        // DEBUG: Force original parser to use its internal default path
-        riveSrcForOriginal = null; 
-        messageForOriginal = "forcing internal default 'animations/diagram_v3.riv' for debugging";
-        console.log("[MainJS] DEBUG: Forcing original parser to use its internal default path.");
+	if (file && file.name) {
+		riveSrcForOriginal = URL.createObjectURL(file);
+		messageForOriginal = `using selected file '${file.name}'`;
+		// console.log(`[MainJS] Will use selected file: ${file.name}`);
+	} else {
+		riveSrcForOriginal = null; // Parser.js handles its default
+	}
+	if(statusMessageDiv) statusMessageDiv.textContent = `Running Rive parser (${messageForOriginal})...`;
 
-        statusMessageDiv.textContent = `Running original parser.js (${messageForOriginal})... Output will be in console and WebSocket.`;
-        outputDiv.innerHTML = `<p>Original parser.js is running (${messageForOriginal}).</p><p>Check the browser console for its logs. If 'node parse-rive.js' is running, it will also send data via WebSocket.</p>`;
-        
-        // Ensure the canvas used by original parser.js is available and visible
-        let riveCanvas = document.getElementById('rive-canvas');
-        if (!riveCanvas) {
-            console.warn("[MainJS] Canvas with id 'rive-canvas' not found for original parser. Creating one.");
-            riveCanvas = document.createElement('canvas');
-            riveCanvas.id = 'rive-canvas';
-            riveCanvas.width = 500; // Default size, can be styled via CSS too
-            riveCanvas.height = 500;
-            // Append it somewhere, e.g., to the output container or body
-            document.getElementById('outputContainer').appendChild(riveCanvas);
-            riveCanvas.style.display = 'block'; // Make it visible if it wasn't
-        } else {
-            riveCanvas.style.display = 'block'; // Ensure it's visible
-        }
+	const riveCanvas = document.getElementById('rive-canvas');
+	if (!riveCanvas) {
+		// console.warn("[MainJS] Canvas with id 'rive-canvas' not found. It might be needed by the parser.");
+	} 
 
-        if (typeof runOriginalClientParser === 'function') {
-            try {
-                runOriginalClientParser(riveEngine, riveCanvas, riveSrcForOriginal); // riveSrcForOriginal will be null
-                // If an object URL was created, revoke it after a delay or when no longer needed.
-                // For simplicity here, we might not revoke it immediately if the Rive instance needs it.
-                // Consider revoking if 'riveInstance.destroy()' or similar is called in original parser.
-                // if (fileToParseForOriginal) { URL.revokeObjectURL(riveSrcForOriginal); } // Example, but timing is critical
-            } catch (e) {
-                console.error("[MainJS] Error calling runOriginalClientParser:", e);
-                statusMessageDiv.textContent = "Error running original parser.js. Check console.";
-                outputDiv.innerHTML += `<p style='color:red;'>Error running original parser: ${e.message}</p>`;
-            }
-        } else {
-            console.error("[MainJS] runOriginalClientParser function not found. Ensure parser.js is loaded correctly before main.js.");
-            statusMessageDiv.textContent = "Error: Original parser function not found.";
-            outputDiv.innerHTML += "<p style='color:red;'>Error: runOriginalClientParser function not found. Check script loading order.</p>";
-        }
-        return; // Stop further processing for original parser
-    }
-
-    // Proceed with Modular Parser if 'modular' is selected
-    if (!file) {
-        statusMessageDiv.textContent = "No file selected (for Modular Parser).";
-        outputDiv.textContent = "JSON output will appear here...";
-        return;
-    }
-
-    console.log(`[MainJS] Selected file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
-    statusMessageDiv.textContent = `Loading and parsing ${file.name}...`;
-    outputDiv.textContent = "Parsing in progress...";
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const riveFileBuffer = e.target.result; // This is an ArrayBuffer
-
-        console.log("[MainJS] Rive engine found. Calling parseRiveFile...");
-
-        const artboardNameToUse = artboardNameForSmCalibrationInput.value.trim() || null;
-        const smNameToUse = smNameForSmCalibrationInput.value.trim() || null;
-
-        parseRiveFile(riveEngine, riveFileBuffer, artboardNameToUse, smNameToUse)
-            .then(result => {
-                console.log("[MainJS] Parsing Complete. Full Result Object:", result);
-                
-                const jsonOutput = JSON.stringify(result, (key, value) => {
-                    // Custom replacer to avoid stringifying rawDef (Rive objects) if they are too complex or circular
-                    if (key === 'rawDef') return '[RiveObjectReference]'; 
-                    return value;
-                }, 2);
-
-                outputDiv.textContent = jsonOutput;
-                statusMessageDiv.textContent = `Successfully parsed ${file.name}.`;
-                
-                // If you had a WebSocket to send data to a server:
-                // if (ws && ws.readyState === WebSocket.OPEN) {
-                //     ws.send(JSON.stringify({ type: 'parseResult', data: result, fileName: file.name }));
-                // }
-            })
-            .catch(error => {
-                console.error("[MainJS] Error during parsing process:", error);
-                outputDiv.textContent = `Error parsing file: ${error.message}\n\n${error.stack}\n\nSee console for more details.`;
-                statusMessageDiv.textContent = `Error parsing ${file.name}.`;
-            });
-    };
-
-    reader.onerror = function(e) {
-        console.error("[MainJS] FileReader error:", e);
-        statusMessageDiv.textContent = "Error reading file.";
-        outputDiv.textContent = "Error reading file.";
-    };
-
-    reader.readAsArrayBuffer(file);
+	if (typeof runOriginalClientParser === 'function') {
+		try {
+			runOriginalClientParser(riveEngine, riveCanvas, riveSrcForOriginal, function(error, parsedData) {
+				if (error) {
+					console.error("[MainJS] Parser reported error:", error);
+					if(statusMessageDiv) statusMessageDiv.textContent = `Error from parser: ${error.error || 'Unknown error'}`;
+					setupJsonEditor({ error: `Parser error: ${error.error || 'Unknown error'}`, details: error.details });
+				} else if (parsedData) {
+					if(statusMessageDiv) statusMessageDiv.textContent = `Successfully parsed. Displaying in JSONEditor.`;
+					setupJsonEditor(parsedData);
+				} else {
+					if(statusMessageDiv) statusMessageDiv.textContent = "Parser finished with no data.";
+					setupJsonEditor({ message: "Parser returned no data." });
+				}
+			}); 
+		} catch (e) {
+			console.error("[MainJS] Error calling runOriginalClientParser:", e);
+			if(statusMessageDiv) statusMessageDiv.textContent = "Error running parser. Check console.";
+			setupJsonEditor({ error: `Error calling parser: ${e.message}` });
+		}
+	} else {
+		console.error("[MainJS] runOriginalClientParser function not found.");
+		if(statusMessageDiv) statusMessageDiv.textContent = "Error: Parser function not found.";
+		setupJsonEditor({ error: "Parser function not found." });
+	}
 }
 
-// Example WebSocket setup (optional, uncomment and configure if needed)
-/*
-let ws;
-function setupWebSocket(url = 'ws://localhost:3000') {
-    ws = new WebSocket(url);
-    ws.onopen = () => {
-        console.log(`[MainJS] WebSocket connection established to ${url}.`);
-        statusMessageDiv.textContent = "WebSocket connected. Ready to parse.";
-    };
-    ws.onmessage = (event) => {
-        console.log('[MainJS] Message from server:', event.data);
-    };
-    ws.onerror = (error) => {
-        console.error('[MainJS] WebSocket error:', error);
-        statusMessageDiv.textContent = "WebSocket connection error.";
-    };
-    ws.onclose = () => {
-        console.log('[MainJS] WebSocket connection closed.');
-        statusMessageDiv.textContent = "WebSocket disconnected.";
-    };
-}
-// Call setupWebSocket() if you want to use WebSockets.
-// setupWebSocket(); 
-*/
-
-console.log("[MainJS] Initialized. Waiting for file selection."); 
+// console.log("[MainJS] Initialized for JSONEditor. Waiting for file selection.");

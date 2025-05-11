@@ -1,45 +1,81 @@
-const ws = new WebSocket('ws://' + window.location.host);
-ws.onopen = () => console.log('Connected to server');
-ws.onerror = (err) => console.error('WebSocket error:', err);
+/**
+ * @file parser.js
+ * Handles the client-side parsing of Rive files to extract animation, artboard, asset, and ViewModel information.
+ */
 
-// Wait for Rive to be available
-// window.addEventListener('load', () => { // REMOVE THIS LINE
-// console.log('Window loaded, Rive object:', window.rive); // REMOVE THIS LINE
+/**
+ * Parses a Rive file and extracts detailed information about its contents.
+ * This function initializes a Rive instance, loads the specified Rive file,
+ * and then traverses its structure to collect data on artboards, animations,
+ * state machines, assets, ViewModel definitions, and ViewModel instances.
+ *
+ * @param {object} riveEngine - The Rive runtime engine (e.g., window.rive).
+ * @param {HTMLCanvasElement} canvasElement - The HTML canvas element to render the Rive animation on.
+ * @param {string | null} riveFilePathFromParam - The path or URL to the .riv file. If null, uses a default path.
+ * @param {function(Error | null, object | null): void} callback - The callback function to execute after parsing.
+ *   It receives an error object as the first argument (or null if no error),
+ *   and the parsed Rive data object as the second argument (or null if an error occurred).
+ */
+function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromParam, callback) {
+	/**
+	 * Default callback handler to log errors or data to the console if no specific callback is provided.
+	 * @param {Error | null} err - An error object if an error occurred, otherwise null.
+	 * @param {object | null} data - The parsed data object, or null if an error occurred.
+	 */
+	const finalCallback =
+		callback ||
+		function (err, data) {
+			// Default callback
+			if (err) console.error('[Original Parser Fallback CB] Error:', err);
+			// if (data) console.log("[Original Parser Fallback CB] Data:", data); // Keep this commented unless specifically debugging callback itself
+		};
 
-function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromParam) { // ADDED FUNCTION
 	// If riveEngine is not passed, try to use window.rive as a fallback
 	const riveToUse = riveEngine || window.rive;
 
 	if (!riveToUse) {
-		console.error('[Original Parser] Rive runtime not loaded or provided');
-		ws.send(JSON.stringify({ error: 'Rive runtime not loaded for original parser.' }));
+		const errorMsg = '[Original Parser] Rive runtime not loaded or provided';
+		console.error(errorMsg);
+		// if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ error: 'Rive runtime not loaded for original parser.' })); // Conditional WS
+		finalCallback({ error: errorMsg });
 		return;
 	}
-	console.log('[Original Parser] Rive object:', riveToUse);
-
+	// console.log('[Original Parser] Rive object:', riveToUse); // Optional: keep if useful for user
 
 	const collectedAssets = [];
 	const riveFileToLoad = riveFilePathFromParam || 'animations/diagram_v3.riv'; // Use parameter or fallback to hardcoded
 
 	const canvas = canvasElement || document.getElementById('rive-canvas');
 	if (!canvas) {
-		console.error("[Original Parser] Canvas element 'rive-canvas' not found or not provided.");
-		ws.send(JSON.stringify({ error: "Canvas element 'rive-canvas' not found for original parser." }));
+		const errorMsg = "[Original Parser] Canvas element 'rive-canvas' not found or not provided.";
+		console.error(errorMsg);
+		// if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ error: "Canvas element 'rive-canvas' not found for original parser." })); // Conditional WS
+		finalCallback({ error: errorMsg });
 		return;
 	}
-	console.log(`[Original Parser] Using canvas:`, canvas);
+	// console.log(`[Original Parser] Using canvas:`, canvas); // Optional
 	console.log(`[Original Parser] Attempting to load Rive file from src: '${riveFileToLoad}'`);
 
+	// --- WebGL2 Renderer Check ---
+	let rendererFactoryToUse = undefined;
+	if (riveToUse.makeRendererWebGL2) {
+		try {
+			rendererFactoryToUse = riveToUse.makeRendererWebGL2();
+		} catch (e) {
+			console.error('[Original Parser] Error creating WebGL2 renderer factory (will use default):', e);
+			rendererFactoryToUse = undefined; // Fallback
+		}
+	}
+	// --- End WebGL2 Renderer Check ---
 
 	const riveInstance = new riveToUse.Rive({
-		src: riveFileToLoad, // MODIFIED to use variable
-		canvas: canvas, // MODIFIED to use variable
-		// artboard: "Diagram",
-		// stateMachines: "State Machine 1",
+		src: riveFileToLoad,
+		canvas: canvas,
 		autobind: true,
 		autoplay: true,
+		rendererFactory: rendererFactoryToUse, // MODIFIED to use the checked factory
 		assetLoader: (asset, bytes) => {
-			console.log("[Original Parser] assetLoader called for:", asset.name);
+			// console.log("[Original Parser] assetLoader called for:", asset.name); // Optional
 			collectedAssets.push({
 				name: asset.name,
 				type: asset.type,
@@ -48,7 +84,8 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 			return false;
 		},
 		onLoad: () => {
-			console.log('[Original Parser] Rive file loaded successfully (onLoad callback fired).');
+			// console.log('[Original Parser] Rive file loaded successfully (onLoad callback fired).'); // Optional
+			riveInstance.resizeDrawingSurfaceToCanvas(); // ADDED for crisp rendering
 
 			const argbToHex = (a) => {
 				if (typeof a !== 'number') return `NOT_AN_ARGB_NUMBER (${typeof a}: ${a})`;
@@ -63,8 +100,10 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 
 			const riveFile = riveInstance.file;
 			if (!riveFile) {
-				console.error('Rive file object not available after load.');
-				ws.send(JSON.stringify(result));
+				const errorMsg = 'Rive file object not available after load.';
+				console.error(errorMsg);
+				// if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(result)); // Conditional WS - though result might be empty
+				finalCallback({ error: errorMsg }, result); // Send partially formed result if any
 				return;
 			}
 
@@ -76,7 +115,7 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 			if (riveInstance.artboard && riveInstance.stateMachines && riveInstance.stateMachines.length > 0) {
 				activeArtboardNameForCalibration = riveInstance.artboard.name;
 				activeSMNameForCalibration = riveInstance.stateMachines[0]; // Assume first specified SM for calibration
-				console.log(`Calibrating SM input types using Artboard: '${activeArtboardNameForCalibration}', SM: '${activeSMNameForCalibration}'`);
+				// console.log(`Calibrating SM input types using Artboard: '${activeArtboardNameForCalibration}', SM: '${activeSMNameForCalibration}'`);
 
 				try {
 					const liveInputs = riveInstance.stateMachineInputs(activeSMNameForCalibration);
@@ -113,7 +152,7 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 							});
 						}
 					}
-					console.log('Dynamic SM Input Type Map after calibration:', DYNAMIC_SM_INPUT_TYPE_MAP);
+					// console.log('Dynamic SM Input Type Map after calibration:', DYNAMIC_SM_INPUT_TYPE_MAP);
 				} catch (e) {
 					console.error(`Error during SM input type calibration for SM '${activeSMNameForCalibration}':`, e);
 				}
@@ -129,7 +168,7 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 					nestedViewModels: [],
 				};
 
-				if (!sourceBlueprint) {
+				if (!sourceBlueprint || !vmInstanceObj) {
 					return currentViewModelInfo;
 				}
 
@@ -193,63 +232,42 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 							}
 						}
 					} else {
-						let value = 'COULD_NOT_GET_VALUE';
+						const inputInfo = { name: propDecl.name, type: propDecl.type, value: 'UNASSIGNED' };
 						try {
-							const inputInfo = { name: propDecl.name, type: propDecl.type, value: 'UNASSIGNED' };
-
 							switch (propDecl.type) {
 								case 'number':
 									if (typeof vmInstanceObj.number === 'function') {
-										const propObj = vmInstanceObj.number(propDecl.name);
-										if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
-											inputInfo.value = propObj._viewModelInstanceValue.value === undefined ? null : propObj._viewModelInstanceValue.value;
-										} else {
-											inputInfo.value = 'Number propObj._viewModelInstanceValue.value not found';
-										}
+										const propInput = vmInstanceObj.number(propDecl.name);
+										inputInfo.value = propInput && propInput.value !== undefined ? propInput.value : `Number '${propDecl.name}' .value is undefined or propInput is null`;
 									} else {
 										inputInfo.value = 'vmInstanceObj.number is not a function';
 									}
 									break;
 								case 'string':
 									if (typeof vmInstanceObj.string === 'function') {
-										const propObj = vmInstanceObj.string(propDecl.name);
-										if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
-											inputInfo.value = propObj._viewModelInstanceValue.value === undefined ? null : propObj._viewModelInstanceValue.value;
-										} else {
-											inputInfo.value = 'String propObj._viewModelInstanceValue.value not found';
-										}
+										const propInput = vmInstanceObj.string(propDecl.name);
+										const val = propInput && propInput.value !== undefined ? propInput.value : `String '${propDecl.name}' .value is undefined or propInput is null`;
+										inputInfo.value = typeof val === 'string' ? val.replace(/\\n/g, '\n') : val;
 									} else {
 										inputInfo.value = 'vmInstanceObj.string is not a function';
 									}
 									break;
 								case 'boolean':
 									if (typeof vmInstanceObj.boolean === 'function') {
-										const propObj = vmInstanceObj.boolean(propDecl.name);
-										if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
-											inputInfo.value = propObj._viewModelInstanceValue.value === undefined ? null : propObj._viewModelInstanceValue.value;
-										} else {
-											inputInfo.value = 'Boolean propObj._viewModelInstanceValue.value not found';
-										}
+										const propInput = vmInstanceObj.boolean(propDecl.name);
+										inputInfo.value = propInput && propInput.value !== undefined ? propInput.value : `Boolean '${propDecl.name}' .value is undefined or propInput is null`;
 									} else {
 										inputInfo.value = 'vmInstanceObj.boolean is not a function';
 									}
 									break;
 								case 'enumType':
 									if (typeof vmInstanceObj.enum === 'function') {
-										const propObj = vmInstanceObj.enum(propDecl.name);
-										if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
-											inputInfo.value = propObj._viewModelInstanceValue.value === undefined ? null : propObj._viewModelInstanceValue.value;
-										} else {
-											inputInfo.value = 'Enum (via .enum) propObj._viewModelInstanceValue.value not found';
-										}
+										const propInput = vmInstanceObj.enum(propDecl.name);
+										inputInfo.value = propInput && propInput.value !== undefined ? propInput.value : `Enum '${propDecl.name}' .value is undefined or propInput is null`;
 									} else {
 										if (typeof vmInstanceObj.string === 'function') {
-											const propObj = vmInstanceObj.string(propDecl.name);
-											if (propObj && propObj._viewModelInstanceValue && propObj._viewModelInstanceValue.hasOwnProperty('value')) {
-												inputInfo.value = propObj._viewModelInstanceValue.value === undefined ? null : propObj._viewModelInstanceValue.value;
-											} else {
-												inputInfo.value = 'Enum (via .string fallback) propObj._viewModelInstanceValue.value not found';
-											}
+											const propInput = vmInstanceObj.string(propDecl.name);
+											inputInfo.value = propInput && propInput.value !== undefined ? propInput.value : `Enum (via string fallback) '${propDecl.name}' .value is undefined or propInput is null`;
 										} else {
 											inputInfo.value = 'vmInstanceObj.enum (and .string) is not a function for enumType';
 										}
@@ -257,26 +275,18 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 									break;
 								case 'color':
 									if (typeof vmInstanceObj.color === 'function') {
-										const propObj = vmInstanceObj.color(propDecl.name);
-										if (propObj && propObj._viewModelInstanceValue && typeof propObj._viewModelInstanceValue.value === 'number') {
-											inputInfo.value = argbToHex(propObj._viewModelInstanceValue.value);
-										} else if (propObj && propObj._viewModelInstanceValue && typeof propObj._viewModelInstanceValue.value === 'string') {
-											inputInfo.value = propObj._viewModelInstanceValue.value;
-										} else if (propObj && typeof propObj.value === 'number') {
-											inputInfo.value = argbToHex(propObj.value);
-										} else if (propObj && typeof propObj.value === 'string') {
-											inputInfo.value = propObj.value;
-										} else if (typeof propObj === 'number') {
-											inputInfo.value = argbToHex(propObj);
+										const propInput = vmInstanceObj.color(propDecl.name);
+										if (propInput && propInput.value !== undefined && typeof propInput.value === 'number') {
+											inputInfo.value = argbToHex(propInput.value);
 										} else {
-											inputInfo.value = `Color not in expected ARGB format (propObj: ${JSON.stringify(propObj)})`;
+											inputInfo.value = `Color '${propDecl.name}' .value is not an ARGB number, is undefined, or propInput is null`;
 										}
 									} else {
 										inputInfo.value = 'vmInstanceObj.color is not a function';
 									}
 									break;
 								case 'trigger':
-									inputInfo.value = 'N/A (Trigger)';
+									inputInfo.value = 'N/A (Trigger)'; // Triggers don't have a persistent value to get
 									break;
 								default:
 									inputInfo.value = `UNHANDLED_PROPERTY_TYPE: ${propDecl.type}`;
@@ -284,7 +294,7 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 							currentViewModelInfo.inputs.push(inputInfo);
 						} catch (e) {
 							// If an error occurs in the switch, push with the error message
-							currentViewModelInfo.inputs.push({ name: propDecl.name, type: propDecl.type, value: `ERROR_IN_SWITCH: ${e.message}` });
+							currentViewModelInfo.inputs.push({ name: propDecl.name, type: propDecl.type, value: `ERROR_ACCESSING_VM_PROP: ${e.message}` });
 						}
 					}
 				});
@@ -296,42 +306,40 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 			let vmdIndex = 0;
 
 			// Get count from riveInstance.file but fetch definitions from riveInstance directly if possible
-			const vmDefinitionCount = (riveFile && typeof riveFile.viewModelCount === 'function') 
-									? riveFile.viewModelCount() 
-									: 0;
-			
-			console.log(`[Original Parser] Found ${vmDefinitionCount} ViewModel definitions according to riveFile.viewModelCount().`);
+			const vmDefinitionCount = riveFile && typeof riveFile.viewModelCount === 'function' ? riveFile.viewModelCount() : 0;
+
+			// console.log(`[Original Parser] Found ${vmDefinitionCount} ViewModel definitions according to riveFile.viewModelCount().`);
 
 			if (typeof riveInstance.viewModelByIndex === 'function') {
-				console.log("[Original Parser] Using riveInstance.viewModelByIndex() to fetch definitions.");
+				// console.log("[Original Parser] Using riveInstance.viewModelByIndex() to fetch definitions.");
 				for (vmdIndex = 0; vmdIndex < vmDefinitionCount; vmdIndex++) {
 					try {
-						const vmDef = riveInstance.viewModelByIndex(vmdIndex); 
+						const vmDef = riveInstance.viewModelByIndex(vmdIndex);
 						if (vmDef && vmDef.name) {
 							allFoundViewModelDefinitions.push({ def: vmDef, name: vmDef.name });
 						} else {
-							console.warn(`[Original Parser] riveInstance.viewModelByIndex(${vmdIndex}) returned falsy or nameless vmDef.`);
+							// console.warn(`[Original Parser] riveInstance.viewModelByIndex(${vmdIndex}) returned falsy or nameless vmDef.`);
 						}
 					} catch (e) {
 						console.error(`[Original Parser] Error in riveInstance.viewModelByIndex loop (index ${vmdIndex}):`, e);
 						// If one errors, we might not want to continue if count is unreliable
-						break; 
+						break;
 					}
 				}
 			} else if (riveFile && typeof riveFile.viewModelByIndex === 'function') {
 				// Fallback to riveFile.viewModelByIndex if riveInstance.viewModelByIndex doesn't exist
-				console.warn("[Original Parser] riveInstance.viewModelByIndex() not found. Falling back to riveFile.viewModelByIndex(). Property access might be limited.");
-				let consecutiveDefinitionErrors = 0; 
-				const MAX_CONSECUTIVE_VM_DEF_ERRORS = 3; 
+				// console.warn("[Original Parser] riveInstance.viewModelByIndex() not found. Falling back to riveFile.viewModelByIndex(). Property access might be limited.");
+				let consecutiveDefinitionErrors = 0;
+				const MAX_CONSECUTIVE_VM_DEF_ERRORS = 3;
 				// Reset vmdIndex for this loop, but use vmDefinitionCount if available and reliable, or MAX_VM_DEFS_TO_PROBE
-				let loopLimit = vmDefinitionCount > 0 ? vmDefinitionCount : MAX_VM_DEFS_TO_PROBE; 
+				let loopLimit = vmDefinitionCount > 0 ? vmDefinitionCount : MAX_VM_DEFS_TO_PROBE;
 				vmdIndex = 0; // reset for this loop
 				while (vmdIndex < loopLimit && consecutiveDefinitionErrors < MAX_CONSECUTIVE_VM_DEF_ERRORS) {
 					try {
 						const vmDef = riveFile.viewModelByIndex(vmdIndex);
 						if (vmDef && vmDef.name) {
 							allFoundViewModelDefinitions.push({ def: vmDef, name: vmDef.name });
-							consecutiveDefinitionErrors = 0; 
+							consecutiveDefinitionErrors = 0;
 						} else {
 							consecutiveDefinitionErrors++;
 						}
@@ -339,7 +347,7 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 					} catch (e) {
 						console.error(`[Original Parser] Error in riveFile.viewModelByIndex loop (index ${vmdIndex}):`, e);
 						// If one errors, we might not want to continue if count is unreliable
-						break; 
+						break;
 					}
 				}
 			} else {
@@ -351,35 +359,35 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 				try {
 					const testVmDefFromFile = riveFile.viewModelByIndex(1); // Get the second one (index 1)
 					if (testVmDefFromFile) {
-						console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1).name:", testVmDefFromFile.name);
-						console.log("[Original Parser - PreLoopTest] typeof riveFile.viewModelByIndex(1).properties:", typeof testVmDefFromFile.properties);
+						// console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1).name:", testVmDefFromFile.name);
+						// console.log("[Original Parser - PreLoopTest] typeof riveFile.viewModelByIndex(1).properties:", typeof testVmDefFromFile.properties);
 						if (testVmDefFromFile.properties && Array.isArray(testVmDefFromFile.properties)) {
-							console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1).properties IS an array. Length:", testVmDefFromFile.properties.length, testVmDefFromFile.properties);
+							// console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1).properties IS an array. Length:", testVmDefFromFile.properties.length, testVmDefFromFile.properties);
 						} else {
-							console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1).properties IS NOT an array.");
+							// console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1).properties IS NOT an array.");
 						}
-						console.log("[Original Parser - PreLoopTest] typeof riveFile.viewModelByIndex(1).propertyCount:", typeof testVmDefFromFile.propertyCount);
-						if(typeof testVmDefFromFile.propertyCount === 'number') {
-							 console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1).propertyCount VALUE:", testVmDefFromFile.propertyCount);
+						// console.log("[Original Parser - PreLoopTest] typeof riveFile.viewModelByIndex(1).propertyCount:", typeof testVmDefFromFile.propertyCount);
+						if (typeof testVmDefFromFile.propertyCount === 'number') {
+							// console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1).propertyCount VALUE:", testVmDefFromFile.propertyCount);
 						}
 					} else {
-						 console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1) returned null or undefined.");
+						// console.log("[Original Parser - PreLoopTest] riveFile.viewModelByIndex(1) returned null or undefined.");
 					}
 				} catch (e) {
-					console.error("[Original Parser - PreLoopTest] Error testing riveFile.viewModelByIndex(1):", e);
+					console.error('[Original Parser - PreLoopTest] Error testing riveFile.viewModelByIndex(1):', e);
 				}
 			}
 
 			allFoundViewModelDefinitions.forEach((vmDefElement) => {
 				const vmDef = vmDefElement.def;
-				console.log(`[Original Parser - BlueprintLoop] Processing blueprint for: '${vmDef.name}'`, vmDef);
-				console.log(`[Original Parser - BlueprintLoop] typeof vmDef.properties: ${typeof vmDef.properties}`);
+				// console.log(`[Original Parser - BlueprintLoop] Processing blueprint for: '${vmDef.name}'`, vmDef);
+				// console.log(`[Original Parser - BlueprintLoop] typeof vmDef.properties: ${typeof vmDef.properties}`);
 				if (vmDef.properties && Array.isArray(vmDef.properties)) {
-					console.log(`[Original Parser - BlueprintLoop] '${vmDef.name}' HAS .properties array, length: ${vmDef.properties.length}`);
+					// console.log(`[Original Parser - BlueprintLoop] '${vmDef.name}' HAS .properties array, length: ${vmDef.properties.length}`);
 				} else {
-					console.log(`[Original Parser - BlueprintLoop] '${vmDef.name}' DOES NOT have .properties array.`);
+					// console.log(`[Original Parser - BlueprintLoop] '${vmDef.name}' DOES NOT have .properties array.`);
 				}
-				console.log(`[Original Parser - BlueprintLoop] typeof vmDef.propertyCount: ${typeof vmDef.propertyCount}`);
+				// console.log(`[Original Parser - BlueprintLoop] typeof vmDef.propertyCount: ${typeof vmDef.propertyCount}`);
 
 				const blueprintOutputEntry = {
 					blueprintName: vmDef.name,
@@ -393,24 +401,24 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 				// Corrected property access logic
 				let propertiesToIterate = [];
 				if (vmDef.properties && Array.isArray(vmDef.properties)) {
-					console.log(`[Original Parser - BlueprintLoop] '${vmDef.name}' using direct .properties array.`);
+					// console.log(`[Original Parser - BlueprintLoop] '${vmDef.name}' using direct .properties array.`);
 					propertiesToIterate = vmDef.properties;
 				} else if (typeof vmDef.propertyCount === 'number' && typeof vmDef.propertyByIndex === 'function') {
-					console.log(`[Original Parser - BlueprintLoop] '${vmDef.name}' using .propertyCount (number) and .propertyByIndex().`);
+					// console.log(`[Original Parser - BlueprintLoop] '${vmDef.name}' using .propertyCount (number) and .propertyByIndex().`);
 					const propCount = vmDef.propertyCount; // It's a number
 					for (let k = 0; k < propCount; k++) {
 						const p = vmDef.propertyByIndex(k);
 						if (p) propertiesToIterate.push(p);
 					}
 				} else if (typeof vmDef.propertyCount === 'function' && typeof vmDef.propertyByIndex === 'function') {
-					console.log(`[Original Parser - BlueprintLoop] '${vmDef.name}' using .propertyCount() (function) and .propertyByIndex().`);
+					// console.log(`[Original Parser - BlueprintLoop] '${vmDef.name}' using .propertyCount() (function) and .propertyByIndex().`);
 					const propCount = vmDef.propertyCount();
 					for (let k = 0; k < propCount; k++) {
 						const p = vmDef.propertyByIndex(k);
 						if (p) propertiesToIterate.push(p);
 					}
 				} else {
-					console.warn(`[Original Parser - BlueprintLoop] '${vmDef.name}' has no recognized method to access properties (checked .properties, .propertyCount as number, .propertyCount as function).`);
+					// console.warn(`[Original Parser - BlueprintLoop] '${vmDef.name}' has no recognized method to access properties (checked .properties, .propertyCount as number, .propertyCount as function).`);
 				}
 
 				propertiesToIterate.forEach((p) => {
@@ -509,7 +517,7 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 											// This could also consult DYNAMIC_SM_INPUT_TYPE_MAP if that map is still deemed useful for other values
 											inputTypeString = DYNAMIC_SM_INPUT_TYPE_MAP[inputFromContents.type] || `NumericType:${inputFromContents.type}`;
 											if (!DYNAMIC_SM_INPUT_TYPE_MAP.hasOwnProperty(inputFromContents.type)) {
-												console.warn(`SM Input '${inputFromContents.name}': Encountered unmapped numeric type '${inputFromContents.type}' from contents.`);
+												// console.warn(`SM Input '${inputFromContents.name}': Encountered unmapped numeric type '${inputFromContents.type}' from contents.`);
 											}
 										}
 									} else if (inputFromContents.type !== undefined) {
@@ -524,7 +532,7 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 							// console.log(`Artboard '${artboardDef.name}' not found in riveInstance.contents or has no stateMachines property.`);
 						}
 					} else {
-						console.warn('riveInstance.contents or riveInstance.contents.artboards is not available for parsing SM inputs.');
+						// console.warn('riveInstance.contents or riveInstance.contents.artboards is not available for parsing SM inputs.');
 					}
 					currentArtboardEntry.stateMachines.push(smInfo);
 				}
@@ -548,23 +556,23 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 			} else {
 				result.globalEnums = 'COULD_NOT_RETRIEVE_GLOBAL_ENUMS_NO_METHOD';
 			}
-            // console.log(riveInstance.viewModelByIndex(1).properties)
-			console.log('Final Parsed Rive file structure:', JSON.parse(JSON.stringify(result)));
-			ws.send(JSON.stringify(result));
+
+			// console.log('Final Parsed Rive file structure (within parser.js):', JSON.parse(JSON.stringify(result))); // REMOVE THIS
+
+			const cleanResult = {
+				artboards: result.artboards,
+				assets: result.assets,
+				allViewModelDefinitionsAndInstances: result.allViewModelDefinitionsAndInstances,
+				globalEnums: result.globalEnums,
+				// Add any other top-level keys you expect from your parser
+			};
+			finalCallback(null, cleanResult);
 		},
 		onError: (err) => {
-			console.error('Error loading Rive file:', err);
-			ws.send(JSON.stringify({ error: err.toString() }));
+			const errorMsg = 'Error loading Rive file';
+			console.error(errorMsg + ':', err);
+			// if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ error: err.toString() })); // Conditional WS
+			finalCallback({ error: errorMsg, details: err.toString() });
 		},
 	});
-	console.log("[Original Parser] new Rive() constructor has been called. Waiting for onLoad/onError.");
-} // ADDED FUNCTION CLOSING BRACKET
-
-// Example of how it could be called (for testing, will be called from main.js)
-// if (document.readyState === 'complete' || document.readyState !== 'loading') {
-// runOriginalClientParser(window.rive, document.getElementById('rive-canvas'), 'animations/diagram_v3.riv');
-// } else {
-// document.addEventListener('DOMContentLoaded', () => {
-// runOriginalClientParser(window.rive, document.getElementById('rive-canvas'), 'animations/diagram_v3.riv');
-// });
-// }
+}
