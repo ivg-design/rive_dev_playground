@@ -57,23 +57,24 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 	console.log(`[Original Parser] Attempting to load Rive file from src: '${riveFileToLoad}'`);
 
 	// --- WebGL2 Renderer Check ---
-	let rendererFactoryToUse = undefined;
-	if (riveToUse.makeRendererWebGL2) {
-		try {
-			rendererFactoryToUse = riveToUse.makeRendererWebGL2();
-		} catch (e) {
-			console.error('[Original Parser] Error creating WebGL2 renderer factory (will use default):', e);
-			rendererFactoryToUse = undefined; // Fallback
-		}
-	}
-	// --- End WebGL2 Renderer Check ---
+	// let rendererFactoryToUse = undefined;
+	// if (riveToUse.makeRendererWebGL2) {
+	// 	try {
+	// 		rendereiFactoryToUse = riveToUse.makeRendererWebGL2();
+	// 	} catch (e) {
+	// 		console.error("[Original Parser] Error creating WebGL2 renderer factory (will use default):", e);
+	// 		rendereiFactoryToUse = undefined; 
+	// 	}
+	// }
 
+	// Instantiate the Rive animator.
+	// We are using the @rive-app/webgl2 runtime, so it should use WebGL2 by default.
 	const riveInstance = new riveToUse.Rive({
 		src: riveFileToLoad,
 		canvas: canvas,
 		autobind: true,
 		autoplay: true,
-		rendererFactory: rendererFactoryToUse, // MODIFIED to use the checked factory
+		// rendererFactory: rendererFactoryToUse, // REMOVED - Rely on @rive-app/webgl2 runtime default
 		assetLoader: (asset, bytes) => {
 			// console.log("[Original Parser] assetLoader called for:", asset.name); // Optional
 			collectedAssets.push({
