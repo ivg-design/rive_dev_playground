@@ -32,13 +32,13 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 			// if (instance) console.log("[Original Parser Fallback CB] Instance:", instance);
 		};
 
-	console.log("[Parser Entry] riveEngine received:", riveEngine);
-	console.log("[Parser Entry] canvasElement received:", canvasElement);
-	console.log("[Parser Entry] riveFilePathFromParam received:", riveFilePathFromParam);
+	console.log('[Parser Entry] riveEngine received:', riveEngine);
+	console.log('[Parser Entry] canvasElement received:', canvasElement);
+	console.log('[Parser Entry] riveFilePathFromParam received:', riveFilePathFromParam);
 
 	// If riveEngine is not passed, try to use window.rive as a fallback
 	const riveToUse = window.rive;
-	console.log("[Parser Internal] riveToUse resolved to:", riveToUse);
+	console.log('[Parser Internal] riveToUse resolved to:', riveToUse);
 
 	if (!riveToUse) {
 		const errorMsg = '[Original Parser] Rive runtime not loaded or provided';
@@ -49,12 +49,12 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 	// console.log('[Original Parser] Rive object:', riveToUse); // Optional: keep if useful for user
 
 	const collectedAssets = [];
-	const riveFileToLoad = 'animations/super_simple.riv'; // TEST: Force loading a known simple file
-	// console.log("[Parser Test] Forcing load of default file:", riveFileToLoad); // Old log
-	console.log("[Parser Test] Forcing load of super_simple.riv:", riveFileToLoad);
+	// Use the provided file path if available, otherwise use default
+	let riveFileToLoad = riveFilePathFromParam || 'animations/super_simple.riv';
+	console.log('[Parser] Using Rive file:', riveFileToLoad);
 
 	const canvas = canvasElement || document.getElementById('rive-canvas');
-	console.log("[Parser Internal] canvas (final element for Rive):", canvas);
+	console.log('[Parser Internal] canvas (final element for Rive):', canvas);
 	if (!canvas) {
 		const errorMsg = "[Original Parser] Canvas element 'rive-canvas' not found or not provided.";
 		console.error(errorMsg);
@@ -67,19 +67,27 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 	// We are using the @rive-app/webgl2 runtime, so it should use WebGL2 by default.
 
 	// --- DEBUGGING RIVE CONSTRUCTOR INPUTS ---
-	console.log("[Parser Debug] About to instantiate Rive. src:", riveFileToLoad);
-	console.log("[Parser Debug] Canvas element:", canvas);
+	console.log('[Parser Debug] About to instantiate Rive. src:', riveFileToLoad);
+	console.log('[Parser Debug] Canvas element:', canvas);
 	if (canvas) {
-		console.log("[Parser Debug] Canvas clientWidth:", canvas.clientWidth, "clientHeight:", canvas.clientHeight, "offsetParent:", canvas.offsetParent);
+		console.log('[Parser Debug] Canvas clientWidth:', canvas.clientWidth, 'clientHeight:', canvas.clientHeight, 'offsetParent:', canvas.offsetParent);
 	}
 	// --- END DEBUGGING ---
 
+	// Find the default state machine name from the URL or use 'State Machine 1' as a common default
+	// This could also inspect the file to find the first SM, but many Rive files use "State Machine 1" by default
+	const defaultStateMachineName = 'State Machine 1';
+	console.log(`[Parser] Using default state machine name: ${defaultStateMachineName}`);
+
+	// We need to specify stateMachines by name for the Rive API
 	const riveOptions = {
 		src: riveFileToLoad,
 		canvas: canvas,
-		// artboard: 'Diagram', // TEST: Remove explicit artboard, rely on autobind
+		// artboard: 'Diagram', // Remove explicit artboard, rely on autobind
 		autobind: true,
 		autoplay: true,
+		// Specify state machine by name - this is required for inputs to work properly
+		stateMachines: defaultStateMachineName,
 		assetLoader: (asset) => {
 			// console.log("[Parser] assetLoader (single arg) called for:", asset.name);
 			collectedAssets.push({
@@ -102,7 +110,52 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 				artboards: [],
 				assets: collectedAssets,
 				allViewModelDefinitionsAndInstances: [],
+				// Add a new field to store default information
+				defaultElements: {
+					artboardName: null,
+					stateMachineNames: [],
+					viewModelName: null,
+				},
 			};
+
+			// Get default artboard and identify its state machines
+			if (riveInstance.artboard) {
+				result.defaultElements.artboardName = riveInstance.artboard.name;
+				console.log(`[Parser onLoad] Default artboard loaded: ${result.defaultElements.artboardName}`);
+
+				// Start with the state machine we already initialized in the options
+				result.defaultElements.stateMachineNames.push(defaultStateMachineName);
+				console.log(`[Parser onLoad] Initial state machine was: ${defaultStateMachineName}`);
+
+				// Get all available state machines on this artboard (to find any additional ones)
+				const artboardDef = riveInstance.file?.artboardByName(riveInstance.artboard.name);
+				if (artboardDef) {
+					const smCountOnArtboard = typeof artboardDef.stateMachineCount === 'function' ? artboardDef.stateMachineCount() : 0;
+					console.log(`[Parser onLoad] Found ${smCountOnArtboard} state machines on artboard "${riveInstance.artboard.name}"`);
+
+					// Collect additional state machine names that weren't already initialized
+					for (let j = 0; j < smCountOnArtboard; j++) {
+						const smDefFromFile = artboardDef.stateMachineByIndex(j);
+						if (!smDefFromFile || !smDefFromFile.name) continue;
+
+						// Skip the one we already initialized
+						if (smDefFromFile.name === defaultStateMachineName) continue;
+
+						console.log(`[Parser onLoad] Found additional state machine: ${smDefFromFile.name}`);
+						result.defaultElements.stateMachineNames.push(smDefFromFile.name);
+
+						// Play this additional state machine
+						try {
+							console.log(`[Parser onLoad] Playing additional state machine: ${smDefFromFile.name}`);
+							if (riveInstance && typeof riveInstance.play === 'function') {
+								riveInstance.play(smDefFromFile.name);
+							}
+						} catch (err) {
+							console.warn(`[Parser onLoad] Couldn't play state machine "${smDefFromFile.name}":`, err);
+						}
+					}
+				}
+			}
 
 			const riveFile = riveInstance.file;
 			if (!riveFile) {
@@ -110,6 +163,14 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 				console.error(errorMsg);
 				finalCallback({ error: errorMsg }, result, riveInstance); // Pass instance even on partial error
 				return;
+			}
+
+			// Capture default ViewModel info if available
+			const defaultViewModel = riveInstance.defaultViewModel && typeof riveInstance.defaultViewModel === 'function' ? riveInstance.defaultViewModel() : null;
+
+			if (defaultViewModel && defaultViewModel.name) {
+				result.defaultElements.viewModelName = defaultViewModel.name;
+				console.log(`[Parser] Default view model: ${result.defaultElements.viewModelName}`);
 			}
 
 			// --- Dynamic State Machine Input Type Calibration ---
@@ -309,9 +370,7 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 			// --- Phase 1: List All ViewModel Blueprints ---
 			const allFoundViewModelDefinitions = [];
 			let vmdIndex = 0;
-			const vmDefinitionCount = (riveFile && typeof riveFile.viewModelCount === 'function') 
-									? riveFile.viewModelCount() 
-									: 0;
+			const vmDefinitionCount = riveFile && typeof riveFile.viewModelCount === 'function' ? riveFile.viewModelCount() : 0;
 			// console.log(`[Original Parser] Found ${vmDefinitionCount} ViewModel definitions...`); // Optional debug
 			if (typeof riveInstance.viewModelByIndex === 'function') {
 				// console.log("[Original Parser] Using riveInstance.viewModelByIndex() to fetch definitions."); // Optional debug
@@ -544,21 +603,22 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 				assets: result.assets,
 				allViewModelDefinitionsAndInstances: result.allViewModelDefinitionsAndInstances,
 				globalEnums: result.globalEnums,
+				defaultElements: result.defaultElements,
 				// Add any other top-level keys you expect from your parser
 			};
 			finalCallback(null, cleanResult, riveInstance); // Pass the live riveInstance here
 		},
 		onError: (err) => {
 			const errorMsg = 'Problem loading file; may be corrupt!'; // More prominent error message
-			console.error(`[Parser Rive Error] ${errorMsg}`, err); 
-			console.error("[Parser Rive Error] Options used for new Rive():", JSON.stringify(riveOptions, null, 2)); // Log options on error
+			console.error(`[Parser Rive Error] ${errorMsg}`, err);
+			console.error('[Parser Rive Error] Options used for new Rive():', JSON.stringify(riveOptions, null, 2)); // Log options on error
 			finalCallback({ error: errorMsg, details: err.toString() }, null, null); // Pass null for instance on load error
 		},
 	};
 
-	console.log("[Parser Pre-Init] Options for new Rive (exampleIndex.mjs inspired):");
+	console.log('[Parser Pre-Init] Options for new Rive (exampleIndex.mjs inspired):');
 	// Custom logger for options because functions won't stringify well
-	Object.keys(riveOptions).forEach(key => {
+	Object.keys(riveOptions).forEach((key) => {
 		if (typeof riveOptions[key] === 'function') {
 			console.log(`  ${key}: function`);
 		} else {
@@ -567,7 +627,7 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 	});
 
 	const riveInstance = new riveToUse.Rive(riveOptions);
-	console.log("[Parser Post-Init] Rive instance created (or attempted):", riveInstance);
+	console.log('[Parser Post-Init] Rive instance created (or attempted):', riveInstance);
 
 	// The rest of the onLoad logic, including finalCallback, remains the same.
 	// The onError for the Rive constructor will handle the "corrupt file" error.

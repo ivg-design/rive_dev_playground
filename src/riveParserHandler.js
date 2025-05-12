@@ -208,6 +208,25 @@ function handleFileSelect(event) {
 					// The `riveEngine` passed into runOriginalClientParser is just the Rive library itself.
 					// For now, we assume liveRiveInstanceFromParser is provided by the callback.
 					currentRiveInstance = liveRiveInstanceFromParser; 
+					
+					// Use the default elements information to create a better experience
+					if (parsedData.defaultElements) {
+						console.log("[ParserHandler] Default elements found:", parsedData.defaultElements);
+						
+						// Use the collected info instead of relying on autoplay/autobind
+						if (parsedData.defaultElements.artboardName && 
+							parsedData.defaultElements.stateMachineNames && 
+							parsedData.defaultElements.stateMachineNames.length > 0) {
+							
+							console.log(`[ParserHandler] Using specific artboard "${parsedData.defaultElements.artboardName}" and state machines:`, 
+								parsedData.defaultElements.stateMachineNames);
+							
+							// We might want to create a new Rive instance with specific parameters
+							// but for now, we'll use the existing instance which should already have the
+							// artboard and state machines activated by the parser
+						}
+					}
+					
 					if (currentRiveInstance) {
 						initDynamicControls(currentRiveInstance, parsedData);
 					} else {
