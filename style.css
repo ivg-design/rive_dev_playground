@@ -538,3 +538,57 @@ div.jsoneditor-search input {
     color: white;
     font-weight: bold;
 }
+
+/* Direct ViewModel Access Styling */
+.direct-vm-section {
+    margin-top: 20px;
+    border: 3px solid #6a4ca0;
+    border-radius: 5px;
+    background-color: rgba(106, 76, 160, 0.1);
+    padding: 5px;
+}
+
+.direct-vm-section > summary {
+    background-color: #6a4ca0;
+    color: white;
+    font-weight: bold;
+    padding: 8px;
+    cursor: pointer;
+}
+
+.direct-vm-main {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+}
+
+.direct-vm-nested {
+    margin: 5px 0 5px 15px;
+    border-left: 2px solid #8a70bf;
+    padding-left: 10px;
+}
+
+.direct-vm-nested > summary {
+    background-color: #47345a;
+    color: white;
+    padding: 5px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.direct-vm-deep-nested {
+    margin: 5px 0 5px 15px;
+    border-left: 2px solid #a58ad2;
+    padding-left: 10px;
+}
+
+.direct-vm-deep-nested > summary {
+    background-color: #574172;
+    color: #ddd;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-style: italic;
+}

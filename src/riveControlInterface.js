@@ -4,16 +4,28 @@
  * with live Rive animations (State Machine inputs, ViewModel properties).
  */
 
+import { processDataForControls } from './dataToControlConnector.js';
+import { createLogger } from './utils/debugger/debugLogger.js';
+
+// Create a logger for this module
+const logger = createLogger('controlInterface');
+
 // To store a reference to the live Rive instance and parsed data if needed globally within this module
 let riveInstance = null;
 let parsedRiveData = null;
 let dynamicControlsInitialized = false;
+let structuredControlData = null; // Will store the processed data from dataToControlConnector
+let uiUpdateInterval = null; // <<< ADDED: For polling interval ID
+
+// Store the Rive engine reference globally if needed, or pass it around
+// For simplicity, assuming window.rive is available as in other files.
+const RiveEngine = window.rive;
 
 /* ---------- helpers (adapted from exampleIndex.mjs) ------------------ */
 const argbToHex = (a) => {
     if (typeof a !== 'number') return '#000000'; // Default or error color
     return '#' + (a & 0xffffff).toString(16).padStart(6, '0').toUpperCase();
-}
+};
 const hexToArgb = (h) => {
     if (!h || typeof h !== 'string' || !h.startsWith('#')) return 0; // Default or error value
     return parseInt('FF' + h.slice(1), 16) | 0; // Ensure it's an integer
@@ -35,733 +47,729 @@ const makeRow = (label, el, notes = '') => {
     return row;
 };
 
-// Helper to get and process a ViewModel property
-function getViewModelProperty(viewModelInstance, propertyName, propertyType) {
-    if (!viewModelInstance) {
-        console.log(`[RiveControls] Cannot access ViewModel property - viewModelInstance is null/undefined`);
-        return null;
-    }
-    
+// If fmt is not available, we can use a simpler log or JSON.stringify
+function simpleFmt(val) {
+    if (val === undefined || val === null) return '';
+    if (typeof val === 'string') return val;
+    if (Array.isArray(val)) return val.join(', ');
+    // Basic object check, could be more robust like the original fmt
+    if (typeof val === 'object' && val.name) return val.name;
+    if (typeof val === 'object' && Array.isArray(val.data)) return val.data.join(', ');
     try {
-        let input = null;
-        
-        console.log(`[RiveControls] Accessing ${propertyType} property '${propertyName}' from VM:`, 
-            viewModelInstance.name || 'unnamed VM');
-        
-        switch (propertyType) {
-            case 'string':
-                if (typeof viewModelInstance.string === 'function') {
-                    input = viewModelInstance.string(propertyName);
-                    console.log(`[RiveControls] Got string property '${propertyName}':`, input ? input.value : 'null');
-                } else {
-                    console.warn(`[RiveControls] This VM doesn't have a string() function`);
-                }
-                break;
-            case 'boolean':
-                if (typeof viewModelInstance.boolean === 'function') {
-                    input = viewModelInstance.boolean(propertyName);
-                    console.log(`[RiveControls] Got boolean property '${propertyName}':`, input ? input.value : 'null');
-                } else {
-                    console.warn(`[RiveControls] This VM doesn't have a boolean() function`);
-                }
-                break;
-            case 'number':
-                if (typeof viewModelInstance.number === 'function') {
-                    input = viewModelInstance.number(propertyName);
-                    console.log(`[RiveControls] Got number property '${propertyName}':`, input ? input.value : 'null');
-                } else {
-                    console.warn(`[RiveControls] This VM doesn't have a number() function`);
-                }
-                break;
-            case 'color':
-                if (typeof viewModelInstance.color === 'function') {
-                    input = viewModelInstance.color(propertyName);
-                    console.log(`[RiveControls] Got color property '${propertyName}':`, 
-                        input && typeof input.value === 'number' ? argbToHex(input.value) : 'invalid value');
-                } else {
-                    console.warn(`[RiveControls] This VM doesn't have a color() function`);
-                }
-                break;
-            case 'enumType':
-                if (typeof viewModelInstance.enum === 'function') {
-                    input = viewModelInstance.enum(propertyName);
-                    console.log(`[RiveControls] Got enum property '${propertyName}':`, input ? input.value : 'null');
-                } else if (typeof viewModelInstance.string === 'function') {
-                    // Sometimes enum values can be accessed via string
-                    console.warn(`[RiveControls] VM has no enum() function, trying string() fallback for '${propertyName}'`);
-                    input = viewModelInstance.string(propertyName);
-                    console.log(`[RiveControls] Got enum (via string) property '${propertyName}':`, input ? input.value : 'null');
-                } else {
-                    console.warn(`[RiveControls] This VM doesn't have enum() or string() functions`);
-                }
-                break;
-            case 'viewModel':
-                if (typeof viewModelInstance.viewModel === 'function') {
-                    input = viewModelInstance.viewModel(propertyName);
-                    console.log(`[RiveControls] Got nested viewModel '${propertyName}'`);
-                } else {
-                    console.warn(`[RiveControls] This VM doesn't have a viewModel() function`);
-                }
-                break;
-        }
-        
-        return input;
-    } catch (e) {
-        console.error(`[RiveControls] Error accessing ViewModel property '${propertyName}' of type '${propertyType}':`, e);
-        return null;
+        return JSON.stringify(val);
+    } catch {
+        return String(val);
     }
 }
 
-// Create a control element for a specific input type
-function createControlForInput(input, inputType) {
-    if (!input) return null;
+function handleConstructorStateChange(sm, st) {
+    console.log("%%%%%%%% CONSTRUCTOR onStateChange Fired %%%%%%%%");
+    console.log("SM:", simpleFmt(sm));
+    console.log("ST:", simpleFmt(st));
+    // Call updateControlsFromRive() to sync UI based on state machine changes.
+    console.log("%%%%%%%% CONSTRUCTOR onStateChange: Calling updateControlsFromRive() %%%%%%%%");
+    updateControlsFromRive();
+}
+
+/**
+ * Creates a control element for a specific property with direct reference to the live input
+ * @param {Object} property The property object with name, type, and liveProperty reference
+ * @return {HTMLElement} The control element
+ */
+function createControlForProperty(property) {
+    if (!property) {
+        logger.warn('Cannot create control: Invalid property');
+        return null;
+    }
+    
+    // Check if this is a placeholder property (no live reference)
+    const isPlaceholder = property.isPlaceholder || !property.liveProperty;
+    const { name, type } = property;
+    const liveProperty = property.liveProperty;
+    
+    logger.debug(`Creating control for ${type} property: ${name}, isPlaceholder: ${isPlaceholder}`);
     
     let ctrl = null;
     
-    switch (inputType) {
-        case 'string':
-            ctrl = document.createElement('textarea');
-            ctrl.value = (input.value || '').replace(/\\n/g, '\n');
-            ctrl.addEventListener('input', () => {
-                try {
-                    input.value = ctrl.value.replace(/\n/g, '\\n');
-                } catch (e) {
-                    console.error('[RiveControls] Error setting string value:', e);
-                }
-            });
-            break;
-            
-        case 'boolean':
-            ctrl = document.createElement('input');
-            ctrl.type = 'checkbox';
-            ctrl.checked = !!input.value;
-            ctrl.addEventListener('change', () => {
-                try {
-                    input.value = ctrl.checked;
-                } catch (e) {
-                    console.error('[RiveControls] Error setting boolean value:', e);
-                }
-            });
-            break;
-            
-        case 'number':
-            ctrl = document.createElement('input');
-            ctrl.type = 'number';
-            ctrl.value = input.value || 0;
-            ctrl.addEventListener('input', () => {
-                try {
-                    input.value = parseFloat(ctrl.value) || 0;
-                } catch (e) {
-                    console.error('[RiveControls] Error setting number value:', e);
-                }
-            });
-            break;
-            
-        case 'color':
-            ctrl = document.createElement('input');
-            ctrl.type = 'color';
-            try {
-                ctrl.value = argbToHex(input.value);
-                ctrl.addEventListener('input', () => {
-                    try {
-                        input.value = hexToArgb(ctrl.value);
-                    } catch (e) {
-                        console.error('[RiveControls] Error setting color value:', e);
-                    }
-                });
-            } catch (e) {
-                console.error('[RiveControls] Error setting initial color value:', e);
-                ctrl.value = '#000000';
-            }
-            break;
-            
-        case 'enumType':
-            ctrl = document.createElement('select');
-            
-            // Try to get possible enum values
-            if (riveInstance && typeof riveInstance.enums === 'function') {
-                try {
-                    const allEnums = riveInstance.enums();
-                    const enumValues = allEnums.find(d => d.name === input.name)?.values || [];
+    try {
+        switch (type) {
+            case 'string':
+                ctrl = document.createElement('textarea');
+                if (isPlaceholder) {
+                    ctrl.value = (property.value || '').replace(/\\n/g, '\n');
+                    ctrl.disabled = true;
+                } else {
+                    const initialRiveValue = (liveProperty.value || '').replace(/\\n/g, '\n');
+                    ctrl.value = initialRiveValue;
                     
-                    enumValues.forEach(v => {
-                        const option = new Option(v, v);
-                        ctrl.appendChild(option);
+                    ctrl.addEventListener('input', () => { 
+                        const newValue = ctrl.value.replace(/\n/g, '\\\\n');
+                        console.log(`[App] Event: Attempting to set ${name} to:`, newValue);
+                        liveProperty.value = newValue;
                     });
-                    
-                    if (input.value) {
-                        ctrl.value = input.value;
-                    }
-                } catch (e) {
-                    console.error('[RiveControls] Error getting enum values:', e);
                 }
-            }
+                break;
             
-            ctrl.addEventListener('change', () => {
-                try {
-                    input.value = ctrl.value;
-                } catch (e) {
-                    console.error('[RiveControls] Error setting enum value:', e);
+            case 'boolean':
+                ctrl = document.createElement('input');
+                ctrl.type = 'checkbox';
+                if (isPlaceholder) {
+                    ctrl.checked = !!property.value;
+                    ctrl.disabled = true;
+                } else {
+                    ctrl.checked = !!liveProperty.value;
+                    ctrl.addEventListener('change', () => {
+                        const newValue = ctrl.checked;
+                        console.log(`[App] Event: Attempting to set ${name} to:`, newValue);
+                        liveProperty.value = newValue;
+                    });
                 }
-            });
-            break;
+                break;
+            
+            case 'number':
+                ctrl = document.createElement('input');
+                ctrl.type = 'number';
+                if (isPlaceholder) {
+                    ctrl.value = property.value || 0;
+                    ctrl.disabled = true;
+                } else {
+                    ctrl.value = liveProperty.value || 0;
+                    ctrl.addEventListener('input', () => {
+                        const newValue = parseFloat(ctrl.value) || 0;
+                        console.log(`[App] Event: Attempting to set ${name} to:`, newValue);
+                        liveProperty.value = newValue;
+                    });
+                }
+                break;
+            
+            case 'color':
+                ctrl = document.createElement('input');
+                ctrl.type = 'color';
+                if (isPlaceholder) {
+                    // For placeholders, use the value directly if it's a string, otherwise use default
+                    ctrl.value = typeof property.value === 'string' ? property.value : '#000000';
+                    ctrl.disabled = true;
+                } else {
+                    ctrl.value = argbToHex(liveProperty.value);
+                    ctrl.addEventListener('input', () => {
+                        const newValue = hexToArgb(ctrl.value);
+                        console.log(`[App] Event: Attempting to set ${name} (${ctrl.value}) to:`, newValue);
+                        liveProperty.value = newValue;
+                    });
+                }
+                break;
+            
+            case 'enumType':
+                ctrl = document.createElement('select');
+                
+                if (isPlaceholder) {
+                    const option = new Option(property.value || 'Unknown', property.value || '');
+                    ctrl.appendChild(option);
+                    ctrl.disabled = true;
+                } else {
+                    // Get enum values if available
+                    if (riveInstance && typeof riveInstance.enums === 'function') {
+                        const allEnums = riveInstance.enums();
+                        const enumValues = allEnums.find(d => d.name === name)?.values || [];
+                        
+                        enumValues.forEach(v => {
+                            const option = new Option(v, v);
+                            ctrl.appendChild(option);
+                        });
+                        
+                        if (liveProperty.value) {
+                            ctrl.value = liveProperty.value;
+                        }
+                    }
+                    
+                    ctrl.addEventListener('change', () => {
+                        const newValue = ctrl.value;
+                        console.log(`[App] Event: Attempting to set ${name} to:`, newValue);
+                        liveProperty.value = newValue;
+                    });
+                }
+                break;
+            
+            case 'trigger':
+                ctrl = document.createElement('button');
+                ctrl.textContent = 'Fire Trigger';
+                
+                if (isPlaceholder) {
+                    ctrl.disabled = true;
+                } else {
+                    ctrl.addEventListener('click', () => {
+                        console.log(`[App] Event: Attempting to fire trigger ${name}`);
+                        if (typeof liveProperty.fire === 'function') {
+                            liveProperty.fire();
+                        } else {
+                            const oldValue = liveProperty.value;
+                            liveProperty.value = true;
+                            setTimeout(() => {
+                                liveProperty.value = oldValue;
+                            }, 100);
+                        }
+                    });
+                }
+                break;
+        }
+    } catch (e) {
+        logger.error(`Error creating control for property ${name}:`, e);
+        return null;
     }
     
     return ctrl;
 }
 
-// Helper to format values from Rive
-function formatRiveValue(x) {
-    if (x === undefined || x === null) return '';
-    if (typeof x === 'string') return x;
-    if (Array.isArray(x)) return x.join(', ');
-    if (typeof x === 'object') {
-        // Rive WebGL2 ships an object `{type:"statechange", data:[...]}`
-        if (Array.isArray(x.data)) return x.data.join(', ');
-        if ('name' in x) return x.name;
-        return JSON.stringify(x);
-    }
-    return String(x);
-}
-
 /**
- * Initializes and builds the dynamic control UI based on the Rive instance and parsed data.
- * This function will be called by riveParserHandler.js after a Rive file is successfully parsed.
+ * Initializes and builds the dynamic control UI based on the parsed data.
+ * This function will now create its own Rive instance.
  * 
- * @param {object} liveRiveInstance - The active Rive instance from the Rive WebGL2 runtime.
- * @param {object} newParsedData - The structured data object from parser.js.
+ * @param {object} parsedDataFromHandler - The structured data object from parser.js.
  */
-export function initDynamicControls(liveRiveInstance, newParsedData) {
-    console.log("[RiveControls] Initializing dynamic controls with instance:", liveRiveInstance);
-    
-    riveInstance = liveRiveInstance;
-    parsedRiveData = newParsedData;
-    dynamicControlsInitialized = true;
+export function initDynamicControls(parsedDataFromHandler) {
+    logger.info('Initializing dynamic controls with parsed data:', parsedDataFromHandler);
+
+    // Clear previous instance and polling interval
+    if (riveInstance && typeof riveInstance.cleanup === 'function') {
+        riveInstance.cleanup();
+    }
+    if (uiUpdateInterval) {
+        clearInterval(uiUpdateInterval);
+        uiUpdateInterval = null;
+    }
+    riveInstance = null;
+    parsedRiveData = parsedDataFromHandler;
+    dynamicControlsInitialized = false;
+    structuredControlData = null;
 
     const controlsContainer = document.getElementById('dynamicControlsContainer');
     if (!controlsContainer) {
-        console.error("[RiveControls] Dynamic controls container #dynamicControlsContainer not found.");
+        logger.error('Dynamic controls container #dynamicControlsContainer not found. Cannot initialize.');
+        return;
+    }
+    controlsContainer.innerHTML = '<p>Loading Rive animation and controls...</p>'; // Initial message
+
+    if (!parsedDataFromHandler || !parsedDataFromHandler.defaultElements) {
+        logger.error('No parsed data or defaultElements found. Cannot create Rive instance.');
+        controlsContainer.innerHTML = '<p>Error: Missing critical parsed data to load Rive animation.</p>';
+        return;
+    }
+
+    if (!RiveEngine) {
+        logger.error('Rive engine (window.rive) not available. Cannot create Rive instance.');
+        controlsContainer.innerHTML = '<p>Error: Rive engine not available.</p>';
+        return;
+    }
+
+    const canvas = document.getElementById('rive-canvas');
+    if (!canvas) {
+        logger.error("Canvas element 'rive-canvas' not found. Cannot create Rive instance.");
+        controlsContainer.innerHTML = '<p>Error: Canvas element not found.</p>';
+        return;
+    }
+
+    const { src, artboardName, stateMachineNames } = parsedDataFromHandler.defaultElements;
+    if (!src || !artboardName) { 
+        logger.error('Missing src or artboardName in parsed data. Cannot create Rive instance.');
+        if(controlsContainer) controlsContainer.innerHTML = '<p>Error: Missing Rive source or artboard name.</p>';
+        return; 
+    }
+
+    // Define options first, WITHOUT onLoad or onError that would need the instance methods directly
+    const riveOptions = {
+        src: src,
+        canvas: canvas,
+        artboard: artboardName,
+        stateMachines: stateMachineNames, 
+        autoplay: false,
+        autoBind: true,
+        onStateChange: handleConstructorStateChange,
+        // No onLoad/onError here, they will be attached using instance.on()
+    };
+
+    logger.info('Creating new Rive instance with options:', { 
+        src: riveOptions.src, 
+        artboard: riveOptions.artboard, 
+        stateMachines: riveOptions.stateMachines,
+        autoplay: riveOptions.autoplay,
+        autoBind: riveOptions.autoBind
+    });
+
+    try {
+        // Create the new instance and assign to module-scoped variable immediately
+        riveInstance = new RiveEngine.Rive(riveOptions);
+    } catch (e) {
+        logger.error('Error during Rive instance construction:', e);
+        if(controlsContainer) controlsContainer.innerHTML = `<p>Error constructing Rive: ${e.toString()}</p>`;
+        riveInstance = null; // Ensure it's null on error
+        return;
+    }
+    
+    if (!riveInstance || typeof riveInstance.on !== 'function') {
+        logger.error('Newly created Rive instance is invalid or does not have .on method');
+        if(controlsContainer) controlsContainer.innerHTML = '<p>Error initializing Rive instance.</p>';
+        return;
+    }
+
+    logger.info('[controlInterface] [INFO] New Rive instance successfully constructed. Setting up listeners...');
+
+    // Now, set up Load and LoadError listeners on this specific instance
+    const EventType = RiveEngine.EventType; // Get EventType from the RiveEngine
+
+    riveInstance.on(EventType.Load, () => {
+        logger.info('[controlInterface] [INFO] Rive instance EventType.Load fired.');
+        dynamicControlsInitialized = true;
+
+        try {
+            riveInstance.resizeDrawingSurfaceToCanvas();
+        } catch (e_resize) {
+            console.error('[controlInterface] onLoad (via instance.on): ERROR during resizeDrawingSurfaceToCanvas:', e_resize);
+            if(controlsContainer) controlsContainer.innerHTML = '<p>Error during Rive resize.</p>';
+            return; 
+        }
+        
+        structuredControlData = processDataForControls(parsedRiveData, riveInstance);
+
+        if (!structuredControlData) {
+            logger.error('Failed to process data for controls with new Rive instance.');
+            if(controlsContainer) controlsContainer.innerHTML = '<p>Error: Could not process data for controls.</p>';
+            return;
+        }
+        
+        // PROGRAMMATICALLY SET "Diagram Enter" TO FALSE ON LOAD
+        if (structuredControlData && structuredControlData.stateMachineControls) {
+            const smName = (parsedRiveData && parsedRiveData.defaultElements && parsedRiveData.defaultElements.stateMachineNames && parsedRiveData.defaultElements.stateMachineNames.length > 0) 
+                            ? parsedRiveData.defaultElements.stateMachineNames[0] 
+                            : "State Machine 1"; // Fallback if name isn't in parsedData
+            const smControl = structuredControlData.stateMachineControls.find(sm => sm.name === smName);
+            if (smControl && smControl.inputs) {
+                const diagramEnterInput = smControl.inputs.find(input => input.name === "Diagram Enter");
+                if (diagramEnterInput && diagramEnterInput.liveInput && diagramEnterInput.liveInput.value !== false) {
+                    logger.info(`[controlInterface] Programmatically setting '${smName} -> Diagram Enter' to false on initial load.`);
+                    diagramEnterInput.liveInput.value = false;
+                    // The first run of polling should pick this up for the UI if not immediate.
+                }
+            }
+        }
+        // END PROGRAMMATIC SET
+
+        setupEventListeners(); 
+        
+        buildControlsUI();
+
+        // Manually play the primary state machine
+        const smName = (parsedRiveData && parsedRiveData.defaultElements && parsedRiveData.defaultElements.stateMachineNames && parsedRiveData.defaultElements.stateMachineNames.length > 0) 
+                        ? parsedRiveData.defaultElements.stateMachineNames[0] 
+                        : "State Machine 1"; // Fallback
+        if (riveInstance && typeof riveInstance.play === 'function') {
+            riveInstance.play(smName);
+        }
+    });
+
+    riveInstance.on(EventType.LoadError, (err) => {
+        logger.error('Rive EventType.LoadError fired:', err);
+        if(controlsContainer) controlsContainer.innerHTML = `<p>Error loading Rive animation (LoadError event): ${err.toString()}</p>`;
+        riveInstance = null; // Clear the instance
+        dynamicControlsInitialized = false;
+    });
+}
+
+/**
+ * Sets up event listeners for the Rive instance
+ */
+function setupEventListeners() {
+    if (!riveInstance || typeof riveInstance.on !== 'function') {
+        logger.warn('[controlInterface] Attempted to setup listeners, but Rive instance is invalid or has no .on method');
+        return;
+    }
+    
+    const EventType = RiveEngine.EventType; // Ensure RiveEngine is window.rive or equivalent
+    if (!EventType) {
+        logger.error('[controlInterface] RiveEngine.EventType is not available. Cannot setup Rive listeners.');
+        return;
+    }
+
+    // Remove previous listeners before adding new ones, to prevent duplicates if this function is called multiple times on the same instance
+    // (Though with current flow, it should only be called once per new instance)
+    try {
+        if (typeof riveInstance.removeAllEventListeners === 'function') {
+            // logger.debug('[controlInterface] Removing all existing Rive event listeners before re-adding.');
+            // riveInstance.removeAllEventListeners(); // Be cautious if other parts might add listeners we don't know about
+        } 
+    } catch (e) {
+        logger.warn('[controlInterface] Error trying to remove previous listeners:', e);
+    }
+
+    logger.info('[controlInterface] Setting up Rive instance event listeners (StateChanged, ValueChanged, RiveEvent).');
+
+    if (EventType.StateChanged) {
+        riveInstance.on(EventType.StateChanged, (event) => {
+            console.log("!!!!!!!!!!!! RIVE JS EVENT: StateChanged Fired !!!!!!!!!!", event);
+            logger.debug('[controlInterface] Rive StateChanged event:', event);
+            updateControlsFromRive(); 
+        });
+    }
+    if (EventType.ValueChanged) { 
+        riveInstance.on(EventType.ValueChanged, (event) => {
+            console.log("!!!!!!!!!!!! RIVE JS EVENT: ValueChanged Fired !!!!!!!!!!", event);
+            logger.debug('[controlInterface] Rive ValueChanged event:', event);
+            updateControlsFromRive();
+        });
+    }
+    if (EventType.RiveEvent) { 
+        riveInstance.on(EventType.RiveEvent, (event) => {
+            console.log("!!!!!!!!!!!! RIVE JS EVENT: RiveEvent (Custom) Fired !!!!!!!!!!", event);
+            logger.debug('[controlInterface] Rive RiveEvent (custom):', event);
+            // We might want to call updateControlsFromRive() here too if custom events can alter VM/SM Input states
+            // updateControlsFromRive(); 
+        });
+    }
+    // Any other specific events from Rive docs can be added here if needed.
+}
+
+/**
+ * Builds the dynamic control UI using the processed data
+ */
+function buildControlsUI() {
+    const controlsContainer = document.getElementById('dynamicControlsContainer');
+    if (!controlsContainer) {
+        logger.error('Dynamic controls container #dynamicControlsContainer not found.');
         return;
     }
 
     controlsContainer.innerHTML = ''; // Clear previous controls
 
-    if (!riveInstance) {
-        controlsContainer.innerHTML = '<p>Rive instance not available. Cannot build controls.</p>';
-        return;
-    }
-    if (!parsedRiveData) {
-        controlsContainer.innerHTML = '<p>Parsed Rive data not available. Cannot build controls.</p>';
-        return;
-    }
-    
-    // Ensure we have basic artboards data
-    if (!parsedRiveData.artboards) {
-        console.error("[RiveControls] Parsed data missing required 'artboards' property:", parsedRiveData);
-        controlsContainer.innerHTML = '<p>Parsed data incomplete - missing artboards information. Cannot build controls.</p>';
+    if (!structuredControlData) {
+        controlsContainer.innerHTML = '<p>No control data available. Cannot build controls.</p>';
         return;
     }
 
     const mainTitle = document.createElement('h3');
-    mainTitle.textContent = "Live Rive Controls";
+    mainTitle.textContent = 'Live Rive Controls';
     controlsContainer.appendChild(mainTitle);
 
-    // Get default/active elements info (with fallbacks)
-    const defaultElements = parsedRiveData.defaultElements || {};
-    const defaultArtboardName = defaultElements.artboardName || 
-                               (riveInstance.artboard ? riveInstance.artboard.name : null);
-    const defaultStateMachineNames = defaultElements.stateMachineNames || 
-                                    (riveInstance.stateMachines || []);
+    // Add header with active information
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'default-info';
     
-    // Add a header with default artboard and state machine info
-    if (defaultArtboardName) {
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'default-info';
-        infoDiv.innerHTML = `<p><strong>Active Artboard:</strong> ${defaultArtboardName}</p>`;
-        
-        if (defaultStateMachineNames && defaultStateMachineNames.length > 0) {
-            infoDiv.innerHTML += `<p><strong>Active State Machines:</strong> ${defaultStateMachineNames.join(', ')}</p>`;
-        }
-        
-        controlsContainer.appendChild(infoDiv);
+    if (structuredControlData.activeArtboardName) {
+        infoDiv.innerHTML += `<p><strong>Active Artboard:</strong> ${structuredControlData.activeArtboardName}</p>`;
+    }
+    
+    if (structuredControlData.activeStateMachineNames && structuredControlData.activeStateMachineNames.length > 0) {
+        infoDiv.innerHTML += `<p><strong>Active State Machines:</strong> ${structuredControlData.activeStateMachineNames.join(', ')}</p>`;
+    }
+    
+    if (structuredControlData.activeViewModelName) {
+        infoDiv.innerHTML += `<p><strong>Active ViewModel:</strong> ${structuredControlData.activeViewModelName}</p>`;
+    }
+    
+    controlsContainer.appendChild(infoDiv);
+
+    // Build State Machine Controls
+    if (structuredControlData.stateMachineControls && structuredControlData.stateMachineControls.length > 0) {
+        buildStateMachineControls(controlsContainer, structuredControlData.stateMachineControls);
     }
 
-    // Dump debug info
-    console.log("[RiveControls] Active artboard:", defaultArtboardName);
-    console.log("[RiveControls] Active state machines:", defaultStateMachineNames);
+    // Build ViewModel Controls - now directly adding to the container without an extra parent level
+    if (structuredControlData.viewModelControls && structuredControlData.viewModelControls.length > 0) {
+        buildViewModelControls(controlsContainer, structuredControlData.viewModelControls);
+    }
+}
 
-    // First, check if we have state machines from the parsed data
-    if (defaultStateMachineNames && defaultStateMachineNames.length > 0) {
-        const activeSMSection = document.createElement('details');
-        activeSMSection.className = 'control-section';
-        activeSMSection.open = true;
-        const activeSMSummary = document.createElement('summary');
-        activeSMSummary.textContent = "Active State Machines";
-        activeSMSection.appendChild(activeSMSummary);
+/**
+ * Builds controls for State Machines
+ * @param {HTMLElement} container The container element
+ * @param {Array} stateMachines The state machine controls data
+ */
+function buildStateMachineControls(container, stateMachines) {
+    const smSection = document.createElement('details');
+    smSection.className = 'control-section';
+    smSection.open = true;
+    
+    const smSummary = document.createElement('summary');
+    smSummary.textContent = 'State Machine Controls';
+    smSection.appendChild(smSummary);
+    
+    stateMachines.forEach(sm => {
+        const smDetails = document.createElement('details');
+        smDetails.className = 'control-subsection';
+        smDetails.open = false;
         
-        const smContainer = document.createElement('div');
-        smContainer.className = 'sm-controls-container';
+        const smName = document.createElement('summary');
+        smName.textContent = `SM: ${sm.name}`;
+        smDetails.appendChild(smName);
         
-        // Use the state machine names from the defaultElements
-        defaultStateMachineNames.forEach(smName => {
-            if (!smName) return; // Skip empty names
-            
-            // Create a section for each state machine
-            const smSection = document.createElement('details');
-            smSection.className = 'control-subsection';
-            smSection.open = true;
-            const smSummary = document.createElement('summary');
-            smSummary.textContent = `SM: ${smName} (Active)`;
-            smSection.appendChild(smSummary);
-            
-            // Try to add a "force play" button
-            const playButton = document.createElement('button');
-            playButton.textContent = "Force Play";
-            playButton.className = "play-button";
-            playButton.addEventListener('click', () => {
-                try {
-                    riveInstance.play(smName);
-                    console.log(`[RiveControls] Manually played state machine: ${smName}`);
-                    // Refresh controls after playing
-                    setTimeout(() => initDynamicControls(riveInstance, parsedRiveData), 300);
-                } catch (e) {
-                    console.error(`[RiveControls] Error playing state machine: ${smName}`, e);
+        // Add controls for each input
+        if (sm.inputs && sm.inputs.length > 0) {
+            sm.inputs.forEach(input => {
+                const { name, type, liveInput } = input;
+                
+                let ctrl = null;
+                let notes = type;
+                
+                // Reference the enum from window.rive if available
+                const riveRef = window.rive || {};
+                const SMInputType = riveRef.StateMachineInputType || {};
+                
+                if (type === SMInputType.Boolean || type === 'boolean') {
+                    ctrl = document.createElement('input');
+                    ctrl.type = 'checkbox';
+                    ctrl.checked = !!liveInput.value;
+                    ctrl.addEventListener('change', () => 
+                        liveInput.value = ctrl.checked
+                    );
+                } else if (type === SMInputType.Number || type === 'number') {
+                    ctrl = document.createElement('input');
+                    ctrl.type = 'number';
+                    ctrl.value = liveInput.value || 0;
+                    ctrl.addEventListener('input', () => 
+                        liveInput.value = parseFloat(ctrl.value) || 0
+                    );
+                } else if (type === SMInputType.Trigger || type === 'trigger') {
+                    ctrl = document.createElement('button');
+                    ctrl.textContent = 'Fire';
+                    ctrl.addEventListener('click', () => 
+                        liveInput.fire()
+                    );
+                }
+                
+                if (ctrl) {
+                    smDetails.appendChild(makeRow(name, ctrl, notes));
                 }
             });
-            smSection.appendChild(playButton);
-                
-            // Try to get inputs for this state machine
-            let hasInputs = false;
-            try {
-                // Make sure we get inputs directly from the Rive instance
-                let inputs;
-                if (typeof riveInstance.stateMachineInputs === 'function') {
-                    inputs = riveInstance.stateMachineInputs(smName);
-                    console.log(`[RiveControls] Found inputs for '${smName}' using stateMachineInputs():`, inputs);
-                } else {
-                    console.warn(`[RiveControls] No stateMachineInputs method found on Rive instance for '${smName}'`);
-                    inputs = [];
-                }
-                
-                if (inputs && Array.isArray(inputs) && inputs.length > 0) {
-                    inputs.forEach(input => {
-                        if (!input || !input.name) return;
-                        
-                        console.log(`[RiveControls] Found active input: ${input.name}, type:`, input.type);
-                        
-                        let ctrl;
-                        let notes = 'Active';
-                        
-                        // Reference the enum from window.rive if available
-                        const riveRef = window.rive || {};
-                        const SMInputType = riveRef.StateMachineInputType || {};
-                        
-                        if (input.type === SMInputType.Boolean || input.type === 'boolean') {
-                            ctrl = document.createElement('input');
-                            ctrl.type = 'checkbox';
-                            ctrl.checked = input.value;
-                            ctrl.addEventListener('change', () => {
-                                try {
-                                    input.value = ctrl.checked;
-                                } catch (err) {
-                                    console.error(`[RiveControls] Error setting Boolean value for '${input.name}':`, err);
-                                }
-                            });
-                        } else if (input.type === SMInputType.Number || input.type === 'number') {
-                            ctrl = document.createElement('input');
-                            ctrl.type = 'number';
-                            ctrl.value = input.value;
-                            ctrl.addEventListener('input', () => {
-                                try {
-                                    input.value = parseFloat(ctrl.value) || 0;
-                                } catch (err) {
-                                    console.error(`[RiveControls] Error setting Number value for '${input.name}':`, err);
-                                }
-                            });
-                        } else if (input.type === SMInputType.Trigger || input.type === 'trigger') {
-                            ctrl = document.createElement('button');
-                            ctrl.textContent = 'Fire';
-                            ctrl.addEventListener('click', () => {
-                                try {
-                                    input.fire();
-                                } catch (err) {
-                                    console.error(`[RiveControls] Error firing Trigger for '${input.name}':`, err);
-                                }
-                            });
-                            notes = 'Trigger (Active)';
-                        } else {
-                            // Unknown or unsupported type
-                            const typeStr = typeof input.type === 'number' ? `Type ${input.type}` : String(input.type);
-                            notes = `Unknown type: ${typeStr}`;
-                        }
-                        
-                        if (ctrl) {
-                            smSection.appendChild(makeRow(input.name, ctrl, notes));
-                            hasInputs = true;
-                        }
-                    });
-                } else {
-                    const noInputsNote = document.createElement('p');
-                    noInputsNote.className = 'info-note';
-                    noInputsNote.textContent = "No inputs available for this state machine.";
-                    smSection.appendChild(noInputsNote);
-                }
-            } catch (err) {
-                console.error(`[RiveControls] Error accessing inputs for SM '${smName}':`, err);
-                const errorNote = document.createElement('p');
-                errorNote.className = 'error-note';
-                errorNote.textContent = "Error accessing inputs.";
-                smSection.appendChild(errorNote);
-            }
-            
-            // Add this section to the container
-            smContainer.appendChild(smSection);
-        });
-        
-        if (smContainer.hasChildNodes()) {
-            activeSMSection.appendChild(smContainer);
-            controlsContainer.appendChild(activeSMSection);
+        } else {
+            const noInputs = document.createElement('p');
+            noInputs.className = 'info-note';
+            noInputs.textContent = 'No inputs available for this state machine';
+            smDetails.appendChild(noInputs);
         }
-    } else {
-        console.log("[RiveControls] No state machines found in parsed data.");
         
-        // Add a message that no state machines were found
-        const noSmMessage = document.createElement('div');
-        noSmMessage.className = 'info-section';
-        noSmMessage.innerHTML = '<p>No state machines found in this Rive file.</p>';
-        controlsContainer.appendChild(noSmMessage);
+        smSection.appendChild(smDetails);
+    });
+    
+    container.appendChild(smSection);
+}
+
+/**
+ * Builds controls for ViewModels
+ * @param {HTMLElement} container The container element
+ * @param {Array} viewModels The ViewModel controls data
+ */
+function buildViewModelControls(container, viewModels) {
+    if (!viewModels || viewModels.length === 0) {
+        logger.info('No ViewModel controls to build');
+        return;
     }
 
-    // Second, display artboards from parsed data with their state machines
-    // (this is more for informational purposes if artboards aren't active)
-    const artboardsSection = document.createElement('details');
-    artboardsSection.className = 'control-section';
-    artboardsSection.open = true;
-    const artboardsSummary = document.createElement('summary');
-    artboardsSummary.textContent = "Available Artboards";
-    artboardsSection.appendChild(artboardsSummary);
+    logger.info(`Building controls for ${viewModels.length} ViewModels`);
     
-    let hasArtboardContent = false;
-
-    // Iterate through artboards from parsed data
-    parsedRiveData.artboards.forEach(artboard => {
-        if (!artboard.name) return; // Skip if artboard has no name
+    // Process each ViewModel directly without the redundant parent level
+    viewModels.forEach(vm => {
+        logger.debug(`Building controls for VM: ${vm.instanceName}`);
+        const vmDetails = document.createElement('details');
+        vmDetails.className = 'control-section'; // Use the same class as top-level sections
+        vmDetails.open = true;
         
-        const isActiveArtboard = riveInstance.artboard && riveInstance.artboard.name === artboard.name;
-
-        const artboardSection = document.createElement('details');
-        artboardSection.className = 'control-section';
-        artboardSection.open = isActiveArtboard; // Open active by default, others closed
-        const artboardSummary = document.createElement('summary');
-        artboardSummary.textContent = `Artboard: ${artboard.name}${isActiveArtboard ? ' (Active)' : ''}`;
-        artboardSection.appendChild(artboardSummary);
-
-        // If it has state machines, list them (mostly informational)
-        if (artboard.stateMachines && artboard.stateMachines.length > 0) {
-            const smContainer = document.createElement('div');
-            smContainer.className = 'sm-controls-container';
-            
-            artboard.stateMachines.forEach(smData => {
-                if (!smData.name) return;
-                
-                const isActive = isActiveArtboard && riveInstance.stateMachines && 
-                                riveInstance.stateMachines.includes(smData.name);
-                
-                const smSection = document.createElement('details');
-                smSection.className = 'control-subsection';
-                smSection.open = isActive; // Only open active ones by default
-                const smSummary = document.createElement('summary');
-                smSummary.textContent = `SM: ${smData.name}${isActive ? ' (Active)' : ''}`;
-                smSection.appendChild(smSummary);
-                
-                // Only show inputs if they exist and artboard isn't active
-                // (active artboards already handled above)
-                if (smData.inputs && smData.inputs.length > 0 && !isActive) {
-                    // For non-active, just show parsed input information
-                    smData.inputs.forEach(inputData => {
-                        if (!inputData.name) return;
-                        
-                        // Create placeholder controls that don't actually control anything
-                        // but show what inputs are available
-                        let ctrl;
-                        const notes = `${inputData.type} (Not Active)`;
-                        
-                        if (inputData.type === 'Boolean') {
-                            ctrl = document.createElement('input');
-                            ctrl.type = 'checkbox';
-                            ctrl.disabled = true;
-                        } else if (inputData.type === 'Number') {
-                            ctrl = document.createElement('input');
-                            ctrl.type = 'number';
-                            ctrl.disabled = true;
-                        } else if (inputData.type === 'Trigger') {
-                            ctrl = document.createElement('button');
-                            ctrl.textContent = 'Fire';
-                            ctrl.disabled = true;
-                        }
-                        
-                        if (ctrl) {
-                            smSection.appendChild(makeRow(inputData.name, ctrl, notes));
-                        }
-                    });
-                }
-                
-                if(smSection.querySelectorAll('.control-row').length > 0 || isActive) {
-                    smContainer.appendChild(smSection);
-                    hasArtboardContent = true;
+        const vmSummary = document.createElement('summary');
+        vmSummary.textContent = `VM: ${vm.instanceName} ${vm.blueprintName ? `(${vm.blueprintName})` : ''}`;
+        vmDetails.appendChild(vmSummary);
+        
+        // Add direct property controls
+        if (vm.properties && vm.properties.length > 0) {
+            logger.debug(`Adding ${vm.properties.length} properties for ${vm.instanceName}`);
+            vm.properties.forEach(prop => {
+                const ctrl = createControlForProperty(prop);
+                if (ctrl) {
+                    vmDetails.appendChild(makeRow(prop.name, ctrl, prop.type));
                 }
             });
-            
-            if (smContainer.hasChildNodes()) {
-                artboardSection.appendChild(smContainer);
+        } else {
+            logger.debug(`No properties found for ${vm.instanceName}`);
+            const noProps = document.createElement('p');
+            noProps.className = 'info-note';
+            noProps.textContent = 'No direct properties in this ViewModel';
+            vmDetails.appendChild(noProps);
+        }
+        
+        // Add nested ViewModels (recursively)
+        if (vm.nestedViewModels && vm.nestedViewModels.length > 0) {
+            logger.debug(`Adding ${vm.nestedViewModels.length} nested VMs for ${vm.instanceName}`);
+            buildNestedViewModelControls(vmDetails, vm.nestedViewModels);
+        }
+        
+        container.appendChild(vmDetails);
+    });
+}
+
+/**
+ * Recursively builds controls for nested ViewModels
+ * @param {HTMLElement} container The parent container element
+ * @param {Array} nestedViewModels The nested ViewModel controls data
+ * @param {number} depth Current nesting depth (for styling)
+ */
+function buildNestedViewModelControls(container, nestedViewModels, depth = 1) {
+    nestedViewModels.forEach(vm => {
+        const nestedDetails = document.createElement('details');
+        nestedDetails.className = `control-subsection nested-level-${depth}`; // Consistent styling
+        nestedDetails.open = false; // Collapsed by default
+        
+        const nestedSummary = document.createElement('summary');
+        nestedSummary.textContent = `Nested: ${vm.instanceName}`; // Remove the redundant triangle
+        nestedDetails.appendChild(nestedSummary);
+        
+        // Add direct property controls
+        if (vm.properties && vm.properties.length > 0) {
+            vm.properties.forEach(prop => {
+                const ctrl = createControlForProperty(prop);
+                if (ctrl) {
+                    nestedDetails.appendChild(makeRow(prop.name, ctrl, prop.type));
+                }
+            });
+        } else {
+            const noProps = document.createElement('p');
+            noProps.className = 'info-note';
+            noProps.textContent = 'No properties in this nested ViewModel';
+            nestedDetails.appendChild(noProps);
+        }
+        
+        // Recursively process deeper nested ViewModels
+        if (vm.nestedViewModels && vm.nestedViewModels.length > 0) {
+            buildNestedViewModelControls(nestedDetails, vm.nestedViewModels, depth + 1);
+        }
+        
+        container.appendChild(nestedDetails);
+    });
+}
+
+/**
+ * Updates UI controls to reflect current Rive property values
+ * This ensures bidirectional feedback when properties change internally
+ */
+function updateControlsFromRive() {
+    console.log('>>> UI UPDATE: updateControlsFromRive() Called'); // Log 2
+    logger.debug('Updating controls from Rive...');
+    
+    // Update boolean controls
+    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        const row = checkbox.closest('.control-row');
+        if (row) {
+            const label = row.querySelector('label');
+            if (label) {
+                const propName = label.textContent.split('(')[0].trim();
+                // Try to find the property in our structured data and update the UI
+                updateControlValueFromRive(propName, checkbox);
             }
-        }
-        
-        // --- ViewModel Controls ---
-        if (artboard.viewModels && artboard.viewModels.length > 0) {
-            hasArtboardContent = true;
-            const vmContainer = document.createElement('div');
-            vmContainer.className = 'vm-controls-container';
-            
-            const vmTitle = document.createElement('h5');
-            vmTitle.textContent = "View Models:";
-            vmContainer.appendChild(vmTitle);
-            
-            artboard.viewModels.forEach(vmData => {
-                // Create a collapsible section for each ViewModel
-                const vmSection = document.createElement('details');
-                vmSection.className = 'vm-subsection';
-                vmSection.open = isActiveArtboard; // Only open for active artboard
-                
-                const vmSummary = document.createElement('summary');
-                vmSummary.textContent = `VM: ${vmData.instanceName} (${vmData.sourceBlueprintName})`;
-                vmSection.appendChild(vmSummary);
-                
-                // Check if this is the active ViewModel for this artboard
-                const isActiveVM = isActiveArtboard && 
-                    defaultElements.viewModelName === vmData.sourceBlueprintName;
-                
-                // Add interactive controls for inputs if this is the active ViewModel
-                if (isActiveVM && riveInstance.viewModelInstance) {
-                    const vmInstance = riveInstance.viewModelInstance;
-                    let hasControls = false;
-                    
-                    // Process each input to create controls
-                    if (vmData.inputs && vmData.inputs.length > 0) {
-                        vmData.inputs.forEach(input => {
-                            // Skip if no name or type
-                            if (!input.name || !input.type) return;
-                            
-                            // Get the live property from the ViewModel instance
-                            const vmProperty = getViewModelProperty(vmInstance, input.name, input.type);
-                            
-                            if (vmProperty) {
-                                // Create control for this property
-                                const control = createControlForInput(vmProperty, input.type);
-                                
-                                if (control) {
-                                    vmSection.appendChild(makeRow(input.name, control, input.type));
-                                    hasControls = true;
-                                }
-                            }
-                        });
-                    }
-                    
-                    // Process nested ViewModels
-                    if (vmData.nestedViewModels && vmData.nestedViewModels.length > 0) {
-                        vmData.nestedViewModels.forEach(nestedVM => {
-                            const nestedSection = document.createElement('details');
-                            nestedSection.className = 'nested-vm';
-                            const nestedSummary = document.createElement('summary');
-                            nestedSummary.textContent = `Nested: ${nestedVM.instanceName}`;
-                            nestedSection.appendChild(nestedSummary);
-                            
-                            // Try to get the nested ViewModel instance
-                            try {
-                                const nestedInstance = vmInstance.viewModel(nestedVM.instanceName);
-                                
-                                if (nestedInstance && nestedVM.inputs && nestedVM.inputs.length > 0) {
-                                    nestedVM.inputs.forEach(input => {
-                                        // Skip if no name or type
-                                        if (!input.name || !input.type) return;
-                                        
-                                        // Get the live property from the nested ViewModel instance
-                                        const vmProperty = getViewModelProperty(nestedInstance, input.name, input.type);
-                                        
-                                        if (vmProperty) {
-                                            // Create control for this property
-                                            const control = createControlForInput(vmProperty, input.type);
-                                            
-                                            if (control) {
-                                                nestedSection.appendChild(makeRow(input.name, control, input.type));
-                                                hasControls = true;
-                                            }
-                                        }
-                                    });
-                                }
-                            } catch (e) {
-                                console.error(`[RiveControls] Error accessing nested ViewModel '${nestedVM.instanceName}':`, e);
-                            }
-                            
-                            // Only add if it has controls
-                            if (nestedSection.querySelectorAll('.control-row').length > 0) {
-                                vmSection.appendChild(nestedSection);
-                            }
-                        });
-                    }
-                    
-                    // If no controls were added, add a message
-                    if (!hasControls) {
-                        const noControlsMsg = document.createElement('p');
-                        noControlsMsg.className = 'info-note';
-                        noControlsMsg.textContent = "No editable properties found.";
-                        vmSection.appendChild(noControlsMsg);
-                    }
-                } else {
-                    // Show static property list for non-active ViewModels
-                    if (vmData.inputs && vmData.inputs.length > 0) {
-                        const inputsList = document.createElement('ul');
-                        inputsList.className = 'vm-inputs-list';
-                        
-                        vmData.inputs.forEach(input => {
-                            const li = document.createElement('li');
-                            li.textContent = `${input.name} (${input.type}): ${input.value}`;
-                            inputsList.appendChild(li);
-                        });
-                        
-                        vmSection.appendChild(inputsList);
-                    }
-                    
-                    // Add a note that this is not the active ViewModel
-                    if (isActiveArtboard && !isActiveVM) {
-                        const notActiveNote = document.createElement('p');
-                        notActiveNote.className = 'info-note';
-                        notActiveNote.textContent = "This is not the active ViewModel - controls are read-only.";
-                        vmSection.appendChild(notActiveNote);
-                    }
-                }
-                
-                vmContainer.appendChild(vmSection);
-            });
-            
-            artboardSection.appendChild(vmContainer);
-        }
-
-        if (artboard.animations && artboard.animations.length > 0) {
-            hasArtboardContent = true;
-            const animTitle = document.createElement('h5');
-            animTitle.textContent = "Animations:";
-            artboardSection.appendChild(animTitle);
-            
-            const animList = document.createElement('ul');
-            artboard.animations.forEach(anim => {
-                const li = document.createElement('li');
-                li.textContent = `${anim.name} (${anim.fps}fps, ${anim.duration.toFixed(2)}s)`;
-                animList.appendChild(li);
-            });
-            
-            artboardSection.appendChild(animList);
-        }
-
-        // Only add artboard section if it has content
-        if (hasArtboardContent || isActiveArtboard) {
-            artboardsSection.appendChild(artboardSection);
         }
     });
-
-    // Only add artboards section if it has content
-    if (hasArtboardContent) {
-        controlsContainer.appendChild(artboardsSection);
-    }
-
-    // Special section just for the active ViewModel (more prominent)
-    if (riveInstance.viewModelInstance) {
-        const activeVMSection = document.createElement('details');
-        activeVMSection.className = 'control-section active-vm-section';
-        activeVMSection.open = true;
-        const activeVMSummary = document.createElement('summary');
-        activeVMSummary.textContent = "Active View Model Controls";
-        activeVMSection.appendChild(activeVMSummary);
-        
-        const vmInstance = riveInstance.viewModelInstance;
-        console.log("[RiveControls] Found active viewModelInstance:", vmInstance);
-        
-        // Try to find this instance in our parsed data to get its structure
-        const activeArtboard = riveInstance.artboard ? riveInstance.artboard.name : null;
-        if (activeArtboard) {
-            const artboardData = parsedRiveData.artboards.find(a => a.name === activeArtboard);
-            
-            if (artboardData && artboardData.viewModels && artboardData.viewModels.length > 0) {
-                let hasAddedAnyVMControls = false;
-                
-                artboardData.viewModels.forEach(vmData => {
-                    console.log(`[RiveControls] Processing ViewModel: ${vmData.instanceName} (${vmData.sourceBlueprintName})`);
-                    
-                    const isMainVM = vmData.instanceName === "Instance" || 
-                        defaultElements.viewModelName === vmData.sourceBlueprintName;
-                    
-                    // Only process controls for the main VM in this section
-                    if (isMainVM) {
-                        let hasAddedControls = processViewModelControls(vmInstance, vmData, activeVMSection);
-                        hasAddedAnyVMControls = hasAddedAnyVMControls || hasAddedControls;
-                    }
-                });
-                
-                if (!hasAddedAnyVMControls) {
-                    const noControlsNote = document.createElement('p');
-                    noControlsNote.className = 'info-note';
-                    noControlsNote.textContent = "No interactive ViewModel properties found.";
-                    activeVMSection.appendChild(noControlsNote);
-                }
-                
-                controlsContainer.appendChild(activeVMSection);
-            } else {
-                console.log("[RiveControls] Active artboard data or viewModels not found in parsed data");
+    
+    // Update number controls
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        const row = input.closest('.control-row');
+        if (row) {
+            const label = row.querySelector('label');
+            if (label) {
+                const propName = label.textContent.split('(')[0].trim();
+                updateControlValueFromRive(propName, input);
             }
         }
-    }
-
-    // Add a button to test interaction
-    const testButton = document.createElement('button');
-    testButton.textContent = "Test Rive Interaction";
-    testButton.onclick = () => {
-        if (riveInstance) {
-            console.log("[RiveControls] Test: Rive instance available.", riveInstance);
-            
-            // Display active state machines if available
-            if (riveInstance.stateMachines && Array.isArray(riveInstance.stateMachines)) {
-                console.log("[RiveControls] Test: Active state machines:", riveInstance.stateMachines);
-                
-                // Try to get inputs for the first state machine
-                if (riveInstance.stateMachines.length > 0) {
-                    try {
-                        const firstSmInputs = riveInstance.stateMachineInputs(riveInstance.stateMachines[0]);
-                        console.log(`[RiveControls] Test: Inputs for first SM '${riveInstance.stateMachines[0]}':`, firstSmInputs);
-                        
-                        // Trigger a state change if a trigger input exists
-                        const triggerInput = firstSmInputs.find(input => {
-                            const riveRef = window.rive || {};
-                            const SMInputType = riveRef.StateMachineInputType || {};
-                            return input.type === SMInputType.Trigger || input.type === 'trigger';
-                        });
-                        
-                        if (triggerInput) {
-                            console.log(`[RiveControls] Test: Firing trigger '${triggerInput.name}'`);
-                            triggerInput.fire();
-                        }
-                    } catch (err) {
-                        console.error("[RiveControls] Test: Error accessing inputs for first SM:", err);
-                    }
-                }
-            } else {
-                console.log("[RiveControls] Test: No active state machines found. Checking for artboard...");
-                if (riveInstance.artboard) {
-                    console.log("[RiveControls] Test: Active artboard is:", riveInstance.artboard.name);
-                }
+    });
+    
+    // Update select (enum) controls
+    document.querySelectorAll('select').forEach(select => {
+        const row = select.closest('.control-row');
+        if (row) {
+            const label = row.querySelector('label');
+            if (label) {
+                const propName = label.textContent.split('(')[0].trim();
+                updateControlValueFromRive(propName, select);
             }
         }
+    });
+    
+    // Update color inputs
+    document.querySelectorAll('input[type="color"]').forEach(colorInput => {
+        const row = colorInput.closest('.control-row');
+        if (row) {
+            const label = row.querySelector('label');
+            if (label) {
+                const propName = label.textContent.split('(')[0].trim();
+                updateControlValueFromRive(propName, colorInput);
+            }
+        }
+    });
+    
+    // Update textareas for string inputs
+    document.querySelectorAll('textarea').forEach(textarea => {
+        const row = textarea.closest('.control-row');
+        if (row) {
+            const label = row.querySelector('label');
+            if (label) {
+                const propName = label.textContent.split('(')[0].trim();
+                updateControlValueFromRive(propName, textarea);
+            }
+        }
+    });
+}
+
+/**
+ * Updates a specific control's value from the current Rive property value
+ */
+function updateControlValueFromRive(propName, controlElement) {
+    if (!structuredControlData || !structuredControlData.viewModelControls) return;
+    if (document.activeElement === controlElement && controlElement.type !== 'checkbox' && controlElement.type !== 'select-one') {
+        return;
+    }
+
+    // --- Re-define findProperty helper --- 
+    const findProperty = (vmArray, targetPropName) => {
+        for (const vm of vmArray) {
+            const prop = vm.properties?.find(p => p.name === targetPropName);
+            if (prop && prop.liveProperty) {
+                return prop.liveProperty;
+            }
+            if (vm.nestedViewModels?.length > 0) {
+                const nestedProp = findProperty(vm.nestedViewModels, targetPropName);
+                if (nestedProp) return nestedProp;
+            }
+        }
+        return null;
     };
-    controlsContainer.appendChild(testButton);
+    // --- End findProperty helper ---
+
+    const liveProperty = findProperty(structuredControlData.viewModelControls, propName);
+
+    if (liveProperty) {
+        if (controlElement.type === 'checkbox') {
+            const riveValueBool = !!liveProperty.value;
+            if (controlElement.checked !== riveValueBool) {
+                controlElement.checked = riveValueBool;
+            }
+        } else if (controlElement.type === 'number') {
+            const controlValueNum = parseFloat(controlElement.value);
+            const riveValueNum = liveProperty.value === null || liveProperty.value === undefined ? NaN : parseFloat(liveProperty.value);
+            if (isNaN(controlValueNum) && isNaN(riveValueNum)) {
+                // Both NaN, do nothing
+            } else if (controlValueNum !== riveValueNum) {
+                controlElement.value = riveValueNum !== undefined && !isNaN(riveValueNum) ? riveValueNum : '';
+            }
+        } else if (controlElement.type === 'color') {
+            const riveHexValue = argbToHex(liveProperty.value);
+            if (controlElement.value.toUpperCase() !== riveHexValue) {
+                controlElement.value = riveHexValue;
+            }
+        } else if (controlElement.type === 'select-one') {
+            const riveValueString = liveProperty.value === null || liveProperty.value === undefined ? '' : String(liveProperty.value);
+            if (controlElement.value !== riveValueString) {
+                controlElement.value = riveValueString;
+            }
+        } else if (controlElement.tagName.toLowerCase() === 'textarea') {
+            const riveTextValue = (liveProperty.value === null || liveProperty.value === undefined ? '' : String(liveProperty.value)).replace(/\\n/g, '\n');
+            if (controlElement.value !== riveTextValue) {
+                controlElement.value = riveTextValue;
+            }
+        }
+    }
 }
 
 /**
@@ -770,183 +778,9 @@ export function initDynamicControls(liveRiveInstance, newParsedData) {
  */
 export function updateDynamicControls() {
     if (dynamicControlsInitialized && riveInstance && parsedRiveData) {
-        console.log("[RiveControls] updateDynamicControls called. Re-initializing.");
-        initDynamicControls(riveInstance, parsedRiveData);
+        logger.info('updateDynamicControls called. Re-initializing.');
+        initDynamicControls(parsedRiveData);
     } else {
-        console.warn("[RiveControls] updateDynamicControls called but not initialized or Rive data missing.");
+        logger.warn('updateDynamicControls called but not initialized or Rive data missing.');
     }
 }
-
-// Add this helper function after getViewModelProperty
-function processViewModelControls(vmInstance, vmData, containerElement) {
-    if (!vmInstance || !vmData || !containerElement) return false;
-    
-    console.log(`[RiveControls] Processing VM controls for: ${vmData.instanceName}`);
-    
-    // DEBUG: Log available properties to help diagnose nested viewModels
-    try {
-        if (vmInstance.properties && Array.isArray(vmInstance.properties)) {
-            console.log(`[RiveControls] VM has ${vmInstance.properties.length} properties:`, 
-                vmInstance.properties.map(p => `${p.name} (${p.type})`));
-            
-            // Specifically log viewModel properties
-            const viewModelProps = vmInstance.properties.filter(p => p.type === 'viewModel');
-            if (viewModelProps.length > 0) {
-                console.log(`[RiveControls] VM has ${viewModelProps.length} nested viewModels:`, 
-                    viewModelProps.map(p => p.name));
-            }
-        } else if (typeof vmInstance.propertyCount === 'function') {
-            const count = vmInstance.propertyCount();
-            console.log(`[RiveControls] VM has ${count} properties (via propertyCount function)`);
-            
-            // Try to list them
-            const props = [];
-            for (let i = 0; i < count; i++) {
-                const prop = vmInstance.propertyByIndex(i);
-                if (prop && prop.name) props.push(`${prop.name} (${prop.type})`);
-            }
-            console.log(`[RiveControls] VM properties:`, props);
-            
-            // Log viewModel properties
-            const viewModelProps = props.filter(p => p.includes('(viewModel)'));
-            if (viewModelProps.length > 0) {
-                console.log(`[RiveControls] VM has nested viewModels:`, viewModelProps);
-            }
-        }
-    } catch (e) {
-        console.log(`[RiveControls] Error inspecting VM properties:`, e);
-    }
-    
-    let hasAddedControls = false;
-    
-    // Process direct inputs
-    if (vmData.inputs && vmData.inputs.length > 0) {
-        vmData.inputs.forEach(input => {
-            // Skip if no name or type
-            if (!input.name || !input.type) return;
-            
-            console.log(`[RiveControls] - Processing VM input: ${input.name} (${input.type})`);
-            
-            // Get the live property from the ViewModel instance
-            const vmProperty = getViewModelProperty(vmInstance, input.name, input.type);
-            
-            if (vmProperty) {
-                console.log(`[RiveControls] -- Found live property for ${input.name}, value:`, vmProperty.value);
-                
-                // Create control for this property
-                const control = createControlForInput(vmProperty, input.type);
-                
-                if (control) {
-                    containerElement.appendChild(makeRow(input.name, control, input.type));
-                    hasAddedControls = true;
-                }
-            } else {
-                console.log(`[RiveControls] -- No live property found for ${input.name}`);
-            }
-        });
-    }
-    
-    // Process nested ViewModels
-    if (vmData.nestedViewModels && vmData.nestedViewModels.length > 0) {
-        console.log(`[RiveControls] Processing ${vmData.nestedViewModels.length} nested ViewModels for ${vmData.instanceName}`);
-        
-        vmData.nestedViewModels.forEach(nestedVM => {
-            console.log(`[RiveControls] Attempting to access nested VM: ${nestedVM.instanceName}`);
-            
-            try {
-                // Try to access the nested VM instance
-                const nestedInstance = vmInstance.viewModel(nestedVM.instanceName);
-                
-                if (nestedInstance) {
-                    console.log(`[RiveControls] Found nested VM instance: ${nestedVM.instanceName}`, nestedInstance);
-                    
-                    const nestedSection = document.createElement('details');
-                    nestedSection.className = 'nested-vm';
-                    nestedSection.open = true;
-                    
-                    const nestedSummary = document.createElement('summary');
-                    nestedSummary.textContent = `${nestedVM.instanceName}`;
-                    nestedSection.appendChild(nestedSummary);
-                    
-                    // Log nested VM inputs for debugging
-                    if (nestedVM.inputs && nestedVM.inputs.length > 0) {
-                        console.log(`[RiveControls] Nested VM ${nestedVM.instanceName} has ${nestedVM.inputs.length} inputs:`, 
-                            nestedVM.inputs.map(i => `${i.name} (${i.type})`));
-                    }
-                    
-                    // Process each input in the nested ViewModel
-                    let hasNestedControls = false;
-                    
-                    if (nestedVM.inputs && nestedVM.inputs.length > 0) {
-                        nestedVM.inputs.forEach(input => {
-                            if (!input.name || !input.type) return;
-                            
-                            console.log(`[RiveControls] Processing nested VM input: ${input.name} (${input.type})`);
-                            
-                            try {
-                                // Direct property access based on type
-                                let vmProperty = null;
-                                
-                                switch (input.type) {
-                                    case 'string':
-                                        vmProperty = nestedInstance.string(input.name);
-                                        break;
-                                    case 'boolean':
-                                        vmProperty = nestedInstance.boolean(input.name);
-                                        break;
-                                    case 'number':
-                                        vmProperty = nestedInstance.number(input.name);
-                                        break;
-                                    case 'color':
-                                        vmProperty = nestedInstance.color(input.name);
-                                        break;
-                                    case 'enumType':
-                                        vmProperty = nestedInstance.enum(input.name);
-                                        break;
-                                }
-                                
-                                if (vmProperty) {
-                                    console.log(`[RiveControls] Created control for nested VM property: ${input.name}, value:`, vmProperty.value);
-                                    
-                                    // Create control for this property
-                                    const control = createControlForInput(vmProperty, input.type);
-                                    
-                                    if (control) {
-                                        nestedSection.appendChild(makeRow(input.name, control, input.type));
-                                        hasNestedControls = true;
-                                    }
-                                }
-                            } catch (e) {
-                                console.error(`[RiveControls] Error accessing nested VM property '${input.name}':`, e);
-                            }
-                        });
-                    }
-                    
-                    // Also check for further nested ViewModels (recursively)
-                    if (nestedVM.nestedViewModels && nestedVM.nestedViewModels.length > 0) {
-                        console.log(`[RiveControls] Nested VM ${nestedVM.instanceName} has further nested VMs`, 
-                            nestedVM.nestedViewModels.map(vm => vm.instanceName));
-                        
-                        // Process these recursively
-                        const deepNestedControls = processViewModelControls(nestedInstance, nestedVM, nestedSection);
-                        hasNestedControls = hasNestedControls || deepNestedControls;
-                    }
-                    
-                    // Only add if it has controls
-                    if (hasNestedControls) {
-                        containerElement.appendChild(nestedSection);
-                        hasAddedControls = true;
-                    } else {
-                        console.log(`[RiveControls] Nested VM ${nestedVM.instanceName} had no usable controls`);
-                    }
-                } else {
-                    console.warn(`[RiveControls] Nested ViewModel instance '${nestedVM.instanceName}' not found`);
-                }
-            } catch (e) {
-                console.error(`[RiveControls] Error accessing nested VM '${nestedVM.instanceName}':`, e);
-            }
-        });
-    }
-    
-    return hasAddedControls;
-} 

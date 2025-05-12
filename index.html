@@ -51,9 +51,18 @@
     <!-- JSONEditor JS (Ensure it's loaded before scripts that use it) -->
     <script src="./node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
 
+    <!-- Logging System Scripts -->
+    <script type="module" src="src/utils/debugger/debugLogger.js"></script>
+    <script type="module" src="src/utils/debugger/logConfig.js"></script>
+    <script type="module" src="src/utils/debugger/parser-logger.js"></script>
+    <script type="module" src="src/utils/debugger/debugQuickSet.js"></script>
+    
     <!-- Core Scripts -->
     <script src="src/parser.js"></script>
     <script type="module" src="src/riveParserHandler.js"></script>
     <script type="module" src="src/riveControlInterface.js"></script>
+    
+    <!-- Debug Controls -->
+    <script type="module" src="src/utils/debugger/debugControl.js"></script>
 </body>
 </html> 

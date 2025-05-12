@@ -6,10 +6,15 @@
  */
 
 import { initDynamicControls } from './riveControlInterface.js';
+import { processDataForControls } from './dataToControlConnector.js';
+import { createLogger } from './utils/debugger/debugLogger.js';
+
+// Create a logger for this module
+const logger = createLogger('parserHandler');
 
 // Log Rive globals on script load for debugging
-console.log("[ParserHandler Pre-Init] typeof window.rive:", typeof window.rive, "Value:", window.rive);
-console.log("[ParserHandler Pre-Init] typeof window.Rive:", typeof window.Rive, "Value:", window.Rive); // Note uppercase R
+logger.debug("Pre-Init typeof window.rive:", typeof window.rive, "Value:", window.rive);
+logger.debug("Pre-Init typeof window.Rive:", typeof window.Rive, "Value:", window.Rive); // Note uppercase R
 
 // DOM element references
 const riveFilePicker = document.getElementById('riveFilePicker');
@@ -39,7 +44,7 @@ let currentRiveInstance = null; // Store the live Rive instance globally in this
  */
 function setupJsonEditor(jsonData) {
 	if (!outputDiv) {
-		// console.error("[MainJS] Output div for JSONEditor not found."); 
+		logger.warn("Output div for JSONEditor not found."); 
 		return;
 	}
 
@@ -86,27 +91,27 @@ function setupJsonEditor(jsonData) {
 		 * @param {Error} err - The error object from JSONEditor.
 		 */
 		onError: function (err) {
-			console.error("[JSONEditor] Error:", err.toString());
+			logger.error("JSONEditor Error:", err.toString());
 			if(statusMessageDiv) statusMessageDiv.textContent = "JSONEditor error: " + err.toString();
 		}
 	};
 
 	if (jsonEditorInstance) {
-		// console.log("[MainJS] JSONEditor instance exists, setting new data.");
+		logger.debug("JSONEditor instance exists, setting new data.");
 		try {
 			jsonEditorInstance.set(jsonData || {}); 
 		} catch (e) {
-			console.error("[MainJS] Error setting data in JSONEditor:", e);
+			logger.error("Error setting data in JSONEditor:", e);
 			try { jsonEditorInstance.set({ error: "Failed to load new data", details: e.toString() }); } catch (e2) { /* ignore further error on setting error */ }
 		}
 	} else {
-		// console.log("[MainJS] Creating new JSONEditor instance.");
+		logger.debug("Creating new JSONEditor instance.");
 		try {
 			if (outputDiv) { // Ensure outputDiv exists before creating editor
 				jsonEditorInstance = new JSONEditor(outputDiv, options, jsonData || { message: "No data loaded yet." });
 			}
 		} catch (e) {
-			console.error("[MainJS] Error creating JSONEditor instance:", e);
+			logger.error("Error creating JSONEditor instance:", e);
 			if(outputDiv) outputDiv.innerHTML = `<p style='color:red;'>Failed to initialize JSONEditor: ${e.message}</p>`;
 		}
 	}
@@ -162,7 +167,7 @@ function handleFileSelect(event) {
 	const file = event.target.files[0];
 
 	if (!window.rive) {
-		console.error("[MainJS] Rive engine (window.rive) not found!");
+		logger.error("Rive engine (window.rive) not found!");
 		if(statusMessageDiv) statusMessageDiv.textContent = "Error: Rive engine (window.rive) not found!";
 		setupJsonEditor({ error: "Rive engine (window.rive) not found!" });
 		return;
@@ -176,84 +181,49 @@ function handleFileSelect(event) {
 	if (file && file.name) {
 		riveSrcForOriginal = URL.createObjectURL(file);
 		messageForOriginal = `using selected file '${file.name}'`;
-		// console.log(`[MainJS] Will use selected file: ${file.name}`);
+		logger.info(`Will use selected file: ${file.name}`);
 	} else {
 		riveSrcForOriginal = null; // Parser.js handles its default
 	}
 	if(statusMessageDiv) statusMessageDiv.textContent = `Running Rive parser (${messageForOriginal})...`;
 
 	const riveCanvas = document.getElementById('rive-canvas');
-	console.log("[ParserHandler Debug] riveCanvas element fetched in handleFileSelect:", riveCanvas); // DEBUG LINE
+	logger.debug("riveCanvas element fetched in handleFileSelect:", riveCanvas);
 	if (!riveCanvas) {
-		console.error("[ParserHandler Error] Canvas element with ID 'rive-canvas' not found in DOM!");
+		logger.error("Canvas element with ID 'rive-canvas' not found in DOM!");
 		// Optionally, update UI to reflect this critical error
 		// return; // Might be too early to return, let parser.js handle its internal fallback for now
 	} 
 
 	if (typeof runOriginalClientParser === 'function') {
 		try {
-			runOriginalClientParser(riveEngine, riveCanvas, riveSrcForOriginal, function(error, parsedData, liveRiveInstanceFromParser) {
+			runOriginalClientParser(riveEngine, riveCanvas, riveSrcForOriginal, function(error, parsedData) {
 				if (error) {
-					console.error("[MainJS] Parser reported error:", error);
+					logger.error("Parser reported error:", error);
 					if(statusMessageDiv) statusMessageDiv.textContent = `Error from parser: ${error.error || 'Unknown error'}`;
 					setupJsonEditor({ error: `Parser error: ${error.error || 'Unknown error'}`, details: error.details });
-					currentRiveInstance = null;
-					initDynamicControls(null, null); // Clear or show error in dynamic controls
+					initDynamicControls(null); // Pass null as riveControlInterface will create its own instance
 				} else if (parsedData) {
 					if(statusMessageDiv) statusMessageDiv.textContent = `Successfully parsed. Displaying data.`;
 					setupJsonEditor(parsedData); 
 					
-					// IMPORTANT: We need the *actual* Rive instance that was created by runOriginalClientParser
-					// and is rendering on the canvas for the dynamic controls to work.
-					// The `riveEngine` passed into runOriginalClientParser is just the Rive library itself.
-					// For now, we assume liveRiveInstanceFromParser is provided by the callback.
-					currentRiveInstance = liveRiveInstanceFromParser; 
+					// MODIFIED: Call initDynamicControls with only parsedData
+					// riveControlInterface will be responsible for creating the Rive instance.
+					initDynamicControls(parsedData);
 					
-					// Use the default elements information to create a better experience
-					if (parsedData.defaultElements) {
-						console.log("[ParserHandler] Default elements found:", parsedData.defaultElements);
-						
-						// Use the collected info instead of relying on autoplay/autobind
-						if (parsedData.defaultElements.artboardName && 
-							parsedData.defaultElements.stateMachineNames && 
-							parsedData.defaultElements.stateMachineNames.length > 0) {
-							
-							console.log(`[ParserHandler] Using specific artboard "${parsedData.defaultElements.artboardName}" and state machines:`, 
-								parsedData.defaultElements.stateMachineNames);
-							
-							// We might want to create a new Rive instance with specific parameters
-							// but for now, we'll use the existing instance which should already have the
-							// artboard and state machines activated by the parser
-						}
-					}
-					
-					if (currentRiveInstance) {
-						initDynamicControls(currentRiveInstance, parsedData);
-					} else {
-						console.warn("[MainJS] Live Rive instance not received from parser. Dynamic controls may not work.");
-						// Attempt to use the global Rive instance if available, though it might not be the one with the file loaded.
-						// This is a fallback and ideally parser.js callback should provide the correct instance.
-						if(window.rive && window.rive.lastInstance) { // Speculative: check if Rive runtime exposes last created instance
-							currentRiveInstance = window.rive.lastInstance; 
-							 initDynamicControls(currentRiveInstance, parsedData);
-						} else {
-							initDynamicControls(null, parsedData); // Pass data, but no instance
-						}
-					}
 				} else {
 					if(statusMessageDiv) statusMessageDiv.textContent = "Parser finished with no data.";
 					setupJsonEditor({ message: "Parser returned no data." });
-					currentRiveInstance = null;
-					initDynamicControls(null, null);
+					initDynamicControls(null);
 				}
 			}); 
 		} catch (e) {
-			console.error("[MainJS] Error calling runOriginalClientParser:", e);
+			logger.error("Error calling runOriginalClientParser:", e);
 			if(statusMessageDiv) statusMessageDiv.textContent = "Error running parser. Check console.";
 			setupJsonEditor({ error: `Error calling parser: ${e.message}` });
 		}
 	} else {
-		console.error("[MainJS] runOriginalClientParser function not found.");
+		logger.error("runOriginalClientParser function not found.");
 		if(statusMessageDiv) statusMessageDiv.textContent = "Error: Parser function not found.";
 		setupJsonEditor({ error: "Parser function not found." });
 	}
