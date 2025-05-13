@@ -16,6 +16,8 @@ let parsedRiveData = null;
 let dynamicControlsInitialized = false;
 let structuredControlData = null; // Will store the processed data from dataToControlConnector
 let uiUpdateInterval = null; // <<< ADDED: For polling interval ID
+let resizeDebounceTimeout = null; // For debouncing resize events
+let boundResizeHandler = null; // To store the bound event handler for removal
 
 // Store the Rive engine reference globally if needed, or pass it around
 // For simplicity, assuming window.rive is available as in other files.
@@ -31,9 +33,12 @@ const hexToArgb = (h) => {
     return parseInt('FF' + h.slice(1), 16) | 0; // Ensure it's an integer
 };
 
-const makeRow = (label, el, notes = '') => {
+const makeRow = (label, el, notes = '', dataPath = null) => {
     const row = document.createElement('div');
     row.className = 'control-row';
+    if (dataPath) {
+        row.setAttribute('data-property-path', dataPath);
+    }
     const lab = document.createElement('label');
     lab.textContent = label;
     row.appendChild(lab);
@@ -167,24 +172,49 @@ function createControlForProperty(property) {
                     ctrl.appendChild(option);
                     ctrl.disabled = true;
                 } else {
-                    // Get enum values if available
                     if (riveInstance && typeof riveInstance.enums === 'function') {
                         const allEnums = riveInstance.enums();
-                        const enumValues = allEnums.find(d => d.name === name)?.values || [];
+                        const lookupName = property.enumTypeName || property.name;
+
+                        logger.debug(`[Enum Debug] Property Name: '${property.name}', Using enumTypeName for lookup: '${lookupName}' (property.enumTypeName was: '${property.enumTypeName}')`);
+                        try {
+                            logger.debug(`[Enum Debug] All available enum definitions in Rive file (stringified): ${JSON.stringify(allEnums)}`); 
+                        } catch (e) {
+                            logger.debug('[Enum Debug] Could not stringify allEnums, logging directly:', allEnums);
+                        }
+
+                        if (!property.enumTypeName && property.name && property.name !== lookupName) {
+                            // logger.warn(`[controlInterface] Enum property '${property.name}' missing specific enumTypeName...`); // Already have a version of this
+                        }
                         
+                        const enumDef = allEnums.find(d => d.name === lookupName);
+                        try {
+                            logger.debug(`[Enum Debug] Found enumDef for '${lookupName}' (stringified): ${enumDef ? JSON.stringify(enumDef) : 'NOT FOUND'}`);
+                        } catch (e) {
+                            logger.debug(`[Enum Debug] Could not stringify enumDef for '${lookupName}', logging directly:`, enumDef);
+                        }
+
+                        const enumValues = enumDef?.values || [];
+                        
+                        if (enumValues.length === 0) {
+                            logger.warn(`[controlInterface] No values found for enum '${lookupName}' (property '${property.name}'). Dropdown will be empty.`);
+                        }
+
                         enumValues.forEach(v => {
                             const option = new Option(v, v);
                             ctrl.appendChild(option);
                         });
                         
-                        if (liveProperty.value) {
-                            ctrl.value = liveProperty.value;
+                        if (liveProperty.value !== undefined && liveProperty.value !== null) {
+                            ctrl.value = String(liveProperty.value);
+                        } else if (enumValues.length > 0) {
+                            ctrl.value = enumValues[0]; // Default to first if Rive value is null/undefined
                         }
                     }
                     
-                    ctrl.addEventListener('change', () => {
+                    ctrl.addEventListener('change', () => { 
                         const newValue = ctrl.value;
-                        console.log(`[App] Event: Attempting to set ${name} to:`, newValue);
+                        // console.log(`[App] Event: Attempting to set ${name} to:`, newValue); // Keep commented for now
                         liveProperty.value = newValue;
                     });
                 }
@@ -237,6 +267,11 @@ export function initDynamicControls(parsedDataFromHandler) {
         clearInterval(uiUpdateInterval);
         uiUpdateInterval = null;
     }
+    // Remove existing window resize listener if one was previously bound
+    if (boundResizeHandler) {
+        window.removeEventListener('resize', boundResizeHandler);
+        // logger.debug('[controlInterface] Removed previous window resize listener.');
+    }
     riveInstance = null;
     parsedRiveData = parsedDataFromHandler;
     dynamicControlsInitialized = false;
@@ -250,7 +285,7 @@ export function initDynamicControls(parsedDataFromHandler) {
     controlsContainer.innerHTML = '<p>Loading Rive animation and controls...</p>'; // Initial message
 
     if (!parsedDataFromHandler || !parsedDataFromHandler.defaultElements) {
-        logger.error('No parsed data or defaultElements found. Cannot create Rive instance.');
+        logger.error('[controlInterface] No parsed data or defaultElements found. Cannot create Rive instance.');
         controlsContainer.innerHTML = '<p>Error: Missing critical parsed data to load Rive animation.</p>';
         return;
     }
@@ -268,26 +303,42 @@ export function initDynamicControls(parsedDataFromHandler) {
         return;
     }
 
-    const { src, artboardName, stateMachineNames } = parsedDataFromHandler.defaultElements;
+    const { 
+        src,
+        artboardName,
+        stateMachineNames: availableSMs, // Array of SM names from parser
+        viewModelName: parsedViewModelName // viewModelName from parser defaultElements
+    } = parsedDataFromHandler.defaultElements;
+
     if (!src || !artboardName) { 
-        logger.error('Missing src or artboardName in parsed data. Cannot create Rive instance.');
+        logger.error('[controlInterface] Missing src or artboardName. Cannot create Rive instance.');
         if(controlsContainer) controlsContainer.innerHTML = '<p>Error: Missing Rive source or artboard name.</p>';
         return; 
     }
 
-    // Define options first, WITHOUT onLoad or onError that would need the instance methods directly
+    let smToPlay = null;
+    if (availableSMs && availableSMs.length > 0) {
+        if (availableSMs.includes("State Machine 1")) {
+            smToPlay = "State Machine 1";
+        } else {
+            smToPlay = availableSMs[0]; 
+        }
+        logger.info(`[controlInterface] Selected state machine to play: ${smToPlay}`);
+    } else {
+        logger.info('[controlInterface] No state machines found in parsed data to autoplay.');
+    }
+
     const riveOptions = {
         src: src,
         canvas: canvas,
         artboard: artboardName,
-        stateMachines: stateMachineNames, 
-        autoplay: false,
+        stateMachines: smToPlay, 
+        autoplay: true, // Autoplay the selected state machine
         autoBind: true,
         onStateChange: handleConstructorStateChange,
-        // No onLoad/onError here, they will be attached using instance.on()
     };
 
-    logger.info('Creating new Rive instance with options:', { 
+    logger.info('[controlInterface] Creating new Rive instance with options:', { 
         src: riveOptions.src, 
         artboard: riveOptions.artboard, 
         stateMachines: riveOptions.stateMachines,
@@ -296,12 +347,11 @@ export function initDynamicControls(parsedDataFromHandler) {
     });
 
     try {
-        // Create the new instance and assign to module-scoped variable immediately
         riveInstance = new RiveEngine.Rive(riveOptions);
     } catch (e) {
-        logger.error('Error during Rive instance construction:', e);
+        logger.error('[controlInterface] Error during Rive instance construction:', e);
         if(controlsContainer) controlsContainer.innerHTML = `<p>Error constructing Rive: ${e.toString()}</p>`;
-        riveInstance = null; // Ensure it's null on error
+        riveInstance = null;
         return;
     }
     
@@ -311,58 +361,56 @@ export function initDynamicControls(parsedDataFromHandler) {
         return;
     }
 
-    logger.info('[controlInterface] [INFO] New Rive instance successfully constructed. Setting up listeners...');
-
-    // Now, set up Load and LoadError listeners on this specific instance
-    const EventType = RiveEngine.EventType; // Get EventType from the RiveEngine
+    logger.info('[controlInterface] New Rive instance constructed. Setting up Load/LoadError listeners.');
+    const EventType = RiveEngine.EventType;
 
     riveInstance.on(EventType.Load, () => {
-        logger.info('[controlInterface] [INFO] Rive instance EventType.Load fired.');
+        logger.info('[controlInterface] Rive instance EventType.Load fired.');
         dynamicControlsInitialized = true;
-
         try {
             riveInstance.resizeDrawingSurfaceToCanvas();
         } catch (e_resize) {
-            console.error('[controlInterface] onLoad (via instance.on): ERROR during resizeDrawingSurfaceToCanvas:', e_resize);
+            console.error('[controlInterface] onLoad ERROR during resize:', e_resize);
             if(controlsContainer) controlsContainer.innerHTML = '<p>Error during Rive resize.</p>';
             return; 
         }
         
-        structuredControlData = processDataForControls(parsedRiveData, riveInstance);
+        // Check for ViewModel existence after load and autoBind
+        if (!riveInstance.viewModelInstance && !parsedViewModelName) {
+            logger.info('[controlInterface] No ViewModel instance found after load and no default VM name parsed.');
+            // structuredControlData will likely be minimal or null
+        } else if (riveInstance.viewModelInstance) {
+            logger.info('[controlInterface] ViewModel instance found on Rive instance after load.');
+        } else if (parsedViewModelName) {
+            logger.warn(`[controlInterface] Parsed default ViewModel name was '${parsedViewModelName}', but no viewModelInstance found after load.`);
+        }
 
-        if (!structuredControlData) {
-            logger.error('Failed to process data for controls with new Rive instance.');
-            if(controlsContainer) controlsContainer.innerHTML = '<p>Error: Could not process data for controls.</p>';
-            return;
+        structuredControlData = processDataForControls(parsedRiveData, riveInstance);
+        
+        if (!structuredControlData && (riveInstance.viewModelInstance || parsedViewModelName)) {
+            logger.error('[controlInterface] Failed to process data, but a ViewModel was expected/found.');
         }
         
-        // PROGRAMMATICALLY SET "Diagram Enter" TO FALSE ON LOAD
-        if (structuredControlData && structuredControlData.stateMachineControls) {
-            const smName = (parsedRiveData && parsedRiveData.defaultElements && parsedRiveData.defaultElements.stateMachineNames && parsedRiveData.defaultElements.stateMachineNames.length > 0) 
-                            ? parsedRiveData.defaultElements.stateMachineNames[0] 
-                            : "State Machine 1"; // Fallback if name isn't in parsedData
-            const smControl = structuredControlData.stateMachineControls.find(sm => sm.name === smName);
+        // Programmatically set "Diagram Enter" to false if it exists
+        if (structuredControlData && structuredControlData.stateMachineControls && smToPlay) {
+            const targetSMName = Array.isArray(smToPlay) ? smToPlay[0] : smToPlay; // Use the actual SM name we tried to play
+            const smControl = structuredControlData.stateMachineControls.find(sm => sm.name === targetSMName);
             if (smControl && smControl.inputs) {
                 const diagramEnterInput = smControl.inputs.find(input => input.name === "Diagram Enter");
                 if (diagramEnterInput && diagramEnterInput.liveInput && diagramEnterInput.liveInput.value !== false) {
-                    logger.info(`[controlInterface] Programmatically setting '${smName} -> Diagram Enter' to false on initial load.`);
+                    logger.info(`[controlInterface] Programmatically setting '${targetSMName} -> Diagram Enter' to false.`);
                     diagramEnterInput.liveInput.value = false;
-                    // The first run of polling should pick this up for the UI if not immediate.
                 }
             }
         }
-        // END PROGRAMMATIC SET
 
         setupEventListeners(); 
-        
         buildControlsUI();
 
-        // Manually play the primary state machine
-        const smName = (parsedRiveData && parsedRiveData.defaultElements && parsedRiveData.defaultElements.stateMachineNames && parsedRiveData.defaultElements.stateMachineNames.length > 0) 
-                        ? parsedRiveData.defaultElements.stateMachineNames[0] 
-                        : "State Machine 1"; // Fallback
-        if (riveInstance && typeof riveInstance.play === 'function') {
-            riveInstance.play(smName);
+        // Add window resize listener
+        if (!boundResizeHandler) { 
+            boundResizeHandler = riveResizeHandler;
+            window.addEventListener('resize', boundResizeHandler);
         }
     });
 
@@ -440,7 +488,11 @@ function buildControlsUI() {
     controlsContainer.innerHTML = ''; // Clear previous controls
 
     if (!structuredControlData) {
-        controlsContainer.innerHTML = '<p>No control data available. Cannot build controls.</p>';
+        logger.warn('[controlInterface] No structured data available for buildControlsUI.');
+        const noDataMsg = document.createElement('p');
+        noDataMsg.className = 'info-note';
+        noDataMsg.textContent = 'No control data processed. Cannot build controls.';
+        controlsContainer.appendChild(noDataMsg);
         return;
     }
 
@@ -469,11 +521,26 @@ function buildControlsUI() {
     // Build State Machine Controls
     if (structuredControlData.stateMachineControls && structuredControlData.stateMachineControls.length > 0) {
         buildStateMachineControls(controlsContainer, structuredControlData.stateMachineControls);
+    } else {
+        // Optional: Message if no SM controls (e.g., if file has no SMs)
+        // const noSmMsg = document.createElement('p'); noSmMsg.textContent = 'No State Machines found.';
+        // controlsContainer.appendChild(noSmMsg);
     }
 
-    // Build ViewModel Controls - now directly adding to the container without an extra parent level
+    // Create a dedicated section for ViewModel Controls for clarity
+    const vmSection = document.createElement('div');
+    vmSection.id = 'viewmodel-controls-section';
+    // const vmHeader = document.createElement('h4'); vmHeader.textContent = 'ViewModel Controls'; vmSection.appendChild(vmHeader);
+    controlsContainer.appendChild(vmSection);
+
     if (structuredControlData.viewModelControls && structuredControlData.viewModelControls.length > 0) {
-        buildViewModelControls(controlsContainer, structuredControlData.viewModelControls);
+        buildViewModelControls(vmSection, structuredControlData.viewModelControls);
+    } else {
+        logger.info('[controlInterface] No ViewModel controls to build (or no ViewModel found).');
+        const noVmMsg = document.createElement('p');
+        noVmMsg.className = 'info-note';
+        noVmMsg.textContent = 'No ViewModel properties available for control in this Rive file.';
+        vmSection.appendChild(noVmMsg);
     }
 }
 
@@ -556,17 +623,17 @@ function buildStateMachineControls(container, stateMachines) {
  * @param {HTMLElement} container The container element
  * @param {Array} viewModels The ViewModel controls data
  */
-function buildViewModelControls(container, viewModels) {
+function buildViewModelControls(container, viewModels, parentPath = '') {
     if (!viewModels || viewModels.length === 0) {
-        logger.info('No ViewModel controls to build');
+        // logger.info('No ViewModel controls to build'); // Already logged by caller
         return;
     }
 
-    logger.info(`Building controls for ${viewModels.length} ViewModels`);
+    // logger.info(`Building controls for ${viewModels.length} ViewModels at path: '${parentPath}'`);
     
-    // Process each ViewModel directly without the redundant parent level
     viewModels.forEach(vm => {
-        logger.debug(`Building controls for VM: ${vm.instanceName}`);
+        const currentVmPath = parentPath ? `${parentPath}/${vm.instanceName}` : vm.instanceName;
+        // logger.debug(`Building controls for VM: ${vm.instanceName} (Path: ${currentVmPath})`);
         const vmDetails = document.createElement('details');
         vmDetails.className = 'control-section'; // Use the same class as top-level sections
         vmDetails.open = true;
@@ -577,11 +644,12 @@ function buildViewModelControls(container, viewModels) {
         
         // Add direct property controls
         if (vm.properties && vm.properties.length > 0) {
-            logger.debug(`Adding ${vm.properties.length} properties for ${vm.instanceName}`);
+            // logger.debug(`Adding ${vm.properties.length} properties for ${vm.instanceName}`);
             vm.properties.forEach(prop => {
-                const ctrl = createControlForProperty(prop);
+                const propPath = `${currentVmPath}/${prop.name}`;
+                const ctrl = createControlForProperty(prop); // createControlForProperty doesn't need the path
                 if (ctrl) {
-                    vmDetails.appendChild(makeRow(prop.name, ctrl, prop.type));
+                    vmDetails.appendChild(makeRow(prop.name, ctrl, prop.type, propPath));
                 }
             });
         } else {
@@ -594,8 +662,9 @@ function buildViewModelControls(container, viewModels) {
         
         // Add nested ViewModels (recursively)
         if (vm.nestedViewModels && vm.nestedViewModels.length > 0) {
-            logger.debug(`Adding ${vm.nestedViewModels.length} nested VMs for ${vm.instanceName}`);
-            buildNestedViewModelControls(vmDetails, vm.nestedViewModels);
+            // logger.debug(`Adding ${vm.nestedViewModels.length} nested VMs for ${vm.instanceName}`);
+            // Pass the currentVmPath as the parentPath for nested VMs
+            buildNestedViewModelControls(vmDetails, vm.nestedViewModels, currentVmPath, 1); 
         }
         
         container.appendChild(vmDetails);
@@ -606,24 +675,26 @@ function buildViewModelControls(container, viewModels) {
  * Recursively builds controls for nested ViewModels
  * @param {HTMLElement} container The parent container element
  * @param {Array} nestedViewModels The nested ViewModel controls data
+ * @param {string} parentPath The current path to the nested ViewModel
  * @param {number} depth Current nesting depth (for styling)
  */
-function buildNestedViewModelControls(container, nestedViewModels, depth = 1) {
+function buildNestedViewModelControls(container, nestedViewModels, parentPath, depth = 1) {
     nestedViewModels.forEach(vm => {
+        const currentVmPath = `${parentPath}/${vm.instanceName}`;
         const nestedDetails = document.createElement('details');
-        nestedDetails.className = `control-subsection nested-level-${depth}`; // Consistent styling
-        nestedDetails.open = false; // Collapsed by default
+        nestedDetails.className = `control-subsection nested-level-${depth}`;
+        nestedDetails.open = false; 
         
         const nestedSummary = document.createElement('summary');
-        nestedSummary.textContent = `Nested: ${vm.instanceName}`; // Remove the redundant triangle
+        nestedSummary.textContent = `Nested: ${vm.instanceName}`;
         nestedDetails.appendChild(nestedSummary);
         
-        // Add direct property controls
         if (vm.properties && vm.properties.length > 0) {
             vm.properties.forEach(prop => {
+                const propPath = `${currentVmPath}/${prop.name}`;
                 const ctrl = createControlForProperty(prop);
                 if (ctrl) {
-                    nestedDetails.appendChild(makeRow(prop.name, ctrl, prop.type));
+                    nestedDetails.appendChild(makeRow(prop.name, ctrl, prop.type, propPath));
                 }
             });
         } else {
@@ -633,9 +704,9 @@ function buildNestedViewModelControls(container, nestedViewModels, depth = 1) {
             nestedDetails.appendChild(noProps);
         }
         
-        // Recursively process deeper nested ViewModels
         if (vm.nestedViewModels && vm.nestedViewModels.length > 0) {
-            buildNestedViewModelControls(nestedDetails, vm.nestedViewModels, depth + 1);
+            // Pass the currentVmPath for deeper nesting
+            buildNestedViewModelControls(nestedDetails, vm.nestedViewModels, currentVmPath, depth + 1);
         }
         
         container.appendChild(nestedDetails);
@@ -647,128 +718,131 @@ function buildNestedViewModelControls(container, nestedViewModels, depth = 1) {
  * This ensures bidirectional feedback when properties change internally
  */
 function updateControlsFromRive() {
-    console.log('>>> UI UPDATE: updateControlsFromRive() Called'); // Log 2
-    logger.debug('Updating controls from Rive...');
+    // logger.debug('Updating controls from Rive...'); // Keep this commented unless needed for extreme verbosity
     
-    // Update boolean controls
-    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-        const row = checkbox.closest('.control-row');
-        if (row) {
-            const label = row.querySelector('label');
-            if (label) {
-                const propName = label.textContent.split('(')[0].trim();
-                // Try to find the property in our structured data and update the UI
-                updateControlValueFromRive(propName, checkbox);
-            }
-        }
-    });
-    
-    // Update number controls
-    document.querySelectorAll('input[type="number"]').forEach(input => {
-        const row = input.closest('.control-row');
-        if (row) {
-            const label = row.querySelector('label');
-            if (label) {
-                const propName = label.textContent.split('(')[0].trim();
-                updateControlValueFromRive(propName, input);
-            }
-        }
-    });
-    
-    // Update select (enum) controls
-    document.querySelectorAll('select').forEach(select => {
-        const row = select.closest('.control-row');
-        if (row) {
-            const label = row.querySelector('label');
-            if (label) {
-                const propName = label.textContent.split('(')[0].trim();
-                updateControlValueFromRive(propName, select);
-            }
-        }
-    });
-    
-    // Update color inputs
-    document.querySelectorAll('input[type="color"]').forEach(colorInput => {
-        const row = colorInput.closest('.control-row');
-        if (row) {
-            const label = row.querySelector('label');
-            if (label) {
-                const propName = label.textContent.split('(')[0].trim();
-                updateControlValueFromRive(propName, colorInput);
-            }
-        }
-    });
-    
-    // Update textareas for string inputs
-    document.querySelectorAll('textarea').forEach(textarea => {
-        const row = textarea.closest('.control-row');
-        if (row) {
-            const label = row.querySelector('label');
-            if (label) {
-                const propName = label.textContent.split('(')[0].trim();
-                updateControlValueFromRive(propName, textarea);
-            }
+    const allControlRows = document.querySelectorAll('#dynamicControlsContainer .control-row');
+
+    allControlRows.forEach(row => {
+        const path = row.getAttribute('data-property-path');
+        const labelEl = row.querySelector('label');
+        const controlEl = row.querySelector('input, select, textarea');
+
+        if (path && labelEl && controlEl) {
+            // Extract the base property name from the label, as before
+            // This is mostly for logging/debugging, path is the primary lookup key now.
+            const propNameFromLabel = labelEl.childNodes[0].nodeValue.trim().replace(/:$/, ''); 
+            updateControlValueFromRive(propNameFromLabel, controlEl, path);
+        } else {
+            // logger.warn('[Polling] Found a control row without full path/label/control', row);
         }
     });
 }
 
-/**
- * Updates a specific control's value from the current Rive property value
- */
-function updateControlValueFromRive(propName, controlElement) {
+function updateControlValueFromRive(propNameForLogging, controlElement, path) {
     if (!structuredControlData || !structuredControlData.viewModelControls) return;
     if (document.activeElement === controlElement && controlElement.type !== 'checkbox' && controlElement.type !== 'select-one') {
         return;
     }
 
-    // --- Re-define findProperty helper --- 
-    const findProperty = (vmArray, targetPropName) => {
-        for (const vm of vmArray) {
-            const prop = vm.properties?.find(p => p.name === targetPropName);
-            if (prop && prop.liveProperty) {
-                return prop.liveProperty;
-            }
-            if (vm.nestedViewModels?.length > 0) {
-                const nestedProp = findProperty(vm.nestedViewModels, targetPropName);
-                if (nestedProp) return nestedProp;
+    const findPropertyByPath = (rootVmArray, pathString) => {
+        if (!pathString) return null;
+        const segments = pathString.split('/');
+        if (segments.length === 0) return null;
+
+        let currentVmLevel = rootVmArray;
+        let targetVm = null;
+
+        // Find the root VM if the path starts with its instanceName
+        // Assumes rootVmArray contains the top-level VM(s)
+        const rootVmInstanceName = segments[0];
+        targetVm = currentVmLevel.find(vm => vm.instanceName === rootVmInstanceName);
+
+        if (!targetVm) {
+            // logger.warn(`[findPropertyByPath] Root VM '${rootVmInstanceName}' not found in path: ${pathString}`);
+            return null;
+        }
+
+        // Navigate through nested VMs for segments between root and the final property name
+        for (let i = 1; i < segments.length - 1; i++) {
+            const nestedVmName = segments[i];
+            if (targetVm && targetVm.nestedViewModels && targetVm.nestedViewModels.length > 0) {
+                const foundNestedVm = targetVm.nestedViewModels.find(nvm => nvm.instanceName === nestedVmName);
+                if (foundNestedVm) {
+                    targetVm = foundNestedVm;
+                } else {
+                    // logger.warn(`[findPropertyByPath] Nested VM '${nestedVmName}' not found in path: ${pathString}`);
+                    targetVm = null;
+                    break;
+                }
+            } else {
+                // logger.warn(`[findPropertyByPath] No nested VMs in '${targetVm?.instanceName}' to find '${nestedVmName}' in path: ${pathString}`);
+                targetVm = null;
+                break;
             }
         }
-        return null;
-    };
-    // --- End findProperty helper ---
 
-    const liveProperty = findProperty(structuredControlData.viewModelControls, propName);
+        if (!targetVm) {
+            // logger.warn(`[findPropertyByPath] Could not navigate to target VM for path: ${pathString}`);
+            return null;
+        }
+
+        // The last segment is the property name
+        const targetPropName = segments[segments.length - 1];
+        const finalProp = targetVm.properties?.find(p => p.name === targetPropName);
+
+        if (finalProp && finalProp.liveProperty) {
+            return finalProp.liveProperty;
+        } else {
+            // logger.warn(`[findPropertyByPath] Property '${targetPropName}' not found in VM '${targetVm.instanceName}' for path: ${pathString}`);
+            return null;
+        }
+    };
+
+    const liveProperty = findPropertyByPath(structuredControlData.viewModelControls, path);
 
     if (liveProperty) {
+        // logger.debug(`[Polling Path] Checking UI for '${path}', Rive value:`, liveProperty.value);
+
         if (controlElement.type === 'checkbox') {
             const riveValueBool = !!liveProperty.value;
             if (controlElement.checked !== riveValueBool) {
+                // console.log(`[Polling Path] Updating CHECKBOX for '${path}' from ${controlElement.checked} to ${riveValueBool}`);
                 controlElement.checked = riveValueBool;
             }
         } else if (controlElement.type === 'number') {
+            // ... (robust number comparison as before) ...
             const controlValueNum = parseFloat(controlElement.value);
             const riveValueNum = liveProperty.value === null || liveProperty.value === undefined ? NaN : parseFloat(liveProperty.value);
-            if (isNaN(controlValueNum) && isNaN(riveValueNum)) {
-                // Both NaN, do nothing
-            } else if (controlValueNum !== riveValueNum) {
+            if (isNaN(controlValueNum) && isNaN(riveValueNum)) { /* Both NaN */ } 
+            else if (controlValueNum !== riveValueNum) {
+                // console.log(`[Polling Path] Updating NUMBER for '${path}'...`);
                 controlElement.value = riveValueNum !== undefined && !isNaN(riveValueNum) ? riveValueNum : '';
             }
         } else if (controlElement.type === 'color') {
+            // ... (robust color comparison as before) ...
             const riveHexValue = argbToHex(liveProperty.value);
             if (controlElement.value.toUpperCase() !== riveHexValue) {
+                // console.log(`[Polling Path] Updating COLOR for '${path}'...`);
                 controlElement.value = riveHexValue;
             }
         } else if (controlElement.type === 'select-one') {
+            // ... (robust select comparison as before) ...
             const riveValueString = liveProperty.value === null || liveProperty.value === undefined ? '' : String(liveProperty.value);
             if (controlElement.value !== riveValueString) {
+                // console.log(`[Polling Path] Updating SELECT for '${path}'...`);
                 controlElement.value = riveValueString;
             }
         } else if (controlElement.tagName.toLowerCase() === 'textarea') {
+            // ... (robust textarea comparison as before) ...
             const riveTextValue = (liveProperty.value === null || liveProperty.value === undefined ? '' : String(liveProperty.value)).replace(/\\n/g, '\n');
             if (controlElement.value !== riveTextValue) {
+                // console.log(`[Polling Path] Updating TEXTAREA for '${path}'...`);
                 controlElement.value = riveTextValue;
             }
         }
+    } else {
+        // This warning is now more significant as path-based lookup should be precise.
+        logger.warn(`[Polling Path] Property for path '${path}' (label: '${propNameForLogging}') not found in structuredControlData.`); 
     }
 }
 
@@ -783,4 +857,20 @@ export function updateDynamicControls() {
     } else {
         logger.warn('updateDynamicControls called but not initialized or Rive data missing.');
     }
+}
+
+// Debounced resize handler function
+function debouncedResizeRiveCanvas() {
+    if (!riveInstance || typeof riveInstance.resizeDrawingSurfaceToCanvas !== 'function') {
+        // logger.warn('[controlInterface] Debounced resize: Rive instance not available or no resize method.');
+        return;
+    }
+    // logger.debug('[controlInterface] Debounced resize: Resizing Rive canvas.');
+    riveInstance.resizeDrawingSurfaceToCanvas();
+}
+
+// Actual event listener that will be bound
+function riveResizeHandler() {
+    clearTimeout(resizeDebounceTimeout);
+    resizeDebounceTimeout = setTimeout(debouncedResizeRiveCanvas, 250); // Adjust timeout as needed (e.g., 150-300ms)
 }

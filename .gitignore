@@ -3,3 +3,5 @@ node_modules/
 _archive/
 animations/
 .cursor/
+logs/
+Logs/

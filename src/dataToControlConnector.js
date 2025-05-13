@@ -310,12 +310,29 @@ export function processDataForControls(parsedData, riveInstance) {
 					}
 
 					if (vmProperty) {
-						mainVmInfo.properties.push({
+						const propertyEntry = {
 							name: prop.name,
-							type: prop.type,
-							liveProperty: vmProperty,
-						});
-						logger.debug(`Added main VM property: ${prop.name} (${prop.type})`);
+							type: prop.type, // This is Rive's type for the property kind
+							liveProperty: vmProperty
+						};
+						if (prop.type === 'enumType') {
+							if (prop.enumDefinition && typeof prop.enumDefinition.name === 'string') {
+								propertyEntry.enumTypeName = prop.enumDefinition.name;
+							} else if (typeof prop.enumName === 'string') {
+								propertyEntry.enumTypeName = prop.enumName;
+							} else {
+								// Check the vmProperty (ViewModelInstanceEnum) itself, it might have a reference
+								// This is highly speculative as Rive API for this isn't explicitly documented for JS in simple terms
+								if (vmProperty && vmProperty.enumDefinition && typeof vmProperty.enumDefinition.name === 'string') {
+									propertyEntry.enumTypeName = vmProperty.enumDefinition.name;                                
+								} else {
+									logger.warn(`[dataConnector] Main VM prop '${prop.name}': Could not determine specific enumTypeName from live Rive property. Will fallback to using property name in UI.`);
+									// No explicit fallback here, createControlForProperty will use prop.name if enumTypeName is missing
+								}
+							}
+						}
+						mainVmInfo.properties.push(propertyEntry);
+						// logger.debug(`Added main VM property: ${prop.name} (${prop.type})`); // Already a debug log
 					}
 				} catch (e) {
 					logger.warn(`Error accessing property ${prop.name}:`, e);
@@ -409,90 +426,24 @@ export function processDataForControls(parsedData, riveInstance) {
 
 	logger.info(`Final viewModelControls structure has ${viewModelControls.length} entries`);
 
-	// Add exampleIndex.mjs help to console
-	console.log(`
-    ✨ Try these in console to directly control ViewModels like in exampleIndex.mjs:
-    
-    // Check current state:
-    window.vm.boolean('Pills Active').value
-    
-    // Manually toggle values:
-    window.vm.boolean('Pills Active').value = true
-    
-    // No need for draw() calls - let Rive handle updates
-    `);
 
 	// IMPORTANT: Move the default ViewModel name log to be the absolute last thing
 	if (mainViewModelInstance) {
-		const vmName = mainViewModelInstance.name || 'Unknown';
+        const vmName = mainViewModelInstance.name || ' ';
+        console.dir(mainViewModelInstance)
 		const vmSourceInfo = activeViewModelName || 'Default Instance';
-
-		// Important: Try to activate the state machine input that controls Pills Active
-		// This follows exactly what exampleIndex.mjs does
-		try {
-			// Look for the state machine with "Diagram Enter" input (or similar)
-			if (activeStateMachineNames && activeStateMachineNames.length > 0) {
-				const smName = activeStateMachineNames[0]; // Usually "State Machine 1"
-				const inputs = riveInstance.stateMachineInputs(smName);
-
-				// Find the input that controls Pills Active (usually "Diagram Enter")
-				const diagramEnterInput = inputs.find((input) => input.name === 'Diagram Enter' || input.name.includes('Enter') || input.name.includes('Pill'));
-
-				if (diagramEnterInput) {
-					logger.info(`Found '${diagramEnterInput.name}' input - Setting to TRUE to activate pills`);
-
-					// Set it true - this should trigger Pills Active in the ViewModel
-					diagramEnterInput.value = true;
-
-					// Check if this worked by logging Pills Active after a brief delay
-					setTimeout(() => {
-						try {
-							const pillsActiveProp = mainViewModelInstance.boolean('Pills Active');
-							logger.info(`After triggering input, 'Pills Active' = ${pillsActiveProp.value}`);
-						} catch (e) {}
-					}, 50);
-				} else {
-					logger.warn("Could not find 'Diagram Enter' input to activate pills");
-				}
-			}
-		} catch (e) {
-			logger.warn('Error trying to set state machine input:', e);
-		}
-
 		// Add timeout to ensure this is the absolute last log (with longer delay)
 		setTimeout(() => {
 			// Optional: Clear console to make this the only visible output
 			// Only uncomment if you want to clear everything else
 			// console.clear();
-
-			// Try to get the current state of Pills Active for the final log
-			let pillsActiveStatus = 'unknown';
-			try {
-				if (mainViewModelInstance.properties.some((p) => p.name === 'Pills Active')) {
-					pillsActiveStatus = mainViewModelInstance.boolean('Pills Active').value;
-				}
-			} catch (e) {}
-
 			// Clear and prominent log for the default ViewModel name
 			console.log('\n');
 			console.log('===============================================');
 			console.log(`🔍 DEFAULT VIEWMODEL: ${vmName} (${vmSourceInfo})`);
-			console.log(`🔘 Pills Active: ${pillsActiveStatus}`);
 			console.log('===============================================');
 			console.log('\n');
 
-			// Also log the most important properties if they exist
-			if (mainViewModelInstance.properties) {
-				try {
-					if (mainViewModelInstance.properties.some((p) => p.name === 'Pills Active')) {
-						const value = mainViewModelInstance.boolean('Pills Active').value;
-						console.log(`📊 'Pills Active' current value: ${value}`);
-					}
-
-					console.log(`💡 Try: window.vm.boolean('Pills Active').value = true`);
-					console.log(`💡 Or: window.debugHelper.togglePills()`);
-				} catch (e) {}
-			}
 		}, 100);
 	}
 
@@ -552,25 +503,26 @@ function buildNestedVMControls(vmInstance, instanceName) {
 				}
 
 				if (liveProperty) {
-					// console.log(`--- Inspecting Property: ${prop.name} ---`);
-					// console.log('Typeof liveProperty:', typeof liveProperty); // Should log 'object'
-					// console.log('liveProperty object itself:', liveProperty); // Log the raw object
-					// console.dir(liveProperty); // Use console.dir for a detailed, interactive view
-					// // Check if it has the crucial 'value' property/setter
-					// console.log('Does liveProperty have .value?', 'value' in liveProperty);
-					// // Try reading the initial value
-					// try {
-					//     console.log('Initial liveProperty.value:', liveProperty.value);
-					// } catch (e) {
-					//     console.log('Could not read initial value:', e);
-					// }
-
-					result.properties.push({
+					const nestedPropEntry = {
 						name: prop.name,
 						type: prop.type,
-						liveProperty: liveProperty,
-					});
-					logger.trace(`Added nested property ${instanceName}.${prop.name} (${prop.type})`);
+						liveProperty: liveProperty
+					};
+					if (prop.type === 'enumType') {
+						if (prop.enumDefinition && typeof prop.enumDefinition.name === 'string') {
+							nestedPropEntry.enumTypeName = prop.enumDefinition.name;
+						} else if (typeof prop.enumName === 'string') {
+							nestedPropEntry.enumTypeName = prop.enumName;
+						} else {
+							if (liveProperty && liveProperty.enumDefinition && typeof liveProperty.enumDefinition.name === 'string') {
+								nestedPropEntry.enumTypeName = liveProperty.enumDefinition.name;                                
+							} else {
+								logger.warn(`[dataConnector] Nested VM prop '${instanceName}.${prop.name}': Could not determine specific enumTypeName from live Rive property. Fallback in UI.`);
+							}
+						}
+					}
+					result.properties.push(nestedPropEntry);
+					// logger.trace(`Added nested property ${instanceName}.${prop.name} (${prop.type})`);
 				}
 			} catch (e) {
 				logger.warn(`Error accessing nested property ${prop.name}:`, e);

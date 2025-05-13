@@ -81,19 +81,15 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 	}
 	// --- END DEBUGGING ---
 
-	// Find the default state machine name from the URL or use 'State Machine 1' as a common default
-	// This could also inspect the file to find the first SM, but many Rive files use "State Machine 1" by default
-	const defaultStateMachineName = 'State Machine 1';
-	logger.info(logPrefix + `Using default state machine name: ${defaultStateMachineName}`);
+	// const defaultStateMachineName = 'State Machine 1'; // REMOVE Hardcoded Default
+	// logger.info(logPrefix + `Using default state machine name: ${defaultStateMachineName}`); // REMOVE
 
-	// We need to specify stateMachines by name for the Rive API
 	const riveOptions = {
 		src: riveFileToLoad,
 		canvas: canvas,
-		autobind: true,
-		autoplay: true,
-		// Specify state machine by name - this is required for inputs to work properly
-		stateMachines: defaultStateMachineName,
+		autobind: true, // Keep autobind to make viewModelInstance available for parsing
+		// autoplay: true, // REMOVE autoplay for parser's instance
+		// stateMachines: defaultStateMachineName, // REMOVE stateMachines for parser's instance
 		assetLoader: (asset) => {
 			// console.log("[Parser] assetLoader (single arg) called for:", asset.name);
 			collectedAssets.push({
@@ -129,39 +125,28 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 				result.defaultElements.artboardName = riveInstance.artboard.name;
 				logger.info(logPrefix + `Default artboard loaded: ${result.defaultElements.artboardName}`);
 
-				// Start with the state machine we already initialized in the options
-				result.defaultElements.stateMachineNames.push(defaultStateMachineName);
-				logger.info(logPrefix + `Initial state machine was: ${defaultStateMachineName}`);
+				// Clear and then populate with all found state machines on this artboard
+				result.defaultElements.stateMachineNames = []; 
 
-				// Get all available state machines on this artboard (to find any additional ones)
 				const artboardDef = riveInstance.file?.artboardByName(riveInstance.artboard.name);
 				if (artboardDef) {
 					const smCountOnArtboard = typeof artboardDef.stateMachineCount === 'function' ? artboardDef.stateMachineCount() : 0;
-					logger.info(logPrefix + `Found ${smCountOnArtboard} state machines on artboard "${riveInstance.artboard.name}"`);
+					logger.info(logPrefix + `Found ${smCountOnArtboard} state machine(s) on artboard "${riveInstance.artboard.name}"`);
 
-					// Collect additional state machine names that weren't already initialized
 					for (let j = 0; j < smCountOnArtboard; j++) {
 						const smDefFromFile = artboardDef.stateMachineByIndex(j);
-						if (!smDefFromFile || !smDefFromFile.name) continue;
-
-						// Skip the one we already initialized
-						if (smDefFromFile.name === defaultStateMachineName) continue;
-
-						logger.info(logPrefix + `Found additional state machine: ${smDefFromFile.name}`);
-						result.defaultElements.stateMachineNames.push(smDefFromFile.name);
-
-						// Play this additional state machine
-						try {
-							logger.info(logPrefix + `Playing additional state machine: ${smDefFromFile.name}`);
-							if (riveInstance && typeof riveInstance.play === 'function') {
-								riveInstance.play(smDefFromFile.name);
-							}
-						} catch (err) {
-							logger.warn(logPrefix + `Couldn't play state machine "${smDefFromFile.name}":`, err);
+						if (smDefFromFile && smDefFromFile.name) {
+							logger.info(logPrefix + `Discovered state machine: ${smDefFromFile.name}`);
+							result.defaultElements.stateMachineNames.push(smDefFromFile.name);
+							// DO NOT PLAY IT HERE: riveInstance.play(smDefFromFile.name);
 						}
 					}
-				}
-			}
+				} else {
+                    logger.warn(logPrefix + `Could not get artboard definition for ${riveInstance.artboard.name} from riveInstance.file`);
+                }
+			} else {
+                logger.warn(logPrefix + "No default artboard found on riveInstance after load.");
+            }
 
 			const riveFile = riveInstance.file;
 			if (!riveFile) {
@@ -335,16 +320,36 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 									}
 									break;
 								case 'enumType':
+									// Log the property definition to inspect its structure for enum type name
+									// console.log(`[Parser Enum Inspect] Property Definition for '${propDecl.name}':`, propDecl); // Keep this commented for now, enable if still failing
+
 									if (typeof vmInstanceObj.enum === 'function') {
 										const propInput = vmInstanceObj.enum(propDecl.name);
 										inputInfo.value = propInput && propInput.value !== undefined ? propInput.value : `Enum '${propDecl.name}' .value is undefined or propInput is null`;
-									} else {
-										if (typeof vmInstanceObj.string === 'function') {
-											const propInput = vmInstanceObj.string(propDecl.name);
-											inputInfo.value = propInput && propInput.value !== undefined ? propInput.value : `Enum (via string fallback) '${propDecl.name}' .value is undefined or propInput is null`;
-										} else {
-											inputInfo.value = 'vmInstanceObj.enum (and .string) is not a function for enumType';
+										
+										let determinedEnumTypeName = null;
+										// Educated guesses for the attribute on propDecl holding the enum definition's name
+										if (propDecl.enumDefinition && typeof propDecl.enumDefinition.name === 'string') { // From a previous attempt
+											determinedEnumTypeName = propDecl.enumDefinition.name;
+										} else if (typeof propDecl.enumName === 'string') { // Common pattern
+											determinedEnumTypeName = propDecl.enumName;
+										} else if (propDecl.definition && typeof propDecl.definition.name === 'string') { // If it has a generic 'definition' object
+											determinedEnumTypeName = propDecl.definition.name;
+										} else if (propDecl.typeName && typeof propDecl.typeName === 'string') { // Another possibility for type name
+											determinedEnumTypeName = propDecl.typeName;
 										}
+
+										if (determinedEnumTypeName) {
+											inputInfo.enumTypeName = determinedEnumTypeName;
+											logger.info(`[Parser] For enum property '${propDecl.name}', determined enumTypeName as '${determinedEnumTypeName}'.`);
+										} else {
+											logger.warn(`[Parser] For enum property '${propDecl.name}', COULD NOT DETERMINE specific enumTypeName. Falling back to using property name '${propDecl.name}'. This is likely incorrect.`);
+											inputInfo.enumTypeName = propDecl.name; // Fallback
+										}
+									} else {
+										inputInfo.value = 'vmInstanceObj.enum (and .string) is not a function for enumType';
+										inputInfo.enumTypeName = propDecl.name; // Fallback
+										logger.warn(`[Parser] For enum property '${propDecl.name}', vmInstanceObj.enum is not a function.`);
 									}
 									break;
 								case 'color':
