@@ -388,45 +388,60 @@ div.jsoneditor-search input {
 }
 
 /* Playback Control Buttons */
-.play-btn,
-.pause-btn,
-.stop-btn {
+.toggle-btn,
+.pause-btn {
     padding: 4px 8px;
     border: none;
     border-radius: 3px;
     cursor: pointer;
     font-size: 0.8em;
     color: white;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
+    min-width: 50px;
 }
 
-.play-btn {
+/* Toggle Button States (Play/Stop) */
+.toggle-btn[data-state="stopped"] {
     background-color: #35a35f;
 }
 
-.play-btn:hover {
+.toggle-btn[data-state="stopped"]:hover {
     background-color: #42c474;
 }
 
-.pause-btn {
-    background-color: #f39c12;
-}
-
-.pause-btn:hover {
-    background-color: #f5b041;
-}
-
-.stop-btn {
+.toggle-btn[data-state="playing"] {
     background-color: #e74c3c;
 }
 
-.stop-btn:hover {
+.toggle-btn[data-state="playing"]:hover {
     background-color: #ec7063;
 }
 
-.play-btn:disabled,
-.pause-btn:disabled,
-.stop-btn:disabled {
+/* Pause Button States */
+.pause-btn[data-state="unpaused"] {
+    background-color: #f39c12;
+    border: 2px solid #f39c12;
+}
+
+.pause-btn[data-state="unpaused"]:hover {
+    background-color: #f5b041;
+    border-color: #f5b041;
+}
+
+.pause-btn[data-state="paused"] {
+    background-color: #2c3e50;
+    border: 2px solid #f39c12;
+    box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.3);
+}
+
+.pause-btn[data-state="paused"]:hover {
+    background-color: #34495e;
+    border-color: #f5b041;
+    box-shadow: 0 0 0 2px rgba(245, 176, 65, 0.4);
+}
+
+.toggle-btn:disabled,
+.pause-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }

@@ -16,8 +16,6 @@ let parsedRiveData = null;
 let dynamicControlsInitialized = false;
 let structuredControlData = null; // Will store the processed data from dataToControlConnector
 let uiUpdateInterval = null; // <<< ADDED: For polling interval ID
-let resizeDebounceTimeout = null; // For debouncing resize events
-let boundResizeHandler = null; // To store the bound event handler for removal
 
 // Store the Rive engine reference globally if needed, or pass it around
 // For simplicity, assuming window.rive is available as in other files.
@@ -267,11 +265,7 @@ export function initDynamicControls(parsedDataFromHandler) {
         clearInterval(uiUpdateInterval);
         uiUpdateInterval = null;
     }
-    // Remove existing window resize listener if one was previously bound
-    if (boundResizeHandler) {
-        window.removeEventListener('resize', boundResizeHandler);
-        // logger.debug('[controlInterface] Removed previous window resize listener.');
-    }
+    // Note: Window resize listener cleanup is now handled by riveParserHandler.js
     riveInstance = null;
     parsedRiveData = parsedDataFromHandler;
     dynamicControlsInitialized = false;
@@ -407,11 +401,8 @@ export function initDynamicControls(parsedDataFromHandler) {
         setupEventListeners(); 
         buildControlsUI();
 
-        // Add window resize listener
-        if (!boundResizeHandler) { 
-            boundResizeHandler = riveResizeHandler;
-            window.addEventListener('resize', boundResizeHandler);
-        }
+        // Note: Window resize listener is now handled by riveParserHandler.js
+        // to avoid conflicts and ensure proper coordination
 
         // Expose this Rive instance to the window for debugging
         window.riveInstanceGlobal = riveInstance;
@@ -863,18 +854,4 @@ export function updateDynamicControls() {
     }
 }
 
-// Debounced resize handler function
-function debouncedResizeRiveCanvas() {
-    if (!riveInstance || typeof riveInstance.resizeDrawingSurfaceToCanvas !== 'function') {
-        // logger.warn('[controlInterface] Debounced resize: Rive instance not available or no resize method.');
-        return;
-    }
-    // logger.debug('[controlInterface] Debounced resize: Resizing Rive canvas.');
-    riveInstance.resizeDrawingSurfaceToCanvas();
-}
-
-// Actual event listener that will be bound
-function riveResizeHandler() {
-    clearTimeout(resizeDebounceTimeout);
-    resizeDebounceTimeout = setTimeout(debouncedResizeRiveCanvas, 250); // Adjust timeout as needed (e.g., 150-300ms)
-}
+// Note: Resize handling has been moved to riveParserHandler.js to avoid conflicts

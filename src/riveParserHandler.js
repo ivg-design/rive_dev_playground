@@ -37,11 +37,9 @@ const stateMachineSelector = document.getElementById('stateMachineSelector');
 const applySelectionBtn = document.getElementById('applySelectionBtn');
 
 // Playback control buttons
-const playAnimationBtn = document.getElementById('playAnimationBtn');
-const pauseAnimationBtn = document.getElementById('pauseAnimationBtn');
-const stopAnimationBtn = document.getElementById('stopAnimationBtn');
-const startStateMachineBtn = document.getElementById('startStateMachineBtn');
-const stopStateMachineBtn = document.getElementById('stopStateMachineBtn');
+const toggleTimelineBtn = document.getElementById('toggleTimelineBtn');
+const pauseTimelineBtn = document.getElementById('pauseTimelineBtn');
+const toggleStateMachineBtn = document.getElementById('toggleStateMachineBtn');
 
 /**
  * Holds the current instance of the JSONEditor.
@@ -54,6 +52,14 @@ let selectedArtboard = null;
 let selectedAnimation = null;
 let selectedStateMachine = null;
 let liveRiveInstance = null; // Reference to the live Rive instance for playback control
+
+// Playback state tracking
+let timelineState = 'stopped'; // 'stopped', 'playing', 'paused'
+let stateMachineState = 'stopped'; // 'stopped', 'playing'
+let currentPlaybackMode = 'none'; // 'timeline', 'stateMachine', 'none'
+
+// Window resize handler
+let resizeHandler = null;
 
 /**
  * Initializes or updates the JSONEditor instance with the provided JSON data.
@@ -152,12 +158,61 @@ function toggleViews(showInspector) {
 	}
 }
 
+/**
+ * Handles window resize events to maintain canvas aspect ratio and quality
+ */
+function handleWindowResize() {
+	const riveInstance = getLiveRiveInstance();
+	if (riveInstance && typeof riveInstance.resizeDrawingSurfaceToCanvas === 'function') {
+		try {
+			riveInstance.resizeDrawingSurfaceToCanvas();
+			logger.debug('Canvas resized to maintain aspect ratio and quality');
+		} catch (error) {
+			logger.error('Error resizing canvas:', error);
+		}
+	}
+}
+
+/**
+ * Sets up the window resize listener
+ */
+function setupWindowResizeListener() {
+	// Remove existing listener if any
+	if (resizeHandler) {
+		window.removeEventListener('resize', resizeHandler);
+	}
+	
+	// Create debounced resize handler to avoid excessive calls
+	let resizeTimeout;
+	resizeHandler = () => {
+		clearTimeout(resizeTimeout);
+		resizeTimeout = setTimeout(handleWindowResize, 100); // 100ms debounce
+	};
+	
+	window.addEventListener('resize', resizeHandler);
+	logger.debug('Window resize listener set up');
+}
+
+/**
+ * Removes the window resize listener
+ */
+function removeWindowResizeListener() {
+	if (resizeHandler) {
+		window.removeEventListener('resize', resizeHandler);
+		resizeHandler = null;
+		logger.debug('Window resize listener removed');
+	}
+}
+
 // Initialize JSONEditor and set initial view state on DOMContentLoaded.
 document.addEventListener('DOMContentLoaded', () => {
 	setupJsonEditor({ message: "Please select a Rive file to parse." });
 	// Default to live controls view (parser inspector is hidden by default via CSS in HTML)
 	if(parserInspectorView) parserInspectorView.style.display = 'none'; // Ensure it is hidden
 	if(liveControlsView) liveControlsView.style.display = 'block'; // Ensure it is visible
+	
+	// Set up window resize listener
+	setupWindowResizeListener();
 });
 
 // Event listeners for view toggle buttons
@@ -191,20 +246,14 @@ if (applySelectionBtn) {
 }
 
 // Event listeners for playback controls
-if (playAnimationBtn) {
-	playAnimationBtn.addEventListener('click', handlePlayAnimation);
+if (toggleTimelineBtn) {
+	toggleTimelineBtn.addEventListener('click', handleToggleTimeline);
 }
-if (pauseAnimationBtn) {
-	pauseAnimationBtn.addEventListener('click', handlePauseAnimation);
+if (pauseTimelineBtn) {
+	pauseTimelineBtn.addEventListener('click', handlePauseTimeline);
 }
-if (stopAnimationBtn) {
-	stopAnimationBtn.addEventListener('click', handleStopAnimation);
-}
-if (startStateMachineBtn) {
-	startStateMachineBtn.addEventListener('click', handleStartStateMachine);
-}
-if (stopStateMachineBtn) {
-	stopStateMachineBtn.addEventListener('click', handleStopStateMachine);
+if (toggleStateMachineBtn) {
+	toggleStateMachineBtn.addEventListener('click', handleToggleStateMachine);
 }
 
 /**
@@ -244,7 +293,7 @@ function populateArtboardSelector(parsedData) {
 }
 
 /**
- * Populates the animation selector based on the selected artboard
+ * Populates the timeline selector based on the selected artboard
  * @param {string} artboardName - The name of the selected artboard
  */
 function populateAnimationSelector(artboardName) {
@@ -261,20 +310,20 @@ function populateAnimationSelector(artboardName) {
 	if (!selectedArtboardData || !selectedArtboardData.animations || selectedArtboardData.animations.length === 0) {
 		const option = document.createElement('option');
 		option.value = '';
-		option.textContent = 'No Animations';
+		option.textContent = 'No Timelines';
 		animationSelector.appendChild(option);
 		selectedAnimation = null;
-		logger.info(`No animations found for artboard: ${artboardName}`);
+		logger.info(`No timelines found for artboard: ${artboardName}`);
 		return;
 	}
 
-	// Add animation options
+	// Add timeline options
 	selectedArtboardData.animations.forEach((animation, index) => {
 		const option = document.createElement('option');
 		option.value = animation.name;
 		option.textContent = `${animation.name} (${animation.duration.toFixed(2)}s)`;
 		
-		// Select the first animation by default
+		// Select the first timeline by default
 		if (index === 0) {
 			option.selected = true;
 			selectedAnimation = animation.name;
@@ -283,7 +332,7 @@ function populateAnimationSelector(artboardName) {
 		animationSelector.appendChild(option);
 	});
 
-	logger.info(`Populated animation selector with ${selectedArtboardData.animations.length} animations for artboard ${artboardName}. Selected: ${selectedAnimation}`);
+	logger.info(`Populated timeline selector with ${selectedArtboardData.animations.length} timelines for artboard ${artboardName}. Selected: ${selectedAnimation}`);
 }
 
 /**
@@ -349,11 +398,14 @@ function handleArtboardChange() {
 }
 
 /**
- * Handles animation selection change
+ * Handles timeline selection change
  */
 function handleAnimationChange() {
 	selectedAnimation = animationSelector.value;
-	logger.info(`Animation selection changed to: ${selectedAnimation}`);
+	logger.info(`Timeline selection changed to: ${selectedAnimation}`);
+	
+	// Reset playback states when timeline changes
+	resetPlaybackStates();
 }
 
 /**
@@ -373,7 +425,7 @@ function handleApplySelection() {
 		return;
 	}
 
-	logger.info(`Applying selection - Artboard: ${selectedArtboard}, Animation: ${selectedAnimation || 'None'}, State Machine: ${selectedStateMachine || 'None'}`);
+	logger.info(`Applying selection - Artboard: ${selectedArtboard}, Timeline: ${selectedAnimation || 'None'}, State Machine: ${selectedStateMachine || 'None'}`);
 
 	// Update the parsed data with the new selection
 	if (currentParsedData && currentParsedData.defaultElements) {
@@ -381,11 +433,14 @@ function handleApplySelection() {
 		currentParsedData.defaultElements.stateMachineNames = selectedStateMachine ? [selectedStateMachine] : [];
 	}
 
+	// Reset playback states when applying new selection
+	resetPlaybackStates();
+
 	// Reinitialize the dynamic controls with the updated selection
 	initDynamicControls(currentParsedData);
 	
 	if (statusMessageDiv) {
-		statusMessageDiv.textContent = `Applied selection - Artboard: ${selectedArtboard}${selectedAnimation ? `, Animation: ${selectedAnimation}` : ''}${selectedStateMachine ? `, State Machine: ${selectedStateMachine}` : ''}`;
+		statusMessageDiv.textContent = `Applied selection - Artboard: ${selectedArtboard}${selectedAnimation ? `, Timeline: ${selectedAnimation}` : ''}${selectedStateMachine ? `, State Machine: ${selectedStateMachine}` : ''}`;
 	}
 }
 
@@ -403,99 +458,136 @@ function getLiveRiveInstance() {
 }
 
 /**
- * Handles playing the selected animation
+ * Resets all playback states and updates UI
  */
-function handlePlayAnimation() {
+function resetPlaybackStates() {
+	timelineState = 'stopped';
+	stateMachineState = 'stopped';
+	currentPlaybackMode = 'none';
+	updateButtonStates();
+}
+
+/**
+ * Updates button states based on current playback state
+ */
+function updateButtonStates() {
+	// Update timeline toggle button
+	if (toggleTimelineBtn) {
+		toggleTimelineBtn.setAttribute('data-state', timelineState === 'playing' ? 'playing' : 'stopped');
+		toggleTimelineBtn.textContent = timelineState === 'playing' ? 'Stop' : 'Play';
+	}
+	
+	// Update pause button
+	if (pauseTimelineBtn) {
+		pauseTimelineBtn.setAttribute('data-state', timelineState === 'paused' ? 'paused' : 'unpaused');
+		pauseTimelineBtn.disabled = timelineState === 'stopped';
+	}
+	
+	// Update state machine toggle button
+	if (toggleStateMachineBtn) {
+		toggleStateMachineBtn.setAttribute('data-state', stateMachineState === 'playing' ? 'playing' : 'stopped');
+		toggleStateMachineBtn.textContent = stateMachineState === 'playing' ? 'Stop' : 'Play';
+	}
+}
+
+/**
+ * Handles timeline play/stop toggle
+ */
+function handleToggleTimeline() {
 	const riveInstance = getLiveRiveInstance();
 	if (!riveInstance) {
-		logger.warn('No live Rive instance available for animation playback');
+		logger.warn('No live Rive instance available for timeline playback');
 		return;
 	}
 
 	if (!selectedAnimation) {
-		logger.warn('No animation selected');
+		logger.warn('No timeline selected');
 		return;
 	}
 
 	try {
-		logger.info(`Playing animation: ${selectedAnimation}`);
-		riveInstance.play(selectedAnimation);
-		
-		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Playing animation: ${selectedAnimation}`;
+		if (timelineState === 'stopped' || timelineState === 'paused') {
+			// Stop state machine if it's playing (override behavior)
+			if (stateMachineState === 'playing' && selectedStateMachine) {
+				riveInstance.stop(selectedStateMachine);
+				stateMachineState = 'stopped';
+			}
+			
+			logger.info(`Playing timeline: ${selectedAnimation}`);
+			riveInstance.play(selectedAnimation);
+			timelineState = 'playing';
+			currentPlaybackMode = 'timeline';
+			
+			if (statusMessageDiv) {
+				statusMessageDiv.textContent = `Playing timeline: ${selectedAnimation}`;
+			}
+		} else {
+			logger.info(`Stopping timeline: ${selectedAnimation}`);
+			riveInstance.stop(selectedAnimation);
+			timelineState = 'stopped';
+			currentPlaybackMode = 'none';
+			
+			if (statusMessageDiv) {
+				statusMessageDiv.textContent = `Stopped timeline: ${selectedAnimation}`;
+			}
 		}
+		
+		updateButtonStates();
 	} catch (error) {
-		logger.error('Error playing animation:', error);
+		logger.error('Error toggling timeline:', error);
 		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Error playing animation: ${error.message}`;
+			statusMessageDiv.textContent = `Error controlling timeline: ${error.message}`;
 		}
 	}
 }
 
 /**
- * Handles pausing the selected animation
+ * Handles timeline pause toggle
  */
-function handlePauseAnimation() {
+function handlePauseTimeline() {
 	const riveInstance = getLiveRiveInstance();
 	if (!riveInstance) {
-		logger.warn('No live Rive instance available for animation control');
+		logger.warn('No live Rive instance available for timeline control');
 		return;
 	}
 
-	if (!selectedAnimation) {
-		logger.warn('No animation selected');
+	if (!selectedAnimation || timelineState === 'stopped') {
+		logger.warn('No timeline playing to pause');
 		return;
 	}
 
 	try {
-		logger.info(`Pausing animation: ${selectedAnimation}`);
-		riveInstance.pause(selectedAnimation);
-		
-		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Paused animation: ${selectedAnimation}`;
+		if (timelineState === 'paused') {
+			logger.info(`Resuming timeline: ${selectedAnimation}`);
+			riveInstance.play(selectedAnimation);
+			timelineState = 'playing';
+			
+			if (statusMessageDiv) {
+				statusMessageDiv.textContent = `Resumed timeline: ${selectedAnimation}`;
+			}
+		} else {
+			logger.info(`Pausing timeline: ${selectedAnimation}`);
+			riveInstance.pause(selectedAnimation);
+			timelineState = 'paused';
+			
+			if (statusMessageDiv) {
+				statusMessageDiv.textContent = `Paused timeline: ${selectedAnimation}`;
+			}
 		}
+		
+		updateButtonStates();
 	} catch (error) {
-		logger.error('Error pausing animation:', error);
+		logger.error('Error pausing timeline:', error);
 		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Error pausing animation: ${error.message}`;
+			statusMessageDiv.textContent = `Error pausing timeline: ${error.message}`;
 		}
 	}
 }
 
 /**
- * Handles stopping the selected animation
+ * Handles state machine play/stop toggle
  */
-function handleStopAnimation() {
-	const riveInstance = getLiveRiveInstance();
-	if (!riveInstance) {
-		logger.warn('No live Rive instance available for animation control');
-		return;
-	}
-
-	if (!selectedAnimation) {
-		logger.warn('No animation selected');
-		return;
-	}
-
-	try {
-		logger.info(`Stopping animation: ${selectedAnimation}`);
-		riveInstance.stop(selectedAnimation);
-		
-		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Stopped animation: ${selectedAnimation}`;
-		}
-	} catch (error) {
-		logger.error('Error stopping animation:', error);
-		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Error stopping animation: ${error.message}`;
-		}
-	}
-}
-
-/**
- * Handles starting the selected state machine
- */
-function handleStartStateMachine() {
+function handleToggleStateMachine() {
 	const riveInstance = getLiveRiveInstance();
 	if (!riveInstance) {
 		logger.warn('No live Rive instance available for state machine control');
@@ -508,46 +600,40 @@ function handleStartStateMachine() {
 	}
 
 	try {
-		logger.info(`Starting state machine: ${selectedStateMachine}`);
-		riveInstance.play(selectedStateMachine);
+		if (stateMachineState === 'stopped') {
+			// Stop timeline if it's playing (override behavior)
+			if (timelineState !== 'stopped' && selectedAnimation) {
+				riveInstance.stop(selectedAnimation);
+				timelineState = 'stopped';
+			}
+			
+			logger.info(`Starting state machine: ${selectedStateMachine}`);
+			
+			// For state machines, we need to ensure they're properly started and interactive
+			// The key is to use play() which maintains interactivity, not just start the state machine
+			riveInstance.play(selectedStateMachine);
+			stateMachineState = 'playing';
+			currentPlaybackMode = 'stateMachine';
+			
+			if (statusMessageDiv) {
+				statusMessageDiv.textContent = `Started state machine: ${selectedStateMachine} (interactive)`;
+			}
+		} else {
+			logger.info(`Stopping state machine: ${selectedStateMachine}`);
+			riveInstance.stop(selectedStateMachine);
+			stateMachineState = 'stopped';
+			currentPlaybackMode = 'none';
+			
+			if (statusMessageDiv) {
+				statusMessageDiv.textContent = `Stopped state machine: ${selectedStateMachine}`;
+			}
+		}
 		
-		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Started state machine: ${selectedStateMachine}`;
-		}
+		updateButtonStates();
 	} catch (error) {
-		logger.error('Error starting state machine:', error);
+		logger.error('Error toggling state machine:', error);
 		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Error starting state machine: ${error.message}`;
-		}
-	}
-}
-
-/**
- * Handles stopping the selected state machine
- */
-function handleStopStateMachine() {
-	const riveInstance = getLiveRiveInstance();
-	if (!riveInstance) {
-		logger.warn('No live Rive instance available for state machine control');
-		return;
-	}
-
-	if (!selectedStateMachine) {
-		logger.warn('No state machine selected');
-		return;
-	}
-
-	try {
-		logger.info(`Stopping state machine: ${selectedStateMachine}`);
-		riveInstance.stop(selectedStateMachine);
-		
-		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Stopped state machine: ${selectedStateMachine}`;
-		}
-	} catch (error) {
-		logger.error('Error stopping state machine:', error);
-		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Error stopping state machine: ${error.message}`;
+			statusMessageDiv.textContent = `Error controlling state machine: ${error.message}`;
 		}
 	}
 }
@@ -610,12 +696,15 @@ function handleFileSelect(event) {
 					// Store the parsed data for artboard/state machine selection
 					currentParsedData = parsedData;
 					
-					// Populate and show artboard/animation/state machine selectors
+					// Populate and show artboard/timeline/state machine selectors
 					populateArtboardSelector(parsedData);
 					if (selectedArtboard) {
 						populateAnimationSelector(selectedArtboard);
 						populateStateMachineSelector(selectedArtboard);
 					}
+					
+					// Reset playback states and update button states
+					resetPlaybackStates();
 					
 					// Show the artboard/state machine controls
 					if (artboardStateMachineControls) {

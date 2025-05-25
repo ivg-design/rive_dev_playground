@@ -37,12 +37,12 @@
                             </select>
                         </div>
 
-                        <div class="selector-group">
-                            <label for="animationSelector">Animation:</label>
-                            <select id="animationSelector">
-                                <option value="">No Animations</option>
-                            </select>
-                        </div>
+                                            <div class="selector-group">
+                        <label for="animationSelector">Timeline:</label>
+                        <select id="animationSelector">
+                            <option value="">No Timelines</option>
+                        </select>
+                    </div>
 
                         <div class="selector-group">
                             <label for="stateMachineSelector">State Machine:</label>
@@ -54,23 +54,21 @@
                         <button id="applySelectionBtn">Apply Selection</button>
                     </div>
 
-                    <!-- Playback Controls Row -->
-                    <div class="playback-controls-row">
-                        <!-- Animation Controls -->
-                        <div class="control-group">
-                            <span class="control-label">Animation:</span>
-                            <button id="playAnimationBtn" class="play-btn">Play</button>
-                            <button id="pauseAnimationBtn" class="pause-btn">Pause</button>
-                            <button id="stopAnimationBtn" class="stop-btn">Stop</button>
-                        </div>
-
-                        <!-- State Machine Controls -->
-                        <div class="control-group">
-                            <span class="control-label">State Machine:</span>
-                            <button id="startStateMachineBtn" class="play-btn">Start</button>
-                            <button id="stopStateMachineBtn" class="stop-btn">Stop</button>
-                        </div>
+                                    <!-- Playback Controls Row -->
+                <div class="playback-controls-row">
+                    <!-- Timeline Controls -->
+                    <div class="control-group">
+                        <span class="control-label">Timeline:</span>
+                        <button id="toggleTimelineBtn" class="toggle-btn" data-state="stopped">Play</button>
+                        <button id="pauseTimelineBtn" class="pause-btn" data-state="unpaused">⏸</button>
                     </div>
+                    
+                    <!-- State Machine Controls -->
+                    <div class="control-group">
+                        <span class="control-label">State Machine:</span>
+                        <button id="toggleStateMachineBtn" class="toggle-btn" data-state="stopped">Play</button>
+                    </div>
+                </div>
                 </div>
             </div>
 
