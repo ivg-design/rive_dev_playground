@@ -37,30 +37,30 @@ jobs:
 
             - name: Create deployment directory
               run: |
-                  mkdir -p _site/rive-tester
+                  mkdir -p _site/rive-playground
 
-            - name: Copy Rive Tester files
+            - name: Copy Rive Playground files
               run: |
                   # Copy main files
-                  cp index.html _site/rive-tester/
-                  cp style.css _site/rive-tester/
-                  cp package.json _site/rive-tester/
-                  cp README.md _site/rive-tester/
+                  cp index.html _site/rive-playground/
+                  cp style.css _site/rive-playground/
+                  cp package.json _site/rive-playground/
+                  cp README.md _site/rive-playground/
 
                   # Copy source directory
-                  cp -r src _site/rive-tester/
+                  cp -r src _site/rive-playground/
 
                   # Copy animations directory if it exists
                   if [ -d "animations" ]; then
-                    cp -r animations _site/rive-tester/
+                    cp -r animations _site/rive-playground/
                   fi
 
                   # Copy any .riv files
-                  find . -name "*.riv" -maxdepth 1 -exec cp {} _site/rive-tester/ \;
+                  find . -name "*.riv" -maxdepth 1 -exec cp {} _site/rive-playground/ \;
 
             - name: Install Rive dependencies in deployment
               run: |
-                  cd _site/rive-tester
+                  cd _site/rive-playground
                   npm install --production
 
             - name: Create index page for root
@@ -71,81 +71,206 @@ jobs:
                   <head>
                       <meta charset="UTF-8">
                       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                      <title>IVG Design Tools</title>
+                      <title>IVG Design - Development Tools & Documentation</title>
                       <style>
-                          body {
-                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                              max-width: 800px;
-                              margin: 0 auto;
-                              padding: 2rem;
-                              background: #0f0f0f;
-                              color: #e0e0e0;
+                          * {
+                              margin: 0;
+                              padding: 0;
+                              box-sizing: border-box;
                           }
+                          
+                          body {
+                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+                              background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+                              color: #e0e0e0;
+                              min-height: 100vh;
+                              display: flex;
+                              align-items: center;
+                              justify-content: center;
+                          }
+                          
                           .container {
+                              max-width: 900px;
+                              padding: 2rem;
                               text-align: center;
                           }
-                          h1 {
+                          
+                          .header {
+                              margin-bottom: 3rem;
+                          }
+                          
+                          .header h1 {
+                              font-size: 3rem;
+                              font-weight: 700;
                               color: #ffffff;
-                              margin-bottom: 2rem;
+                              margin-bottom: 1rem;
+                              background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                              -webkit-background-clip: text;
+                              -webkit-text-fill-color: transparent;
+                              background-clip: text;
                           }
+                          
+                          .header p {
+                              font-size: 1.2rem;
+                              color: #b0b0b0;
+                              max-width: 600px;
+                              margin: 0 auto;
+                              line-height: 1.6;
+                          }
+                          
+                          .tools-grid {
+                              display: grid;
+                              grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+                              gap: 2rem;
+                              margin-bottom: 3rem;
+                          }
+                          
                           .tool-card {
-                              background: #1a1a1a;
+                              background: rgba(26, 26, 26, 0.8);
                               border: 1px solid #333;
-                              border-radius: 8px;
-                              padding: 2rem;
-                              margin: 1rem 0;
-                              transition: transform 0.2s, border-color 0.2s;
+                              border-radius: 12px;
+                              padding: 2.5rem;
+                              transition: all 0.3s ease;
+                              backdrop-filter: blur(10px);
+                              position: relative;
+                              overflow: hidden;
                           }
+                          
+                          .tool-card::before {
+                              content: '';
+                              position: absolute;
+                              top: 0;
+                              left: 0;
+                              right: 0;
+                              height: 3px;
+                              background: linear-gradient(90deg, #6366f1, #8b5cf6);
+                              opacity: 0;
+                              transition: opacity 0.3s ease;
+                          }
+                          
                           .tool-card:hover {
-                              transform: translateY(-2px);
+                              transform: translateY(-8px);
                               border-color: #555;
+                              box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
                           }
+                          
+                          .tool-card:hover::before {
+                              opacity: 1;
+                          }
+                          
+                          .tool-icon {
+                              font-size: 3rem;
+                              margin-bottom: 1.5rem;
+                              display: block;
+                          }
+                          
                           .tool-card h2 {
                               color: #ffffff;
-                              margin-top: 0;
+                              font-size: 1.5rem;
+                              margin-bottom: 1rem;
+                              font-weight: 600;
                           }
+                          
                           .tool-card p {
                               color: #b0b0b0;
-                              margin-bottom: 1.5rem;
+                              margin-bottom: 2rem;
+                              line-height: 1.6;
+                              font-size: 1rem;
                           }
+                          
                           .btn {
-                              display: inline-block;
-                              padding: 0.75rem 1.5rem;
-                              background: #6366f1;
+                              display: inline-flex;
+                              align-items: center;
+                              gap: 0.5rem;
+                              padding: 1rem 2rem;
+                              background: linear-gradient(135deg, #6366f1, #8b5cf6);
                               color: white;
                               text-decoration: none;
-                              border-radius: 6px;
-                              transition: background 0.2s;
+                              border-radius: 8px;
+                              font-weight: 600;
+                              transition: all 0.3s ease;
+                              border: none;
+                              cursor: pointer;
                           }
+                          
                           .btn:hover {
-                              background: #5855eb;
+                              transform: translateY(-2px);
+                              box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
                           }
+                          
+                          .btn-secondary {
+                              background: rgba(255, 255, 255, 0.1);
+                              border: 1px solid rgba(255, 255, 255, 0.2);
+                          }
+                          
+                          .btn-secondary:hover {
+                              background: rgba(255, 255, 255, 0.15);
+                              box-shadow: 0 10px 25px rgba(255, 255, 255, 0.1);
+                          }
+                          
                           .footer {
-                              margin-top: 3rem;
+                              margin-top: 4rem;
                               padding-top: 2rem;
                               border-top: 1px solid #333;
                               color: #888;
+                          }
+                          
+                          .footer a {
+                              color: #6366f1;
+                              text-decoration: none;
+                              transition: color 0.2s ease;
+                          }
+                          
+                          .footer a:hover {
+                              color: #8b5cf6;
+                          }
+                          
+                          @media (max-width: 768px) {
+                              .header h1 {
+                                  font-size: 2rem;
+                              }
+                              
+                              .tools-grid {
+                                  grid-template-columns: 1fr;
+                              }
+                              
+                              .tool-card {
+                                  padding: 2rem;
+                              }
                           }
                       </style>
                   </head>
                   <body>
                       <div class="container">
-                          <h1>IVG Design Tools</h1>
-                          
-                          <div class="tool-card">
-                              <h2>Rive File Parser & Inspector</h2>
-                              <p>Interactive tool for parsing and inspecting Rive animation files. Load .riv files, explore their structure, and test animations with dynamic controls.</p>
-                              <a href="./rive-tester/" class="btn">Launch Rive Tester</a>
+                          <div class="header">
+                              <h1>IVG Design</h1>
+                              <p>Professional development tools and documentation for creative workflows, Adobe extensions, and interactive animations.</p>
                           </div>
                           
-                          <div class="tool-card">
-                              <h2>Adobe CEP Documentation</h2>
-                              <p>Comprehensive documentation and guides for developing Adobe Creative Suite extensions using CEP (Common Extensibility Platform).</p>
-                              <a href="https://ivg-design.github.io/cep" class="btn">View Documentation</a>
+                          <div class="tools-grid">
+                              <div class="tool-card">
+                                  <div class="tool-icon">🎮</div>
+                                  <h2>Rive Playground</h2>
+                                  <p>Interactive tool for parsing and inspecting Rive animation files. Load .riv files, explore their structure, test animations with dynamic controls, and analyze state machines.</p>
+                                  <a href="./rive-playground/" class="btn">
+                                      Launch Playground
+                                      <span>→</span>
+                                  </a>
+                              </div>
+                              
+                              <div class="tool-card">
+                                  <div class="tool-icon">📚</div>
+                                  <h2>Adobe CEP Documentation</h2>
+                                  <p>Comprehensive documentation and guides for developing Adobe Creative Suite extensions using CEP (Common Extensibility Platform) with modern web technologies.</p>
+                                  <a href="https://ivg-design.github.io/cep" class="btn btn-secondary">
+                                      View Documentation
+                                      <span>↗</span>
+                                  </a>
+                              </div>
                           </div>
                           
                           <div class="footer">
-                              <p>Built by IVG Design | <a href="https://github.com/ivg-design" style="color: #6366f1;">GitHub</a></p>
+                              <p>Built with ❤️ by IVG Design | <a href="https://github.com/ivg-design">GitHub</a> | <a href="mailto:contact@ivg-design.com">Contact</a></p>
                           </div>
                       </div>
                   </body>
