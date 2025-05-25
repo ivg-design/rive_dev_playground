@@ -1,0 +1,168 @@
+name: Deploy Rive Tester to GitHub Pages
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Create deployment directory
+        run: |
+          mkdir -p _site/rive-tester
+          
+      - name: Copy Rive Tester files
+        run: |
+          # Copy main files
+          cp index.html _site/rive-tester/
+          cp style.css _site/rive-tester/
+          cp package.json _site/rive-tester/
+          cp README.md _site/rive-tester/
+          
+          # Copy source directory
+          cp -r src _site/rive-tester/
+          
+          # Copy animations directory if it exists
+          if [ -d "animations" ]; then
+            cp -r animations _site/rive-tester/
+          fi
+          
+          # Copy any .riv files
+          find . -name "*.riv" -maxdepth 1 -exec cp {} _site/rive-tester/ \;
+
+      - name: Install Rive dependencies in deployment
+        run: |
+          cd _site/rive-tester
+          npm install --production
+
+      - name: Create index page for root
+        run: |
+          cat > _site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>IVG Design Tools</title>
+              <style>
+                  body {
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                      max-width: 800px;
+                      margin: 0 auto;
+                      padding: 2rem;
+                      background: #0f0f0f;
+                      color: #e0e0e0;
+                  }
+                  .container {
+                      text-align: center;
+                  }
+                  h1 {
+                      color: #ffffff;
+                      margin-bottom: 2rem;
+                  }
+                  .tool-card {
+                      background: #1a1a1a;
+                      border: 1px solid #333;
+                      border-radius: 8px;
+                      padding: 2rem;
+                      margin: 1rem 0;
+                      transition: transform 0.2s, border-color 0.2s;
+                  }
+                  .tool-card:hover {
+                      transform: translateY(-2px);
+                      border-color: #555;
+                  }
+                  .tool-card h2 {
+                      color: #ffffff;
+                      margin-top: 0;
+                  }
+                  .tool-card p {
+                      color: #b0b0b0;
+                      margin-bottom: 1.5rem;
+                  }
+                  .btn {
+                      display: inline-block;
+                      padding: 0.75rem 1.5rem;
+                      background: #6366f1;
+                      color: white;
+                      text-decoration: none;
+                      border-radius: 6px;
+                      transition: background 0.2s;
+                  }
+                  .btn:hover {
+                      background: #5855eb;
+                  }
+                  .footer {
+                      margin-top: 3rem;
+                      padding-top: 2rem;
+                      border-top: 1px solid #333;
+                      color: #888;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>IVG Design Tools</h1>
+                  
+                  <div class="tool-card">
+                      <h2>Rive File Parser & Inspector</h2>
+                      <p>Interactive tool for parsing and inspecting Rive animation files. Load .riv files, explore their structure, and test animations with dynamic controls.</p>
+                      <a href="./rive-tester/" class="btn">Launch Rive Tester</a>
+                  </div>
+                  
+                  <div class="tool-card">
+                      <h2>Adobe CEP Documentation</h2>
+                      <p>Comprehensive documentation and guides for developing Adobe Creative Suite extensions using CEP (Common Extensibility Platform).</p>
+                      <a href="https://ivg-design.github.io/cep" class="btn">View Documentation</a>
+                  </div>
+                  
+                  <div class="footer">
+                      <p>Built by IVG Design | <a href="https://github.com/ivg-design" style="color: #6366f1;">GitHub</a></p>
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 

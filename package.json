@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "node test.js",
-    "dev": "node test.js --watch"
+    "dev": "node test.js --watch",
+    "test-deployment": "node scripts/test-deployment.js"
   },
   "dependencies": {
     "@andypf/json-viewer": "^2.1.10",

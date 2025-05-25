@@ -5,3 +5,8 @@ animations/
 .cursor/
 logs/
 Logs/
+
+# GitHub Pages deployment
+_site/
+dist/
+_test-deployment/
