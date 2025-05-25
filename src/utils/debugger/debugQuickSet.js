@@ -79,6 +79,12 @@ window.debugHelper = {
             logger.warn('VM not available');
             return null;
         }
+    },
+    
+    // Helper to show current debug settings (will be extended by debugControl.js)
+    currentSettings: () => {
+        logger.info('Debug settings function will be available after debugControl.js loads');
+        return null;
     }
 };
 

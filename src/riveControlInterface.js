@@ -75,6 +75,89 @@ function handleConstructorStateChange(sm, st) {
 }
 
 /**
+ * Smart enum matching based on word similarity
+ * @param {string} propertyName - The property name to match (e.g., "CTRL>Eye picker")
+ * @param {Array} allEnums - Array of enum definitions
+ * @returns {Array} Array of matching enum definitions
+ */
+function findSmartEnumMatches(propertyName, allEnums) {
+    if (!propertyName || !allEnums || allEnums.length === 0) {
+        return [];
+    }
+    
+    // Extract meaningful words from the property name
+    // Remove common prefixes/suffixes and split on common delimiters
+    const cleanPropertyName = propertyName
+        .replace(/^(CTRL>|SYS>|EMOTE>|STAT>)/i, '') // Remove common prefixes
+        .replace(/(picker|selector|control|ctrl)$/i, '') // Remove common suffixes
+        .trim();
+    
+    // Split into words and filter out short/common words
+    const propertyWords = cleanPropertyName
+        .split(/[\s>_-]+/)
+        .map(word => word.toLowerCase())
+        .filter(word => word.length > 2 && !['the', 'and', 'for', 'with'].includes(word));
+    
+    logger.debug(`[Smart Enum Match] Property '${propertyName}' -> cleaned words: [${propertyWords.join(', ')}]`);
+    
+    const matches = [];
+    
+    for (const enumDef of allEnums) {
+        const enumName = enumDef.name || '';
+        const enumWords = enumName
+            .split(/[\s>_-]+/)
+            .map(word => word.toLowerCase())
+            .filter(word => word.length > 2);
+        
+        logger.debug(`[Smart Enum Match] Comparing '${propertyName}' words [${propertyWords.join(', ')}] with '${enumName}' words [${enumWords.join(', ')}]`);
+        
+        // Check for word overlap with strict matching rules
+        const commonWords = [];
+        const matchDetails = [];
+        
+        for (const propWord of propertyWords) {
+            for (const enumWord of enumWords) {
+                let matched = false;
+                let matchType = '';
+                
+                // Exact match is always good
+                if (enumWord === propWord) {
+                    matched = true;
+                    matchType = 'exact';
+                } else if (enumWord.length >= 4 && propWord.length >= 4) {
+                    // For substring matching, both words must be reasonably long
+                    // and the match must be significant (not just a small part)
+                    const minLength = Math.min(enumWord.length, propWord.length);
+                    const matchThreshold = Math.ceil(minLength * 0.7);
+                    
+                    if (enumWord.includes(propWord) && propWord.length >= matchThreshold) {
+                        matched = true;
+                        matchType = `substring (${propWord} in ${enumWord}, ${propWord.length}/${minLength} chars)`;
+                    } else if (propWord.includes(enumWord) && enumWord.length >= matchThreshold) {
+                        matched = true;
+                        matchType = `substring (${enumWord} in ${propWord}, ${enumWord.length}/${minLength} chars)`;
+                    }
+                }
+                
+                if (matched && !commonWords.includes(propWord)) {
+                    commonWords.push(propWord);
+                    matchDetails.push(`${propWord}↔${enumWord} (${matchType})`);
+                }
+            }
+        }
+        
+        if (commonWords.length > 0) {
+            logger.debug(`[Smart Enum Match] ✅ Match found between '${propertyName}' and '${enumName}': ${matchDetails.join(', ')}`);
+            matches.push(enumDef);
+        } else {
+            logger.debug(`[Smart Enum Match] ❌ No match between '${propertyName}' and '${enumName}'`);
+        }
+    }
+    
+    return matches;
+}
+
+/**
  * Creates a control element for a specific property with direct reference to the live input
  * @param {Object} property The property object with name, type, and liveProperty reference
  * @return {HTMLElement} The control element
@@ -212,14 +295,31 @@ function createControlForProperty(property) {
                             }
                         }
                         
-                        // If still not found, try partial matching
+                        // If still not found, try smart word-based matching
                         if (!enumDef) {
-                            logger.debug(`[Enum Debug] Trying partial matching`);
+                            logger.debug(`[Enum Debug] Trying smart word-based matching`);
+                            const searchTerms = [actualEnumTypeName, property.enumTypeName, property.name].filter(Boolean);
+                            
+                            for (const term of searchTerms) {
+                                const matches = findSmartEnumMatches(term, allEnums);
+                                if (matches.length === 1) {
+                                    enumDef = matches[0];
+                                    logger.debug(`[Enum Debug] Found via smart word match: '${term}' -> '${enumDef.name}'`);
+                                    break;
+                                } else if (matches.length > 1) {
+                                    logger.warn(`[Enum Debug] Smart word matching found multiple matches for '${term}': ${matches.map(m => m.name).join(', ')}. Skipping to avoid ambiguity.`);
+                                }
+                            }
+                        }
+                        
+                        // If still not found, try simple partial matching as last resort
+                        if (!enumDef) {
+                            logger.debug(`[Enum Debug] Trying simple partial matching as last resort`);
                             const searchTerms = [actualEnumTypeName, property.enumTypeName, property.name].filter(Boolean);
                             for (const term of searchTerms) {
                                 enumDef = allEnums.find(d => d.name.includes(term) || term.includes(d.name));
                                 if (enumDef) {
-                                    logger.debug(`[Enum Debug] Found via partial match: '${term}' -> '${enumDef.name}'`);
+                                    logger.debug(`[Enum Debug] Found via simple partial match: '${term}' -> '${enumDef.name}'`);
                                     break;
                                 }
                             }

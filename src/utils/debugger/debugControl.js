@@ -105,14 +105,28 @@ export function initDebugControls() {
         createDebugControlsUI();
     }
     
-    // Expose global helper
-    window.debugHelper = {
-        enable: enableDebugControls,
-        disable: disableDebugControls,
-        toggle: toggleDebugControls,
-        isEnabled: () => debugControlsEnabled,
-        clearSettings: clearDebugSettings
-    };
+    // Extend existing global helper (from debugQuickSet.js)
+    if (window.debugHelper) {
+        // Extend existing object
+        Object.assign(window.debugHelper, {
+            enable: enableDebugControls,
+            disable: disableDebugControls,
+            toggle: toggleDebugControls,
+            isEnabled: () => debugControlsEnabled,
+            clearSettings: clearDebugSettings,
+            currentSettings: getCurrentSettings
+        });
+    } else {
+        // Create new object if it doesn't exist
+        window.debugHelper = {
+            enable: enableDebugControls,
+            disable: disableDebugControls,
+            toggle: toggleDebugControls,
+            isEnabled: () => debugControlsEnabled,
+            clearSettings: clearDebugSettings,
+            currentSettings: getCurrentSettings
+        };
+    }
 }
 
 /**
@@ -382,6 +396,75 @@ function clearDebugSettings() {
         updateStatus('Debug settings cleared');
     } catch (e) {
         console.warn('Failed to clear debug settings:', e);
+    }
+}
+
+/**
+ * Gets current debug settings for all modules
+ * @returns {Object} Current debug settings
+ */
+function getCurrentSettings() {
+    const settings = {
+        debugControlsEnabled: debugControlsEnabled,
+        modules: {}
+    };
+    
+    try {
+        // Get saved levels from localStorage
+        const savedLevels = localStorage.getItem(STORAGE_KEYS.DEBUG_LEVELS);
+        if (savedLevels) {
+            const levels = JSON.parse(savedLevels);
+            
+            MODULES.forEach(module => {
+                const level = levels[module] !== undefined ? levels[module] : LogLevel.INFO;
+                const levelName = getLevelName(level);
+                settings.modules[module] = {
+                    level: level,
+                    levelName: levelName
+                };
+            });
+        } else {
+            // No saved settings, show defaults
+            MODULES.forEach(module => {
+                settings.modules[module] = {
+                    level: LogLevel.INFO,
+                    levelName: 'INFO'
+                };
+            });
+        }
+        
+        // Also get from UI if available
+        if (debugControlsEnabled && debugControlsContainer) {
+            MODULES.forEach(module => {
+                const levelSelect = document.getElementById(`debug-level-${module}`);
+                if (levelSelect) {
+                    const uiLevel = parseInt(levelSelect.value);
+                    const uiLevelName = getLevelName(uiLevel);
+                    settings.modules[module].uiLevel = uiLevel;
+                    settings.modules[module].uiLevelName = uiLevelName;
+                }
+            });
+        }
+        
+        // Display in a nice format
+        console.log('\n🐛 Current Debug Settings:');
+        console.log('=========================');
+        console.log(`Debug Controls: ${debugControlsEnabled ? '✅ Enabled' : '❌ Disabled'}`);
+        console.log('\nModule Settings:');
+        
+        Object.entries(settings.modules).forEach(([module, config]) => {
+            const levelDisplay = config.uiLevelName ? 
+                `${config.levelName} (UI: ${config.uiLevelName})` : 
+                config.levelName;
+            console.log(`  ${module.padEnd(15)} : ${levelDisplay}`);
+        });
+        console.log('=========================\n');
+        
+        return settings;
+        
+    } catch (e) {
+        console.warn('Failed to get current debug settings:', e);
+        return settings;
     }
 }
 
