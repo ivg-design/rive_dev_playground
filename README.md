@@ -2,7 +2,7 @@
 
 > **Interactive Rive file parser, inspector, and debugging tool**
 
-A professional web-based tool for parsing, inspecting, and debugging Rive animation files. Load `.riv` files, explore their structure, test animations with dynamic controls, analyze state machines, and inspect ViewModel properties in real-time.
+A web-based tool for parsing, inspecting, and debugging Rive animation files. Load `.riv` files, explore their structure, test animations with dynamic controls, and analyze state machines and ViewModel properties.
 
 ## 🚀 Quick Start
 
@@ -22,7 +22,7 @@ npm install
 # Start local development server
 npm run dev
 # or
-npx http-server public -p 8080
+npx http-server . -p 8080
 
 # Open http://localhost:8080
 ```
@@ -32,8 +32,6 @@ npx http-server public -p 8080
 ### 📖 Documentation
 - [**🎯 Features Overview**](#-features)
 - [**⚡ Quick Start Guide**](#-quick-start)
-- [**🏗️ Architecture Overview**](docs/ARCHITECTURE.md)
-- [**🔧 API Reference**](docs/API.md)
 - [**🐛 Debugging Guide**](docs/DEBUGGING.md)
 - [**🎮 Runtime Controls**](docs/RUNTIME_CONTROLS.md)
 - [**🚀 Deployment Guide**](docs/DEPLOYMENT.md)
@@ -41,102 +39,91 @@ npx http-server public -p 8080
 
 ### 🛠️ Development
 - [**📁 Project Structure**](#-project-structure)
-- [**🔨 Development Setup**](docs/DEVELOPMENT.md)
-- [**🧪 Testing Guide**](docs/TESTING.md)
-- [**🎨 UI Components**](docs/COMPONENTS.md)
-- [**📦 Build Process**](docs/BUILD.md)
-
-### 🔍 Advanced Usage
-- [**🎛️ Golden Layout System**](docs/GOLDEN_LAYOUT.md)
-- [**🔗 Rive Integration**](docs/RIVE_INTEGRATION.md)
-- [**💾 State Management**](docs/STATE_MANAGEMENT.md)
-- [**🎨 Theming & Styling**](docs/THEMING.md)
-
-### 📚 Reference
-- [**🔧 Configuration**](docs/CONFIGURATION.md)
-- [**❓ FAQ**](docs/FAQ.md)
-- [**🐛 Troubleshooting**](docs/TROUBLESHOOTING.md)
-- [**📝 Changelog**](docs/CHANGELOG.md)
-- [**🤝 Contributing**](docs/CONTRIBUTING.md)
 
 ## ✨ Features
 
 ### 🎮 Interactive Playground
-- **File Loading**: Drag & drop or select local `.riv` files
+- **File Loading**: Select local `.riv` files via file input
 - **Live Preview**: Real-time animation playback with controls
-- **Multi-Layout**: Professional IDE-like interface with dockable panels
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
+- **Multi-Layout**: Professional IDE-like interface with dockable panels using Golden Layout
+- **Responsive Design**: Works on desktop browsers
 
 ### 🔍 Deep Inspection
 - **Artboard Analysis**: Explore all artboards, animations, and timelines
 - **State Machine Inspector**: Analyze state machines, inputs, and transitions
 - **ViewModel Explorer**: Inspect ViewModel hierarchies and properties
-- **Asset Viewer**: Browse images, fonts, and other embedded assets
-- **Enum Definitions**: View global enum definitions and values
+- **Asset Manager**: View, inspect, and replace embedded assets (images, fonts, etc.)
+- **JSON Inspector**: Interactive tree view of parsed Rive data using JSONEditor
 
 ### 🎛️ Runtime Controls
-- **Dynamic Controls**: Auto-generated UI controls for all ViewModel properties
+- **Dynamic Controls**: Auto-generated UI controls for ViewModel properties
 - **State Machine Inputs**: Toggle boolean inputs, adjust numbers, trigger events
-- **Animation Playback**: Play, pause, scrub timelines and state machines
+- **Animation Playback**: Play, pause, stop timelines and state machines
 - **Layout Controls**: Adjust fit modes, alignment, and scaling
 - **Background Customization**: Change canvas background colors
+- **Asset Replacement**: Replace embedded assets with local files or URLs in real-time
 
-### 🐛 Advanced Debugging
+### 🐛 Debugging Features
 - **Global Access**: `window.riveInstanceGlobal` for console debugging
 - **Modular Logging**: Configurable debug levels per module
-- **Error Handling**: Comprehensive error reporting and recovery
-- **Performance Monitoring**: Track loading times and render performance
+- **Error Handling**: Basic error reporting and recovery
 
 ## 🏗️ Project Structure
 
 ```
 rive_dev_playground/
 ├── index.html                   # Main application entry point
-├── 📁 src/                      # Source code
-│   ├── 📁 components/           # Core application components
+├── src/                         # Source code
+│   ├── components/              # Core application components
 │   │   ├── goldenLayoutManager.js    # Layout system management
 │   │   ├── parser.js                 # Rive file parsing logic
 │   │   ├── riveParserHandler.js      # Main application controller
-│   │   └── riveControlInterface.js   # Dynamic control generation
-│   ├── 📁 styles/               # CSS and styling
+│   │   ├── riveControlInterface.js   # Dynamic control generation
+│   │   └── dataToControlConnector.js # Data processing bridge
+│   ├── styles/                  # CSS and styling
 │   │   └── style.css            # Main application styles
-│   └── 📁 utils/                # Utility functions and helpers
+│   └── utils/                   # Utility functions and helpers
 │       └── debugger/            # Debug logging system
-├── 📁 docs/                     # Documentation files
-├── 📁 assets/                   # Static assets
+├── docs/                        # Documentation files
+│   ├── DEBUGGING.md             # Debugging guide
+│   ├── RUNTIME_CONTROLS.md      # Runtime controls documentation
+│   ├── DEPLOYMENT.md            # Deployment instructions
+│   └── GITHUB_PAGES_SETUP.md    # GitHub Pages setup guide
+├── assets/                      # Static assets
 │   ├── css/                     # Additional stylesheets
 │   └── js/                      # Additional JavaScript
-├── 📁 .github/                  # GitHub configuration
+├── scripts/                     # Build and utility scripts
+│   └── test-deployment.js       # Deployment testing script
+├── .github/                     # GitHub configuration
 │   └── workflows/               # CI/CD workflows
-├── 📁 scripts/                  # Build and utility scripts
 ├── package.json                 # Node.js dependencies
 └── README.md                    # This file
 ```
 
-## 🎯 Core Features Deep Dive
+## 🎯 Core Features
 
 ### 🎮 Rive File Parsing
 - **Client-Side Processing**: No server required, runs entirely in browser
 - **WebGL2 Runtime**: Uses official `@rive-app/webgl2` runtime
 - **Comprehensive Extraction**: Artboards, animations, state machines, ViewModels, assets
-- **Error Recovery**: Graceful handling of malformed or unsupported files
+- **Error Recovery**: Basic handling of malformed or unsupported files
 
 ### 🎛️ Dynamic Control Generation
-- **Auto-Discovery**: Automatically detects all controllable properties
+- **Auto-Discovery**: Automatically detects controllable properties
 - **Type-Aware**: Generates appropriate UI controls for each property type
 - **Real-Time Updates**: Changes reflect immediately in the animation
-- **Enum Support**: Smart dropdown population for enum properties
+- **Enum Support**: Dropdown population for enum properties
 
 ### 🔍 JSON Inspector
 - **Interactive Tree View**: Explore parsed data with JSONEditor
-- **Search & Filter**: Find specific properties or values quickly
+- **Search & Filter**: Find specific properties or values
 - **Multiple View Modes**: Tree, code, text, and preview modes
-- **Dark Theme**: Comfortable viewing with professional dark styling
+- **Dark Theme**: Professional dark styling
 
 ## 🐛 Debugging Features
 
 ### Global Runtime Access
-The application exposes the Rive instance globally for advanced debugging:
+The application exposes the Rive instance globally for debugging:
 
 ```javascript
 // Access the current Rive instance
@@ -158,24 +145,22 @@ sm.forEach(input => console.log(input.name, input.value));
 Modular logging with configurable levels:
 
 ```javascript
-// Enable debug logging for specific modules
-window.debugConfig = {
-  parser: 'debug',
-  controls: 'info',
-  layout: 'warn'
-};
+// Import the logger
+import { createLogger, LogLevel, LoggerAPI } from './src/utils/debugger/debugLogger.js';
 
-// View current debug settings
-console.log(window.getDebugSettings());
+// Create a logger for your module
+const logger = createLogger('myModule');
 
-// Clear debug settings
-window.clearDebugSettings();
+// Use different log levels
+logger.debug('Detailed debug information');
+logger.info('General information');
+logger.warn('Warning message');
+logger.error('Error message');
+
+// Configure logging levels
+LoggerAPI.setModuleLevel('parser', LogLevel.DEBUG);
+LoggerAPI.setAllLevels(LogLevel.INFO);
 ```
-
-### Error Handling
-- **Graceful Degradation**: Application continues working even with errors
-- **Detailed Error Reports**: Comprehensive error information for debugging
-- **Recovery Mechanisms**: Automatic retry and fallback strategies
 
 ## 🚀 Getting Started
 
@@ -212,65 +197,42 @@ window.clearDebugSettings();
    Navigate to `http://localhost:8080`
 
 ### First Steps
-1. **Load a Rive file**: Click "Choose File" or drag & drop a `.riv` file
-2. **Explore the interface**: Use the tabbed panels to inspect different aspects
+1. **Load a Rive file**: Click "Choose File" to select a `.riv` file
+2. **Explore the interface**: Use the dockable panels to inspect different aspects
 3. **Try the controls**: Adjust properties in the Dynamic Controls panel
 4. **Inspect the data**: Browse the parsed structure in the JSON Inspector
 
-## 🔧 Configuration
+## 🔧 Technical Details
 
-### Environment Variables
-```bash
-# Development mode
-NODE_ENV=development
+### Dependencies
+- **@rive-app/webgl2**: Official Rive WebGL2 runtime
+- **jsoneditor**: JSON tree view and editor
+- **golden-layout**: Professional layout system for dockable panels
+- **jQuery**: Required by Golden Layout
 
-# Debug level
-DEBUG_LEVEL=info
+### Browser Support
+- Chrome/Chromium (recommended)
+- Firefox
+- Safari
+- Edge
 
-# Canvas settings
-CANVAS_BACKGROUND=#252525
-```
-
-### Runtime Configuration
-```javascript
-// Configure Rive instance
-const config = {
-  fit: 'contain',
-  alignment: 'center',
-  autoplay: true,
-  artboard: 'Main'
-};
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for details.
-
-### Quick Contribution Steps
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+Requires WebGL2 support for Rive animations.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ## 🙏 Acknowledgments
 
-- **Rive Team**: For the amazing Rive runtime and tools
-- **JSONEditor**: For the excellent JSON viewing component
-- **Golden Layout**: For the professional layout system
-- **Community**: For feedback, bug reports, and contributions
+- **Rive Team**: For the Rive runtime and tools
+- **JSONEditor**: For the JSON viewing component
+- **Golden Layout**: For the layout system
 
 ## 📞 Support
 
 - **🐛 Bug Reports**: [GitHub Issues](https://github.com/ivg-design/rive_dev_playground/issues)
-- **💡 Feature Requests**: [GitHub Discussions](https://github.com/ivg-design/rive_dev_playground/discussions)
 - **📧 Contact**: [IVG Design](mailto:contact@ivg-design.com)
-- **📚 Documentation**: [Full Documentation](docs/)
 
 ---
 
-**Built with ❤️ by [IVG Design](https://github.com/ivg-design)** 
+**Built by [IVG Design](https://github.com/ivg-design)**

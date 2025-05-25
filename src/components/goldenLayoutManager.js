@@ -63,11 +63,16 @@ const defaultLayoutConfig = {
                 type: 'component',
                 componentName: 'canvas',
                 title: 'Rive Canvas',
-                width: 80
+                width: 60
             }, {
                 type: 'component',
                 componentName: 'dynamicControls',
                 title: 'Dynamic Controls',
+                width: 20
+            }, {
+                type: 'component',
+                componentName: 'assetManager',
+                title: 'Asset Manager',
                 width: 20
             }]
         }]
@@ -228,6 +233,32 @@ const componentFactories = {
         } catch (error) {
             logger.error('Error creating jsonInspector component:', error);
         }
+    },
+
+    assetManager: function(container, componentState) {
+        try {
+            const template = document.getElementById('assetManagerTemplate');
+            if (!template) {
+                logger.error('assetManagerTemplate not found');
+                return;
+            }
+            
+            const content = template.cloneNode(true);
+            content.style.display = 'block';
+            content.id = 'assetManagerComponent';
+            
+            // Get the DOM element from jQuery wrapper
+            const element = container.getElement();
+            if (element && element.length > 0) {
+                element[0].appendChild(content);
+            } else if (element && element.appendChild) {
+                element.appendChild(content);
+            }
+            
+            logger.info('Asset Manager component created');
+        } catch (error) {
+            logger.error('Error creating assetManager component:', error);
+        }
     }
 };
 
@@ -264,6 +295,7 @@ export function initializeGoldenLayout() {
         goldenLayout.registerComponent('canvas', componentFactories.canvas);
         goldenLayout.registerComponent('dynamicControls', componentFactories.dynamicControls);
         goldenLayout.registerComponent('jsonInspector', componentFactories.jsonInspector);
+        goldenLayout.registerComponent('assetManager', componentFactories.assetManager);
         
         logger.info('All components registered successfully');
 
@@ -440,7 +472,7 @@ function addRestoreMenu() {
 
     if (!goldenLayout) return;
 
-    const allComponents = ['controls', 'canvas', 'dynamicControls', 'jsonInspector'];
+    const allComponents = ['controls', 'canvas', 'dynamicControls', 'jsonInspector', 'assetManager'];
     const missingComponents = [];
 
     // Check which components are missing
@@ -524,7 +556,8 @@ function getComponentDisplayName(componentName) {
         'controls': 'Controls',
         'canvas': 'Canvas',
         'dynamicControls': 'Dynamic Controls',
-        'jsonInspector': 'Rive Parser'
+        'jsonInspector': 'Rive Parser',
+        'assetManager': 'Asset Manager'
     };
     return names[componentName] || componentName;
 }

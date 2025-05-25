@@ -574,6 +574,18 @@ export function initDynamicControls(parsedDataFromHandler) {
         // Expose this Rive instance to the window for debugging
         window.riveInstanceGlobal = riveInstance;
         logger.info('[controlInterface] Rive instance exposed as window.riveInstanceGlobal for console debugging.');
+        
+        // Initialize Asset Manager with the new Rive instance
+        try {
+            import('./assetManager.js').then(({ initializeAssetManager }) => {
+                initializeAssetManager(riveInstance);
+                logger.info('[controlInterface] Asset Manager initialized with Rive instance');
+            }).catch(error => {
+                logger.error('[controlInterface] Error importing Asset Manager:', error);
+            });
+        } catch (error) {
+            logger.error('[controlInterface] Error initializing Asset Manager:', error);
+        }
     });
 
     riveInstance.on(EventType.LoadError, (err) => {

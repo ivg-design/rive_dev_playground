@@ -9,6 +9,7 @@ import { initDynamicControls } from './riveControlInterface.js';
 import { processDataForControls } from './dataToControlConnector.js';
 import { createLogger } from '../utils/debugger/debugLogger.js';
 import { initializeGoldenLayout, updateJSONEditor, getGoldenLayout } from './goldenLayoutManager.js';
+import { initializeAssetManager, clearAssetManager } from './assetManager.js';
 
 // Create a logger for this module
 const logger = createLogger('parserHandler');
@@ -259,6 +260,14 @@ function resetApplicationState() {
 	const controlsContainer = document.getElementById('dynamicControlsContainer');
 	if (controlsContainer) {
 		controlsContainer.innerHTML = '<p>Loading new animation...</p>';
+	}
+	
+	// Clear Asset Manager
+	try {
+		clearAssetManager();
+		logger.debug('Asset Manager cleared');
+	} catch (e) {
+		logger.warn('Error clearing Asset Manager:', e);
 	}
 	
 	// Clear any global Rive instance references
