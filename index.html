@@ -23,80 +23,87 @@
         
         <!-- Hidden templates for Golden Layout components -->
         <div id="componentTemplates" style="display: none;">
-            <!-- File Loader Template -->
-            <div id="fileLoaderTemplate">
-                <div class="file-loader-container">
-                    <div class="file-picker-section">
-                        <label id="riveFilePickerLabel" for="riveFilePicker">Select a .riv file to parse & control:</label>
-                        <div class="file-input-row">
-                            <input type="file" id="riveFilePicker" accept=".riv">
-                            <button id="clearFileBtn" class="clear-file-btn" title="Clear current file">Clear File</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Controls Template -->
             <div id="controlsTemplate">
                 <div class="controls-container">
-                    <!-- Canvas Background Control -->
-                    <div class="control-section">
-                        <h4>Canvas Settings</h4>
-                        <div class="control-row">
-                            <label for="canvasBackgroundColor">Background Color:</label>
-                            <input type="color" id="canvasBackgroundColor" value="#252525">
+                    <!-- File Controls -->
+                    <div class="control-section file-section">
+                        <div class="file-group">
+                            <div>
+                                <input type="file" id="riveFilePicker" accept=".riv" class="file-input" placeholder="Select .riv file">
+                                <button id="clearFileBtn" class="clear-file-btn" title="Clear current file">Clear</button>
+                            </div>
+                            <div id="fileSelectedIndicator" class="file-selected-indicator" style="display: none;">
+                                <span id="selectedFileName">No file selected</span>
+                                <button id="changeFileBtn" class="change-file-btn" title="Change file">Change</button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Artboard and State Machine Selection Controls -->
-                    <div id="artboardStateMachineControls" class="control-section">
-                        <h4>Animation Controls</h4>
-                        
-                        <!-- Selection Grid -->
-                        <div class="selection-grid">
-                            <div class="selector-group">
-                                <label for="artboardSelector">Artboard:</label>
-                                <select id="artboardSelector">
-                                    <option value="">Loading...</option>
+                    <!-- Animation Controls -->
+                    <div class="control-section animation-section">
+                        <div class="animation-controls-grid">
+                            <div class="control-row">
+                                <select id="artboardSelector" class="select-input" title="Artboard">
+                                    <option value="">No file loaded</option>
                                 </select>
+                                <button id="applySelectionBtn" class="apply-btn">Apply</button>
                             </div>
-
-                            <div class="selector-group">
-                                <label for="animationSelector">Timeline:</label>
-                                <select id="animationSelector">
-                                    <option value="">No Timelines</option>
+                            
+                            <div class="control-row">
+                                <select id="animationSelector" class="select-input" title="Timeline">
+                                    <option value="">No timelines</option>
                                 </select>
-                            </div>
-
-                            <div class="selector-group">
-                                <label for="stateMachineSelector">State Machine:</label>
-                                <select id="stateMachineSelector">
-                                    <option value="">No State Machines</option>
-                                </select>
-                            </div>
-
-                            <div class="selector-group apply-group">
-                                <button id="applySelectionBtn">Apply Selection</button>
-                            </div>
-                        </div>
-
-                        <!-- Playback Controls Grid -->
-                        <div class="playback-grid">
-                            <!-- Timeline Controls -->
-                            <div class="control-group">
-                                <span class="control-label">Timeline:</span>
-                                <div class="button-group">
+                                <div class="inline-controls">
                                     <button id="toggleTimelineBtn" class="toggle-btn" data-state="stopped">Play</button>
                                     <button id="pauseTimelineBtn" class="pause-btn" data-state="unpaused">⏸</button>
                                 </div>
                             </div>
                             
-                            <!-- State Machine Controls -->
-                            <div class="control-group">
-                                <span class="control-label">State Machine:</span>
-                                <div class="button-group">
+                            <div class="control-row">
+                                <select id="stateMachineSelector" class="select-input" title="State Machine">
+                                    <option value="">No state machines</option>
+                                </select>
+                                <div class="inline-controls">
                                     <button id="toggleStateMachineBtn" class="toggle-btn" data-state="stopped">Play</button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layout & Display Settings -->
+                    <div class="control-section display-section">
+                        <div class="display-controls-grid">
+                            <div class="control-row bg-row">
+                                <div class="bg-color-container">
+                                    <input type="color" id="canvasBackgroundColor" value="#252525" class="color-input">
+                                    <span class="bg-color-label">Background Color</span>
+                                </div>
+                            </div>
+                            
+                            <div class="control-row layout-row">
+                                <select id="riveFitSelect" class="select-input" title="Fit Mode">
+                                    <option value="contain">Contain</option>
+                                    <option value="cover">Cover</option>
+                                    <option value="fill">Fill</option>
+                                    <option value="fitWidth">Fit Width</option>
+                                    <option value="fitHeight">Fit Height</option>
+                                    <option value="scaleDown">Scale Down</option>
+                                    <option value="none">None</option>
+                                    <option value="layout">Layout</option>
+                                </select>
+                                <select id="riveAlignmentSelect" class="select-input" title="Alignment">
+                                    <option value="center">Center</option>
+                                    <option value="topLeft">Top Left</option>
+                                    <option value="topCenter">Top Center</option>
+                                    <option value="topRight">Top Right</option>
+                                    <option value="centerLeft">Center Left</option>
+                                    <option value="centerRight">Center Right</option>
+                                    <option value="bottomLeft">Bottom Left</option>
+                                    <option value="bottomCenter">Bottom Center</option>
+                                    <option value="bottomRight">Bottom Right</option>
+                                </select>
+                                <input type="number" id="layoutScaleInput" class="number-input" min="0.1" max="5" step="0.1" value="1" title="Layout Scale">
                             </div>
                         </div>
                     </div>
@@ -113,7 +120,7 @@
             <!-- Dynamic Controls Template -->
             <div id="dynamicControlsTemplate">
                 <div id="dynamicControlsContainer">
-                    <p>(Dynamic Controls Will Appear Here)</p>
+                    <p>Please Load a Rive File</p>
                 </div>
             </div>
 

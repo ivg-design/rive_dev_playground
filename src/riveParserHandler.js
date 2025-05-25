@@ -23,7 +23,6 @@ let outputDiv = null;
 const statusMessageDiv = document.getElementById('statusMessage');
 
 // Artboard and State Machine selection controls (will be found after Golden Layout init)
-let artboardStateMachineControls = null;
 let artboardSelector = null;
 let animationSelector = null;
 let stateMachineSelector = null;
@@ -70,7 +69,6 @@ function setupJsonEditor(jsonData) {
 function findDOMElements() {
 	riveFilePicker = document.getElementById('riveFilePicker');
 	outputDiv = document.getElementById('output');
-	artboardStateMachineControls = document.getElementById('artboardStateMachineControls');
 	artboardSelector = document.getElementById('artboardSelector');
 	animationSelector = document.getElementById('animationSelector');
 	stateMachineSelector = document.getElementById('stateMachineSelector');
@@ -86,45 +84,97 @@ function findDOMElements() {
  * Handles window resize events to maintain canvas aspect ratio and quality
  */
 function handleWindowResize() {
+	resizeCanvasToAnimationAspectRatio();
+}
+
+/**
+ * Resizes canvas to match the animation's aspect ratio
+ */
+function resizeCanvasToAnimationAspectRatio() {
 	const riveInstance = getLiveRiveInstance();
-	if (riveInstance && typeof riveInstance.resizeDrawingSurfaceToCanvas === 'function') {
-		try {
+	const canvas = document.getElementById('rive-canvas');
+	const container = document.getElementById('canvasContainer');
+	
+	if (!riveInstance || !canvas || !container) {
+		return;
+	}
+
+	try {
+		// Get artboard dimensions
+		let artboardWidth = riveInstance._artboardWidth;
+		let artboardHeight = riveInstance._artboardHeight;
+		
+		// Fallback methods if _artboardWidth/Height not available
+		if (!artboardWidth || !artboardHeight) {
+			const artboard = riveInstance.artboard;
+			if (artboard) {
+				artboardWidth = artboard.bounds?.maxX - artboard.bounds?.minX;
+				artboardHeight = artboard.bounds?.maxY - artboard.bounds?.minY;
+			}
+		}
+		
+		// Another fallback - try to get from layout
+		if (!artboardWidth || !artboardHeight) {
+			const layout = riveInstance.layout;
+			if (layout && layout.runtimeArtboard) {
+				artboardWidth = layout.runtimeArtboard.width;
+				artboardHeight = layout.runtimeArtboard.height;
+			}
+		}
+		
+		// Final fallback - use default dimensions
+		if (!artboardWidth || !artboardHeight) {
+			artboardWidth = 500;
+			artboardHeight = 500;
+			logger.warn('Could not determine artboard dimensions, using defaults');
+		}
+
+		const aspectRatio = artboardWidth / artboardHeight;
+		const containerRect = container.getBoundingClientRect();
+		const containerWidth = containerRect.width - 20; // Account for padding
+		const containerHeight = containerRect.height - 20;
+
+		let canvasWidth, canvasHeight;
+
+		// Calculate canvas size to fit container while maintaining aspect ratio
+		if (containerWidth / containerHeight > aspectRatio) {
+			// Container is wider than artboard aspect ratio
+			canvasHeight = containerHeight;
+			canvasWidth = canvasHeight * aspectRatio;
+		} else {
+			// Container is taller than artboard aspect ratio
+			canvasWidth = containerWidth;
+			canvasHeight = canvasWidth / aspectRatio;
+		}
+
+		// Apply the calculated dimensions
+		canvas.style.width = `${canvasWidth}px`;
+		canvas.style.height = `${canvasHeight}px`;
+		canvas.width = canvasWidth;
+		canvas.height = canvasHeight;
+
+		// Trigger Rive resize
+		if (typeof riveInstance.resizeDrawingSurfaceToCanvas === 'function') {
 			riveInstance.resizeDrawingSurfaceToCanvas();
-			logger.debug('Canvas resized to maintain aspect ratio and quality');
-		} catch (error) {
-			logger.error('Error resizing canvas:', error);
+		}
+
+		logger.debug(`Canvas resized to animation aspect ratio: ${canvasWidth}x${canvasHeight} (artboard: ${artboardWidth}x${artboardHeight})`);
+
+	} catch (error) {
+		logger.error('Error resizing canvas to animation aspect ratio:', error);
+		// Fallback to standard resize
+		if (riveInstance && typeof riveInstance.resizeDrawingSurfaceToCanvas === 'function') {
+			riveInstance.resizeDrawingSurfaceToCanvas();
 		}
 	}
 }
 
 /**
- * Ensures the canvas fills its container properly
+ * Ensures the canvas fills its container properly (fallback method)
  */
 function resizeCanvasToContainer() {
-	const canvas = document.getElementById('rive-canvas');
-	const container = document.getElementById('canvasContainer');
-	
-	if (canvas && container) {
-		const containerRect = container.getBoundingClientRect();
-		
-		// Only resize if dimensions actually changed
-		if (canvas.width !== containerRect.width || canvas.height !== containerRect.height) {
-			canvas.width = containerRect.width;
-			canvas.height = containerRect.height;
-			
-			// Also trigger Rive resize if instance exists
-			const riveInstance = getLiveRiveInstance();
-			if (riveInstance && typeof riveInstance.resizeDrawingSurfaceToCanvas === 'function') {
-				try {
-					riveInstance.resizeDrawingSurfaceToCanvas();
-				} catch (error) {
-					logger.warn('Error resizing Rive canvas:', error);
-				}
-			}
-			
-			logger.debug(`Canvas resized to container: ${containerRect.width}x${containerRect.height}`);
-		}
-	}
+	// Use the new aspect ratio aware resize method
+	resizeCanvasToAnimationAspectRatio();
 }
 
 /**
@@ -189,10 +239,7 @@ function resetApplicationState() {
 		stateMachineSelector.innerHTML = '<option value="">No State Machines</option>';
 	}
 	
-	// Hide artboard/state machine controls
-	if (artboardStateMachineControls) {
-		artboardStateMachineControls.style.display = 'none';
-	}
+	// Controls are now always visible in the new layout
 	
 	// Clear status message
 	if (statusMessageDiv) {
@@ -246,6 +293,30 @@ document.addEventListener('DOMContentLoaded', () => {
 			setupEventListeners();
 			setupWindowResizeListener();
 			
+			// Expose resize function globally for Golden Layout
+			window.resizeCanvasToAnimationAspectRatio = resizeCanvasToAnimationAspectRatio;
+			
+			// Initialize background color label contrast
+			const bgColorInput = document.getElementById('canvasBackgroundColor');
+			if (bgColorInput) {
+				updateBackgroundColorLabelContrast(bgColorInput.value);
+			}
+			
+			// Initialize layout scale state
+			const riveFitSelect = document.getElementById('riveFitSelect');
+			const layoutScaleInput = document.getElementById('layoutScaleInput');
+			if (riveFitSelect && layoutScaleInput) {
+				const fitValue = riveFitSelect.value;
+				layoutScaleInput.disabled = fitValue !== 'layout';
+				if (fitValue === 'layout') {
+					layoutScaleInput.style.opacity = '1';
+					layoutScaleInput.style.cursor = 'text';
+				} else {
+					layoutScaleInput.style.opacity = '0.5';
+					layoutScaleInput.style.cursor = 'not-allowed';
+				}
+			}
+			
 			// Initialize with default message
 			setupJsonEditor({ message: "Please select a Rive file to parse." });
 			
@@ -290,7 +361,7 @@ function setupEventListeners() {
 		toggleStateMachineBtn.addEventListener('click', handleToggleStateMachine);
 	}
 
-	// Event listener for canvas background color
+		// Event listener for canvas background color
 	const canvasBackgroundColor = document.getElementById('canvasBackgroundColor');
 	if (canvasBackgroundColor) {
 		canvasBackgroundColor.addEventListener('change', handleCanvasBackgroundChange);
@@ -300,6 +371,27 @@ function setupEventListeners() {
 	const clearFileBtn = document.getElementById('clearFileBtn');
 	if (clearFileBtn) {
 		clearFileBtn.addEventListener('click', handleClearFile);
+	}
+
+	// Event listener for change file button
+	const changeFileBtn = document.getElementById('changeFileBtn');
+	if (changeFileBtn) {
+		changeFileBtn.addEventListener('click', handleChangeFile);
+	}
+
+	// Event listeners for Rive layout controls
+	const riveFitSelect = document.getElementById('riveFitSelect');
+	const riveAlignmentSelect = document.getElementById('riveAlignmentSelect');
+	const layoutScaleInput = document.getElementById('layoutScaleInput');
+
+	if (riveFitSelect) {
+		riveFitSelect.addEventListener('change', handleRiveLayoutChange);
+	}
+	if (riveAlignmentSelect) {
+		riveAlignmentSelect.addEventListener('change', handleRiveLayoutChange);
+	}
+	if (layoutScaleInput) {
+		layoutScaleInput.addEventListener('input', handleRiveLayoutChange);
 	}
 	
 	logger.debug('Event listeners set up');
@@ -653,7 +745,7 @@ function handlePauseTimeline() {
 			if (statusMessageDiv) {
 				statusMessageDiv.textContent = `Resumed timeline: ${selectedAnimation}`;
 			}
-		} else {
+	} else {
 			logger.info(`Pausing timeline: ${selectedAnimation}`);
 			riveInstance.pause(selectedAnimation);
 			timelineState = 'paused';
@@ -748,6 +840,11 @@ function handleFileSelect(event) {
 	
 	// Reset all state when a new file is selected
 	resetApplicationState();
+	
+	// Update file selection UI
+	if (file) {
+		updateFileSelectionUI(true, file.name);
+	}
 
 	if (!window.rive) {
 		logger.error("Rive engine (window.rive) not found!");
@@ -808,24 +905,23 @@ function handleFileSelect(event) {
 					// Set initial playback states based on what's auto-playing
 					initializePlaybackStates(parsedData);
 					
-					// Show the artboard/state machine controls
-					if (artboardStateMachineControls) {
-						artboardStateMachineControls.style.display = 'block';
-					}
+					// Controls are now always visible in the new layout
 					
 					// MODIFIED: Call initDynamicControls with only parsedData
 					// riveControlInterface will be responsible for creating the Rive instance.
 					initDynamicControls(parsedData);
+					
+					// Trigger canvas resize to match animation aspect ratio after load
+					setTimeout(() => {
+						resizeCanvasToAnimationAspectRatio();
+					}, 500);
 					
 				} else {
 					if(statusMessageDiv) statusMessageDiv.textContent = "Parser finished with no data.";
 					setupJsonEditor({ message: "Parser returned no data." });
 					initDynamicControls(null);
 					
-					// Hide artboard/state machine controls when no data
-					if (artboardStateMachineControls) {
-						artboardStateMachineControls.style.display = 'none';
-					}
+					// Controls are now always visible in the new layout
 				}
 			}); 
 		} catch (e) {
@@ -854,6 +950,35 @@ function handleCanvasBackgroundChange(event) {
 	} else {
 		logger.warn('Canvas element not found for background color change');
 	}
+	
+	// Update label contrast
+	updateBackgroundColorLabelContrast(color);
+}
+
+/**
+ * Updates the background color label contrast based on the selected color
+ */
+function updateBackgroundColorLabelContrast(color) {
+	const label = document.querySelector('.bg-color-label');
+	if (!label) return;
+	
+	// Convert hex to RGB
+	const hex = color.replace('#', '');
+	const r = parseInt(hex.substr(0, 2), 16);
+	const g = parseInt(hex.substr(2, 2), 16);
+	const b = parseInt(hex.substr(4, 2), 16);
+	
+	// Calculate luminance
+	const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+	
+	// Set text color based on luminance
+	if (luminance > 0.5) {
+		label.style.color = '#000000';
+		label.style.textShadow = '1px 1px 2px rgba(255, 255, 255, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.3)';
+	} else {
+		label.style.color = '#ffffff';
+		label.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(255, 255, 255, 0.3)';
+	}
 }
 
 /**
@@ -867,6 +992,9 @@ function handleClearFile() {
 		riveFilePicker.value = '';
 	}
 	
+	// Show file picker, hide file selected indicator
+	updateFileSelectionUI(false);
+	
 	// Reset all application state
 	resetApplicationState();
 	
@@ -879,6 +1007,147 @@ function handleClearFile() {
 	}
 	
 	logger.info('File cleared successfully');
+}
+
+/**
+ * Handles changing the current file
+ */
+function handleChangeFile() {
+	logger.info('Changing current file');
+	
+	// Show file picker, hide file selected indicator
+	updateFileSelectionUI(false);
+	
+	// Trigger file picker
+	if (riveFilePicker) {
+		riveFilePicker.click();
+	}
+}
+
+/**
+ * Updates the file selection UI state
+ */
+function updateFileSelectionUI(fileSelected, fileName = '') {
+	const filePickerContainer = document.querySelector('.file-section .file-group > div:first-child');
+	const fileSelectedIndicator = document.getElementById('fileSelectedIndicator');
+	const selectedFileNameSpan = document.getElementById('selectedFileName');
+	
+	if (fileSelected) {
+		// Hide file picker, show selected indicator
+		if (filePickerContainer) {
+			filePickerContainer.style.display = 'none';
+		}
+		if (fileSelectedIndicator) {
+			fileSelectedIndicator.style.display = 'flex';
+		}
+		if (selectedFileNameSpan) {
+			selectedFileNameSpan.textContent = fileName;
+		}
+	} else {
+		// Show file picker, hide selected indicator
+		if (filePickerContainer) {
+			filePickerContainer.style.display = 'flex';
+		}
+		if (fileSelectedIndicator) {
+			fileSelectedIndicator.style.display = 'none';
+		}
+	}
+}
+
+/**
+ * Handles Rive layout changes (fit, alignment, scale)
+ */
+function handleRiveLayoutChange() {
+	const riveInstance = getLiveRiveInstance();
+	if (!riveInstance) {
+		logger.debug('No Rive instance available for layout change');
+		return;
+	}
+
+	const riveFitSelect = document.getElementById('riveFitSelect');
+	const riveAlignmentSelect = document.getElementById('riveAlignmentSelect');
+	const layoutScaleInput = document.getElementById('layoutScaleInput');
+
+	if (!riveFitSelect || !riveAlignmentSelect || !layoutScaleInput) {
+		logger.warn('Layout control elements not found');
+		return;
+	}
+
+	const fitValue = riveFitSelect.value;
+	const alignmentValue = riveAlignmentSelect.value;
+	const scaleValue = parseFloat(layoutScaleInput.value) || 1;
+
+	// Enable/disable layout scale input based on fit type
+	layoutScaleInput.disabled = fitValue !== 'layout';
+	
+	// Update visual state
+	if (fitValue === 'layout') {
+		layoutScaleInput.style.opacity = '1';
+		layoutScaleInput.style.cursor = 'text';
+	} else {
+		layoutScaleInput.style.opacity = '0.5';
+		layoutScaleInput.style.cursor = 'not-allowed';
+	}
+
+	try {
+		// Map string values to Rive enums
+		const fitMap = {
+			'contain': window.rive.Fit.Contain,
+			'cover': window.rive.Fit.Cover,
+			'fill': window.rive.Fit.Fill,
+			'fitWidth': window.rive.Fit.FitWidth,
+			'fitHeight': window.rive.Fit.FitHeight,
+			'scaleDown': window.rive.Fit.ScaleDown,
+			'none': window.rive.Fit.None,
+			'layout': window.rive.Fit.Layout
+		};
+
+		const alignmentMap = {
+			'center': window.rive.Alignment.Center,
+			'topLeft': window.rive.Alignment.TopLeft,
+			'topCenter': window.rive.Alignment.TopCenter,
+			'topRight': window.rive.Alignment.TopRight,
+			'centerLeft': window.rive.Alignment.CenterLeft,
+			'centerRight': window.rive.Alignment.CenterRight,
+			'bottomLeft': window.rive.Alignment.BottomLeft,
+			'bottomCenter': window.rive.Alignment.BottomCenter,
+			'bottomRight': window.rive.Alignment.BottomRight
+		};
+
+		const fit = fitMap[fitValue] || window.rive.Fit.Contain;
+		const alignment = alignmentMap[alignmentValue] || window.rive.Alignment.Center;
+
+		// Create new layout
+		const layout = new window.rive.Layout({
+			fit: fit,
+			alignment: alignment
+		});
+
+		// Set layout scale factor if using Layout fit
+		if (fitValue === 'layout') {
+			layout.layoutScaleFactor = scaleValue;
+		}
+
+		// Apply the new layout
+		riveInstance.layout = layout;
+		
+		// Trigger resize to apply changes with proper aspect ratio
+		setTimeout(() => {
+			resizeCanvasToAnimationAspectRatio();
+		}, 100);
+
+		logger.info(`Layout updated - Fit: ${fitValue}, Alignment: ${alignmentValue}, Scale: ${scaleValue}`);
+		
+		if (statusMessageDiv) {
+			statusMessageDiv.textContent = `Layout updated: ${fitValue} fit, ${alignmentValue} alignment${fitValue === 'layout' ? `, ${scaleValue}x scale` : ''}`;
+		}
+
+	} catch (error) {
+		logger.error('Error updating Rive layout:', error);
+		if (statusMessageDiv) {
+			statusMessageDiv.textContent = `Error updating layout: ${error.message}`;
+		}
+	}
 }
 
 

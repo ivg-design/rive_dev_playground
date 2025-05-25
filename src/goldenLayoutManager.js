@@ -12,9 +12,9 @@ let goldenLayout = null;
 let jsonEditorInstance = null;
 
 /**
- * Golden Layout configuration for v1.5.9
+ * Default Golden Layout configuration for v1.5.9
  */
-const layoutConfig = {
+const defaultLayoutConfig = {
     settings: {
         showPopoutIcon: false,
         showMaximiseIcon: true,
@@ -27,7 +27,7 @@ const layoutConfig = {
     dimensions: {
         borderWidth: 5,
         minItemHeight: 200,
-        minItemWidth: 200,
+        minItemWidth: 350, // Minimum width to prevent controls clipping
         headerHeight: 30,
         dragProxyWidth: 300,
         dragProxyHeight: 200
@@ -41,76 +41,74 @@ const layoutConfig = {
         tabDropdown: 'additional tabs'
     },
     content: [{
-        type: 'row',
+        type: 'column',
         content: [{
-            type: 'column',
-            width: 100,
+            type: 'row',
+            height: 30,
             content: [{
-                type: 'component',
-                componentName: 'fileLoader',
-                title: 'File Loader',
-                height: 15
-            }, {
                 type: 'component',
                 componentName: 'controls',
                 title: 'Controls',
-                height: 25
+                width: 50
             }, {
-                type: 'row',
-                height: 60,
-                content: [{
-                    type: 'component',
-                    componentName: 'canvas',
-                    title: 'Rive Canvas',
-                    width: 70
-                }, {
-                    type: 'stack',
-                    width: 30,
-                    content: [{
-                        type: 'component',
-                        componentName: 'dynamicControls',
-                        title: 'Dynamic Controls'
-                    }, {
-                        type: 'component',
-                        componentName: 'jsonInspector',
-                        title: 'Rive Parser'
-                    }]
-                }]
+                type: 'component',
+                componentName: 'jsonInspector',
+                title: 'Rive Parser',
+                width: 50
+            }]
+        }, {
+            type: 'row',
+            height: 70,
+            content: [{
+                type: 'component',
+                componentName: 'canvas',
+                title: 'Rive Canvas',
+                width: 80
+            }, {
+                type: 'component',
+                componentName: 'dynamicControls',
+                title: 'Dynamic Controls',
+                width: 20
             }]
         }]
     }]
 };
 
 /**
+ * Load layout configuration from localStorage or use default
+ */
+function getLayoutConfig() {
+    try {
+        const savedConfig = localStorage.getItem('goldenLayoutConfig');
+        if (savedConfig) {
+            const parsed = JSON.parse(savedConfig);
+            logger.info('Loaded layout configuration from localStorage');
+            return parsed;
+        }
+    } catch (error) {
+        logger.warn('Error loading layout from localStorage:', error);
+    }
+    
+    logger.info('Using default layout configuration');
+    return defaultLayoutConfig;
+}
+
+/**
+ * Save layout configuration to localStorage
+ */
+function saveLayoutConfig(config) {
+    try {
+        localStorage.setItem('goldenLayoutConfig', JSON.stringify(config));
+        logger.debug('Layout configuration saved to localStorage');
+    } catch (error) {
+        logger.error('Error saving layout to localStorage:', error);
+    }
+}
+
+/**
  * Component factory functions for Golden Layout v1.5.9
  */
 const componentFactories = {
-    fileLoader: function(container, componentState) {
-        try {
-            const template = document.getElementById('fileLoaderTemplate');
-            if (!template) {
-                logger.error('fileLoaderTemplate not found');
-                return;
-            }
-            
-            const content = template.cloneNode(true);
-            content.style.display = 'block';
-            content.id = 'fileLoader';
-            
-            // Get the DOM element from jQuery wrapper
-            const element = container.getElement();
-            if (element && element.length > 0) {
-                element[0].appendChild(content);
-            } else if (element && element.appendChild) {
-                element.appendChild(content);
-            }
-            
-            logger.info('File Loader component created');
-        } catch (error) {
-            logger.error('Error creating fileLoader component:', error);
-        }
-    },
-
     controls: function(container, componentState) {
         try {
             const template = document.getElementById('controlsTemplate');
@@ -157,12 +155,14 @@ const componentFactories = {
                 element.appendChild(content);
             }
             
-            // Ensure canvas fills the container
-            const canvas = content.querySelector('#rive-canvas');
-            if (canvas) {
-                canvas.style.width = '100%';
-                canvas.style.height = '100%';
-            }
+                    // Ensure canvas fills the container and set initial background
+        const canvas = content.querySelector('#rive-canvas');
+        if (canvas) {
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            // Set initial background color
+            canvas.style.backgroundColor = '#252525';
+        }
             
             logger.info('Canvas component created');
         } catch (error) {
@@ -253,13 +253,13 @@ export function initializeGoldenLayout() {
     }
 
     try {
+        const layoutConfig = getLayoutConfig();
         logger.info('Initializing Golden Layout with config:', layoutConfig);
 
         // Create Golden Layout instance (v1.5.9 API)
         goldenLayout = new window.GoldenLayout(layoutConfig, $(container));
 
         // Register component factories (v1.5.9 API)
-        goldenLayout.registerComponent('fileLoader', componentFactories.fileLoader);
         goldenLayout.registerComponent('controls', componentFactories.controls);
         goldenLayout.registerComponent('canvas', componentFactories.canvas);
         goldenLayout.registerComponent('dynamicControls', componentFactories.dynamicControls);
@@ -267,16 +267,27 @@ export function initializeGoldenLayout() {
         
         logger.info('All components registered successfully');
 
-        // Handle resize events
+        // Handle resize events and save layout changes
         goldenLayout.on('stateChanged', () => {
+            // Save layout configuration to localStorage
+            if (goldenLayout.isInitialised) {
+                saveLayoutConfig(goldenLayout.toConfig());
+            }
+            
             // Trigger canvas resize when layout changes
             setTimeout(() => {
-                const canvas = document.getElementById('rive-canvas');
-                if (canvas && window.riveInstanceGlobal) {
-                    try {
-                        window.riveInstanceGlobal.resizeDrawingSurfaceToCanvas();
-                    } catch (error) {
-                        logger.debug('Canvas resize triggered by layout change');
+                // Trigger the aspect ratio aware resize
+                if (window.resizeCanvasToAnimationAspectRatio) {
+                    window.resizeCanvasToAnimationAspectRatio();
+                } else {
+                    // Fallback
+                    const canvas = document.getElementById('rive-canvas');
+                    if (canvas && window.riveInstanceGlobal) {
+                        try {
+                            window.riveInstanceGlobal.resizeDrawingSurfaceToCanvas();
+                        } catch (error) {
+                            logger.debug('Canvas resize triggered by layout change');
+                        }
                     }
                 }
             }, 100);
@@ -289,6 +300,32 @@ export function initializeGoldenLayout() {
 
         goldenLayout.on('initialised', () => {
             logger.info('Golden Layout initialized successfully');
+            addRestoreMenu();
+            
+            // Set up window resize handler for Golden Layout
+            let resizeTimeout;
+            const handleResize = () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    if (goldenLayout && goldenLayout.updateSize) {
+                        goldenLayout.updateSize();
+                        logger.debug('Golden Layout size updated on window resize');
+                    }
+                }, 100);
+            };
+            
+            window.addEventListener('resize', handleResize);
+            
+            // Store the resize handler for cleanup
+            goldenLayout._resizeHandler = handleResize;
+            
+            // Set up constraints for controls panel
+            setupControlsConstraints();
+        });
+
+        // Handle item destruction to update restore menu
+        goldenLayout.on('itemDestroyed', (item) => {
+            setTimeout(addRestoreMenu, 100); // Delay to ensure layout is updated
         });
 
         // Initialize the layout
@@ -311,6 +348,11 @@ function initializeJSONEditor(container) {
     if (!container || jsonEditorInstance) {
         return;
     }
+
+    // Ensure container has proper dimensions
+    container.style.width = '100%';
+    container.style.height = '100%';
+    container.style.minHeight = '300px';
 
     const options = {
         mode: 'tree',
@@ -345,6 +387,14 @@ function initializeJSONEditor(container) {
 
     try {
         jsonEditorInstance = new JSONEditor(container, options, { message: "Please select a Rive file to parse." });
+        
+        // Force resize after initialization
+        setTimeout(() => {
+            if (jsonEditorInstance && typeof jsonEditorInstance.resize === 'function') {
+                jsonEditorInstance.resize();
+            }
+        }, 100);
+        
         logger.info('JSONEditor initialized in Golden Layout');
     } catch (error) {
         logger.error('Error initializing JSONEditor:', error);
@@ -379,11 +429,230 @@ export function getJSONEditor() {
 }
 
 /**
+ * Add restore bar for closed panels
+ */
+function addRestoreMenu() {
+    // Remove existing restore bar
+    const existingBar = document.getElementById('restoreBar');
+    if (existingBar) {
+        existingBar.remove();
+    }
+
+    if (!goldenLayout) return;
+
+    const allComponents = ['controls', 'canvas', 'dynamicControls', 'jsonInspector'];
+    const missingComponents = [];
+
+    // Check which components are missing
+    allComponents.forEach(componentName => {
+        const found = findComponentInLayout(goldenLayout.root, componentName);
+        if (!found) {
+            missingComponents.push(componentName);
+        }
+    });
+
+    // Always show the bar, but collapse it if no missing components
+    const bar = document.createElement('div');
+    bar.id = 'restoreBar';
+    bar.className = `restore-bar ${missingComponents.length === 0 ? 'collapsed' : ''}`;
+    
+    if (missingComponents.length === 0) {
+        bar.innerHTML = `
+            <div class="restore-bar-collapsed">
+                <span>All panels open</span>
+                <button class="layout-reset-btn" id="layoutResetBtn">Reset Layout</button>
+            </div>
+        `;
+    } else {
+        bar.innerHTML = `
+            <div class="restore-bar-content">
+                <span class="restore-label">Restore:</span>
+                ${missingComponents.map(comp => `
+                    <button class="restore-btn" data-component="${comp}">
+                        ${getComponentDisplayName(comp)}
+                    </button>
+                `).join('')}
+            </div>
+        `;
+
+        // Add event listeners
+        bar.querySelectorAll('.restore-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const componentName = e.target.dataset.component;
+                restoreComponent(componentName);
+            });
+        });
+    }
+
+    // Add event listener for layout reset button
+    const resetBtn = bar.querySelector('#layoutResetBtn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            resetLayoutToDefault();
+        });
+    }
+
+    // Insert at the top of the golden layout container
+    const container = document.getElementById('goldenLayoutContainer');
+    if (container) {
+        container.insertBefore(bar, container.firstChild);
+    }
+}
+
+/**
+ * Find component in layout recursively
+ */
+function findComponentInLayout(item, componentName) {
+    if (item.config && item.config.componentName === componentName) {
+        return true;
+    }
+    if (item.contentItems) {
+        for (let child of item.contentItems) {
+            if (findComponentInLayout(child, componentName)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Get display name for component
+ */
+function getComponentDisplayName(componentName) {
+    const names = {
+        'controls': 'Controls',
+        'canvas': 'Canvas',
+        'dynamicControls': 'Dynamic Controls',
+        'jsonInspector': 'Rive Parser'
+    };
+    return names[componentName] || componentName;
+}
+
+/**
+ * Restore a missing component
+ */
+function restoreComponent(componentName) {
+    if (!goldenLayout) return;
+
+    const newItemConfig = {
+        type: 'component',
+        componentName: componentName,
+        title: getComponentDisplayName(componentName)
+    };
+
+    try {
+        // Try to add to the first available container
+        const root = goldenLayout.root;
+        if (root.contentItems && root.contentItems.length > 0) {
+            const firstContainer = root.contentItems[0];
+            if (firstContainer.addChild) {
+                firstContainer.addChild(newItemConfig);
+            } else if (firstContainer.contentItems && firstContainer.contentItems.length > 0) {
+                // Try to add to a stack or column
+                const target = firstContainer.contentItems.find(item => 
+                    item.type === 'stack' || item.type === 'column'
+                );
+                if (target && target.addChild) {
+                    target.addChild(newItemConfig);
+                }
+            }
+        }
+        
+        setTimeout(addRestoreMenu, 100); // Update menu after restoration
+        logger.info(`Restored component: ${componentName}`);
+    } catch (error) {
+        logger.error(`Error restoring component ${componentName}:`, error);
+    }
+}
+
+/**
+ * Set up constraints for the controls panel to prevent clipping
+ */
+function setupControlsConstraints() {
+    if (!goldenLayout) return;
+    
+    try {
+        // Find the controls component
+        const findControlsComponent = (item) => {
+            if (item.config && item.config.componentName === 'controls') {
+                return item;
+            }
+            if (item.contentItems) {
+                for (let child of item.contentItems) {
+                    const found = findControlsComponent(child);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        
+        const controlsComponent = findControlsComponent(goldenLayout.root);
+        if (controlsComponent && controlsComponent.element) {
+            // Set minimum width constraint
+            const element = controlsComponent.element[0] || controlsComponent.element;
+            if (element) {
+                element.style.minWidth = '300px';
+                element.style.maxWidth = '40vw';
+                logger.debug('Controls constraints applied');
+            }
+        }
+        
+        // Add resize listener to maintain constraints
+        goldenLayout.on('stateChanged', () => {
+            const controlsComponent = findControlsComponent(goldenLayout.root);
+            if (controlsComponent && controlsComponent.element) {
+                const element = controlsComponent.element[0] || controlsComponent.element;
+                if (element) {
+                    const currentWidth = element.offsetWidth;
+                    const maxWidth = window.innerWidth * 0.4; // 40% of viewport
+                    
+                    if (currentWidth < 300) {
+                        element.style.width = '300px';
+                    } else if (currentWidth > maxWidth) {
+                        element.style.width = '40vw';
+                    }
+                }
+            }
+        });
+        
+    } catch (error) {
+        logger.error('Error setting up controls constraints:', error);
+    }
+}
+
+/**
+ * Reset layout to default configuration
+ */
+export function resetLayoutToDefault() {
+    try {
+        localStorage.removeItem('goldenLayoutConfig');
+        logger.info('Layout configuration reset to default');
+        
+        // Reload the page to apply default layout
+        window.location.reload();
+    } catch (error) {
+        logger.error('Error resetting layout:', error);
+    }
+}
+
+/**
  * Destroy Golden Layout
  */
 export function destroyGoldenLayout() {
+    // Remove restore bar
+    const existingBar = document.getElementById('restoreBar');
+    if (existingBar) {
+        existingBar.remove();
+    }
+
     if (goldenLayout) {
         try {
+            // Remove resize handler
+            if (goldenLayout._resizeHandler) {
+                window.removeEventListener('resize', goldenLayout._resizeHandler);
+            }
+            
             goldenLayout.destroy();
             goldenLayout = null;
             jsonEditorInstance = null;

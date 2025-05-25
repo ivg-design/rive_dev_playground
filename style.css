@@ -114,11 +114,15 @@ body {
     position: relative;
     background-color: #1e1e1e;
     min-height: 400px; /* Ensure minimum height */
+    display: flex;
+    flex-direction: column;
 }
 
 /* Ensure Golden Layout root has proper styling */
 .lm_goldenlayout {
     background-color: #1e1e1e !important;
+    flex: 1;
+    min-height: 0;
 }
 
 .lm_root {
@@ -138,6 +142,79 @@ body {
     border-top: 1px solid #444;
     margin: 0;
     z-index: 1000;
+}
+
+/* Restore Bar */
+.restore-bar {
+    width: 100%;
+    background-color: #2a2a2a;
+    border-bottom: 1px solid #444;
+    z-index: 2000;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.restore-bar.collapsed {
+    height: 24px;
+    overflow: hidden;
+}
+
+.restore-bar-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    flex-wrap: wrap;
+}
+
+.restore-bar-collapsed {
+    padding: 4px 12px;
+    color: #888;
+    font-size: 0.8em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.layout-reset-btn {
+    padding: 2px 8px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.7em;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.layout-reset-btn:hover {
+    background-color: #c82333;
+}
+
+.restore-label {
+    color: #cccccc;
+    font-size: 0.85em;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.restore-btn {
+    padding: 4px 12px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.restore-btn:hover {
+    background-color: #357abd;
 }
 
 /* Golden Layout Component Styling */
@@ -169,15 +246,35 @@ body {
     background-color: #6366f1 !important;
 }
 
+/* Prevent controls panel from being too small */
+.lm_item[data-component="controls"] {
+    min-width: 350px !important;
+    max-width: 40vw !important;
+}
+
+.lm_item[data-component="controls"] .lm_content {
+    min-width: 350px !important;
+    max-width: 40vw !important;
+}
+
 /* Component content styling */
 #fileControls,
 #canvasComponent,
 #dynamicControlsComponent,
 #jsonInspectorComponent {
     height: 100%;
-    padding: 10px;
+    padding: 0;
     box-sizing: border-box;
-    overflow: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+#jsonInspectorComponent #output {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
 }
 
 #canvasComponent {
@@ -209,21 +306,25 @@ body {
 }
 
 .canvas-bg-control label {
-    color: #c8c8c8;
-    font-weight: bold;
-    font-size: 0.9em;
+    color: #cccccc;
+    font-size: 0.75em;
+    font-weight: 600;
     white-space: nowrap;
+    text-align: left;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
 }
 
 #canvasBackgroundColor,
 #canvasBackgroundColor2 {
-    width: 40px;
-    height: 30px;
+    width: 60px;
+    height: 36px;
     border: 1px solid #555;
     border-radius: 4px;
     background: none;
     cursor: pointer;
-    padding: 0;
+    padding: 4px;
+    box-sizing: border-box;
 }
 
 #canvasBackgroundColor::-webkit-color-swatch-wrapper,
@@ -252,8 +353,14 @@ body {
 #riveFilePickerLabel,
 #riveFilePickerLabel2 {
     display: block;
-    font-weight: bold;
-    color: #c8c8c8;
+    color: #cccccc;
+    font-size: 0.75em;
+    font-weight: 600;
+    white-space: nowrap;
+    text-align: left;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
 }
 
 #riveFilePicker,
@@ -317,111 +424,391 @@ div.jsoneditor-search input {
     border: 1px solid #555;
 }
 
-/* File Loader Component Styling */
-.file-loader-container {
-    padding: 15px;
-    background-color: #2a2a2a;
-    border-radius: 8px;
-    border: 1px solid #444;
+/* Professional Controls Component Styling */
+.controls-container {
+    padding: 12px;
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+    background-color: #1a1a1a;
+    min-width: 300px;
+    max-width: 40vw;
+    width: 100%;
 }
 
-.file-picker-section {
+.control-section {
+    margin-bottom: 8px;
+    padding: 10px;
+    background-color: #2a2a2a;
+    border-radius: 6px;
+    border: 1px solid #404040;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    min-height: fit-content;
+}
+
+/* File Section */
+.file-section .file-group {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.file-input-row {
+.file-section .file-group > div:first-child {
     display: flex;
-    gap: 10px;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.file-section .file-input {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* File Selected Indicator */
+.file-selected-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: #1a4a1a;
+    border: 1px solid #2a6a2a;
+    border-radius: 4px;
+    color: #90ee90;
+    font-size: 0.85em;
+}
+
+.file-selected-indicator span {
+    flex: 1;
+    font-weight: 500;
+}
+
+.change-file-btn {
+    padding: 4px 8px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8em;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.change-file-btn:hover {
+    background-color: #357abd;
+}
+
+/* Animation Controls Grid */
+.animation-controls-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-row {
+    display: flex;
+    gap: 8px;
     align-items: center;
     flex-wrap: wrap;
 }
 
-.clear-file-btn {
-    padding: 8px 16px;
-    background-color: #e74c3c;
+.control-row .select-input {
+    flex: 1;
+    min-width: 150px;
+}
+
+.inline-controls {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-shrink: 0;
+    width: 104px; /* 50px + 4px gap + 50px = 104px total */
+}
+
+/* Display Controls Grid */
+.display-controls-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.display-controls-grid .control-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Background Color Row */
+.bg-row {
+    justify-content: stretch;
+}
+
+.bg-color-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 36px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    overflow: hidden;
+}
+
+.bg-color-container .color-input {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    height: 100% !important;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 1;
+    padding: 0 !important;
+}
+
+.bg-color-label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.85em;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 2;
+    color: var(--label-color, #ffffff);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(255, 255, 255, 0.3);
+    mix-blend-mode: difference;
+}
+
+/* Layout Row */
+.layout-row {
+    gap: 6px;
+}
+
+.layout-row .select-input {
+    flex: 1;
+    min-width: 100px;
+}
+
+.layout-row .number-input {
+    flex-shrink: 0;
+    width: 70px;
+}
+
+
+
+/* Apply Button Styling */
+.apply-btn {
+    padding: 6px 12px;
+    background-color: #4a90e2;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.9em;
-    transition: background-color 0.2s ease;
+    font-size: 0.8em;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    height: 32px;
     white-space: nowrap;
+    box-sizing: border-box;
+    line-height: 1.2;
+    flex-shrink: 0;
+    width: 104px; /* Match inline controls width exactly */
+}
+
+.apply-btn:hover {
+    background-color: #357abd;
+    transform: translateY(-1px);
+}
+
+.file-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    color: #d4d4d4;
+    font-size: 0.85em;
+    height: 36px;
+    box-sizing: border-box;
+    line-height: 1.2;
+}
+
+.clear-file-btn {
+    padding: 8px 16px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    height: 36px;
+    box-sizing: border-box;
+    line-height: 1.2;
+    width: 104px;
 }
 
 .clear-file-btn:hover {
-    background-color: #c0392b;
+    background-color: #c82333;
+    transform: translateY(-1px);
 }
 
-.clear-file-btn:disabled {
-    background-color: #555;
+/* Input Styling */
+.select-input {
+    padding: 8px 12px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    color: #d4d4d4;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 36px;
+    min-width: 120px;
+    box-sizing: border-box;
+    line-height: 1.2;
+}
+
+.select-input:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 1px rgba(74, 144, 226, 0.3);
+}
+
+.select-input:hover {
+    border-color: #666;
+}
+
+.number-input {
+    padding: 8px 12px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    color: #d4d4d4;
+    font-size: 0.85em;
+    height: 36px;
+    width: 90px;
+    box-sizing: border-box;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.number-input:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 1px rgba(74, 144, 226, 0.3);
+}
+
+.number-input:disabled {
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
-/* Controls Component Styling */
-.controls-container {
-    padding: 15px;
-    height: 100%;
-    overflow-y: auto;
+.color-input {
+    width: 60px;
+    height: 36px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    padding: 4px;
     box-sizing: border-box;
 }
 
-.control-section {
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: #2a2a2a;
-    border-radius: 8px;
-    border: 1px solid #444;
+.color-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: 4px;
 }
 
-.control-section h4 {
-    margin: 0 0 15px 0;
-    color: #ffffff;
-    font-size: 1.1em;
-    border-bottom: 1px solid #555;
-    padding-bottom: 8px;
+.color-input::-webkit-color-swatch {
+    border: none;
+    border-radius: 4px;
 }
 
-/* Responsive Selection Grid */
-.selection-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
+/* Apply Group */
 .apply-group {
     display: flex;
-    align-items: end;
+    align-items: flex-end;
 }
 
-/* Responsive Playback Grid */
-.playback-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 15px;
+.primary-btn {
+    padding: 8px 20px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    height: 36px;
+    white-space: nowrap;
+    box-sizing: border-box;
+    line-height: 1.2;
+}
+
+.primary-btn:hover {
+    background-color: #357abd;
+    transform: translateY(-1px);
 }
 
 .button-group {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
+    align-items: stretch;
 }
 
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-    .selection-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .playback-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .file-input-row {
+/* Responsive Design */
+@media (max-width: 600px) {
+    .control-row {
         flex-direction: column;
         align-items: stretch;
+    }
+    
+    .control-row .select-input {
+        min-width: unset;
+        margin-bottom: 4px;
+    }
+    
+    .inline-controls {
+        justify-content: flex-start;
+    }
+    
+    .file-section .file-group {
+        flex-direction: column;
+    }
+    
+    .display-controls-grid .control-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+@media (max-width: 400px) {
+    .controls-container {
+        padding: 8px;
+    }
+    
+    .control-section {
+        padding: 8px;
+        margin-bottom: 6px;
+    }
+    
+    .inline-controls .toggle-btn,
+    .inline-controls .pause-btn {
+        padding: 4px 8px;
+        width: 50px;
+        min-width: 50px;
+        height: 28px;
+        font-size: 0.75em;
     }
 }
 
@@ -451,8 +838,13 @@ div.jsoneditor-search input {
 }
 
 .selector-group label {
-    color: #c8c8c8;
-    font-weight: bold;
+    color: #cccccc;
+    font-size: 0.75em;
+    font-weight: 600;
+    white-space: nowrap;
+    text-align: left;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
 }
 
 
@@ -460,13 +852,16 @@ div.jsoneditor-search input {
 #artboardSelector,
 #animationSelector,
 #stateMachineSelector {
-    padding: 5px 8px;
-    border-radius: 3px;
+    padding: 8px 12px;
+    border-radius: 4px;
     border: 1px solid #555;
-    background-color: #1e1e1e;
+    background-color: #333;
     color: #d4d4d4;
     min-width: 120px;
-    font-size: 0.9em;
+    font-size: 0.85em;
+    height: 36px;
+    box-sizing: border-box;
+    line-height: 1.2;
 }
 
 #artboardSelector:focus,
@@ -474,28 +869,10 @@ div.jsoneditor-search input {
 #stateMachineSelector:focus {
     outline: none;
     border-color: #4a90e2;
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    box-shadow: 0 0 0 1px rgba(74, 144, 226, 0.3);
 }
 
-#applySelectionBtn {
-    padding: 6px 12px;
-    background-color: #4a90e2;
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 0.9em;
-    transition: background-color 0.2s ease;
-}
 
-#applySelectionBtn:hover {
-    background-color: #5aa1f2;
-}
-
-#applySelectionBtn:active {
-    background-color: #3a7bc8;
-}
 
 /* Playback Controls Row */
 .playback-controls-row {
@@ -514,22 +891,52 @@ div.jsoneditor-search input {
 }
 
 .control-label {
-    color: #c8c8c8;
-    font-weight: bold;
-    font-size: 0.9em;
+    color: #cccccc;
+    font-size: 0.75em;
+    font-weight: 600;
+    white-space: nowrap;
+    text-align: left;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
 }
 
 /* Playback Control Buttons */
 .toggle-btn,
 .pause-btn {
-    padding: 4px 8px;
+    padding: 8px 16px;
     border: none;
-    border-radius: 3px;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 0.8em;
+    font-size: 0.85em;
+    font-weight: 600;
     color: white;
     transition: all 0.2s ease;
+    min-width: 60px;
+    height: 36px;
+    box-sizing: border-box;
+    line-height: 1.2;
+}
+
+/* Inline Control Buttons - Smaller for inline use */
+.inline-controls .toggle-btn {
+    padding: 6px 4px;
+    width: 50px;
     min-width: 50px;
+    height: 32px;
+    font-size: 0.8em;
+}
+
+.inline-controls .pause-btn {
+    padding: 6px 4px;
+    width: 50px;
+    min-width: 50px;
+    height: 32px;
+    font-size: 0.8em;
+}
+
+/* State Machine button should be 104px */
+#toggleStateMachineBtn {
+    width: 104px !important;
 }
 
 /* Toggle Button States (Play/Stop) */
@@ -685,8 +1092,7 @@ div.jsoneditor-search input {
 .control-row input[type="text"],
 .control-row input[type="color"],
 .control-row select,
-.control-row textarea,
-.control-row button {
+.control-row textarea {
     flex-grow: 1;
     padding: 5px;
     border-radius: 3px;
@@ -694,18 +1100,6 @@ div.jsoneditor-search input {
     background-color: #1e1e1e;
     color: #d4d4d4;
     box-sizing: border-box;
-}
-
-.control-row button {
-    cursor: pointer;
-    background-color: #4a90e2;
-    color: white;
-    border: none;
-    padding: 6px 10px;
-}
-
-.control-row button:hover {
-    background-color: #5aa1f2;
 }
 
 /* New styles for play buttons and state machine activation */
