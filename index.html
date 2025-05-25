@@ -1,68 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rive Parser Test</title>
-    
-    <!-- JSONEditor CSS -->
-    <link href="./node_modules/jsoneditor/dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
-    <!-- Link to our custom stylesheet -->
-    <link rel="stylesheet" href="style.css">
-</head>
-<body class="jsoneditor-dark">
-    <div id="main-header" style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Rive File Parser</h1>
-        <button id="toggleViewBtn" style="padding: 8px 15px; margin-left: 20px;">Show Parsed Data Inspector</button>
-    </div>
 
-    <!-- View for Live Dynamic Controls (Initially Visible) -->
-    <div id="liveControlsView">
-        <div id="liveControlsHeader" style="margin-bottom: 15px;">
-            <label id="riveFilePickerLabel" for="riveFilePicker">Select a .riv file to parse & control:</label>
-            <input type="file" id="riveFilePicker" accept=".riv">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Rive Parser Test</title>
+
+        <!-- JSONEditor CSS -->
+        <link href="./node_modules/jsoneditor/dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
+        <!-- Link to our custom stylesheet -->
+        <link rel="stylesheet" href="style.css">
+    </head>
+
+    <body class="jsoneditor-dark">
+        <div id="main-header">
+            <h1>Rive File Parser</h1>
+            <button id="toggleViewBtn">Show Parsed Data Inspector</button>
         </div>
 
-        <div id="liveViewLayout" style="display: flex; flex-direction: row; gap: 20px; flex-grow: 1; overflow: hidden;">
-            <canvas id="rive-canvas" style="width: 70vw; /* Or adjust */ height: 100%; border: 1px solid #444; background-color: #252525;"></canvas> 
-            <div id="dynamicControlsContainer" style="width: 30vw; /* Or adjust */ height: 100%; border: 1px solid #444; padding: 10px; background-color: #2a2a2a; overflow-y: auto;">
-                <p>(Dynamic Controls Will Appear Here)</p>
+        <!-- View for Live Dynamic Controls (Initially Visible) -->
+        <div id="liveControlsView">
+            <div id="liveControlsHeader">
+                <div class="file-picker-section">
+                    <label id="riveFilePickerLabel" for="riveFilePicker">Select a .riv file to parse & control:</label>
+                    <input type="file" id="riveFilePicker" accept=".riv">
+                </div>
+
+                <!-- Artboard and State Machine Selection Controls -->
+                <div id="artboardStateMachineControls">
+                    <!-- Selection Row -->
+                    <div class="selection-row">
+                        <div class="selector-group">
+                            <label for="artboardSelector">Artboard:</label>
+                            <select id="artboardSelector">
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+
+                        <div class="selector-group">
+                            <label for="animationSelector">Animation:</label>
+                            <select id="animationSelector">
+                                <option value="">No Animations</option>
+                            </select>
+                        </div>
+
+                        <div class="selector-group">
+                            <label for="stateMachineSelector">State Machine:</label>
+                            <select id="stateMachineSelector">
+                                <option value="">No State Machines</option>
+                            </select>
+                        </div>
+
+                        <button id="applySelectionBtn">Apply Selection</button>
+                    </div>
+
+                    <!-- Playback Controls Row -->
+                    <div class="playback-controls-row">
+                        <!-- Animation Controls -->
+                        <div class="control-group">
+                            <span class="control-label">Animation:</span>
+                            <button id="playAnimationBtn" class="play-btn">Play</button>
+                            <button id="pauseAnimationBtn" class="pause-btn">Pause</button>
+                            <button id="stopAnimationBtn" class="stop-btn">Stop</button>
+                        </div>
+
+                        <!-- State Machine Controls -->
+                        <div class="control-group">
+                            <span class="control-label">State Machine:</span>
+                            <button id="startStateMachineBtn" class="play-btn">Start</button>
+                            <button id="stopStateMachineBtn" class="stop-btn">Stop</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="liveViewLayout">
+                <canvas id="rive-canvas"></canvas>
+                <div id="dynamicControlsContainer">
+                    <p>(Dynamic Controls Will Appear Here)</p>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- View for Parser Data Inspector (Initially Hidden) -->
-    <div id="parserInspectorView" style="display: none;">
-        <!-- REMOVED #controls div as file picker moved -->
-        
-        <!-- outputContainer will now only hold the jsoneditor -->
-        <div id="inspectorOutputContainer" style="height: calc(100vh - 150px); /* Adjust based on header/buttons */">
-            <div id="output"></div> <!-- JSONEditor goes here -->
+        <!-- View for Parser Data Inspector (Initially Hidden) -->
+        <div id="parserInspectorView">
+            <!-- REMOVED #controls div as file picker moved -->
+
+            <!-- outputContainer will now only hold the jsoneditor -->
+            <div id="inspectorOutputContainer">
+                <div id="output"></div> <!-- JSONEditor goes here -->
+            </div>
+
+            <p class="log-message" id="statusMessage">Please select a Rive file to begin parsing.</p>
+            <button id="closeInspectorBtn">Back to Live Controls</button>
         </div>
-        
-        <p class="log-message" id="statusMessage">Please select a Rive file to begin parsing.</p>
-        <button id="closeInspectorBtn" style="padding: 8px 15px; margin-top: 15px;">Back to Live Controls</button>
-    </div>
 
-    <!-- Load the Rive runtime -->
-    <script src="./node_modules/@rive-app/webgl2/rive.js"></script>
-    <!-- Link to our custom stylesheet -->
-    <link rel="stylesheet" href="style.css">
-    <!-- JSONEditor JS (Ensure it's loaded before scripts that use it) -->
-    <script src="./node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
+        <!-- Load the Rive runtime -->
+        <script src="./node_modules/@rive-app/webgl2/rive.js"></script>
+        <!-- Link to our custom stylesheet -->
+        <link rel="stylesheet" href="style.css">
+        <!-- JSONEditor JS (Ensure it's loaded before scripts that use it) -->
+        <script src="./node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
 
-    <!-- Logging System Scripts -->
-    <script type="module" src="src/utils/debugger/debugLogger.js"></script>
-    <script type="module" src="src/utils/debugger/logConfig.js"></script>
-    <script type="module" src="src/utils/debugger/parser-logger.js"></script>
-    <script type="module" src="src/utils/debugger/debugQuickSet.js"></script>
-    
-    <!-- Core Scripts -->
-    <script src="src/parser.js"></script>
-    <script type="module" src="src/riveParserHandler.js"></script>
-    <script type="module" src="src/riveControlInterface.js"></script>
-    
-    <!-- Debug Controls -->
-    <script type="module" src="src/utils/debugger/debugControl.js"></script>
-</body>
-</html> 
+        <!-- Logging System Scripts -->
+        <script type="module" src="src/utils/debugger/debugLogger.js"></script>
+        <script type="module" src="src/utils/debugger/logConfig.js"></script>
+        <script type="module" src="src/utils/debugger/parser-logger.js"></script>
+        <script type="module" src="src/utils/debugger/debugQuickSet.js"></script>
+
+        <!-- Core Scripts -->
+        <script src="src/parser.js"></script>
+        <script type="module" src="src/riveParserHandler.js"></script>
+        <script type="module" src="src/riveControlInterface.js"></script>
+
+        <!-- Debug Controls -->
+        <script type="module" src="src/utils/debugger/debugControl.js"></script>
+    </body>
+
+</html>

@@ -316,19 +316,20 @@ export function processDataForControls(parsedData, riveInstance) {
 							liveProperty: vmProperty
 						};
 						if (prop.type === 'enumType') {
-							if (prop.enumDefinition && typeof prop.enumDefinition.name === 'string') {
-								propertyEntry.enumTypeName = prop.enumDefinition.name;
-							} else if (typeof prop.enumName === 'string') {
-								propertyEntry.enumTypeName = prop.enumName;
-							} else {
-								// Check the vmProperty (ViewModelInstanceEnum) itself, it might have a reference
-								// This is highly speculative as Rive API for this isn't explicitly documented for JS in simple terms
-								if (vmProperty && vmProperty.enumDefinition && typeof vmProperty.enumDefinition.name === 'string') {
-									propertyEntry.enumTypeName = vmProperty.enumDefinition.name;                                
+							const parsedVmBlueprint = findViewModelInParsedData(parsedData, activeArtboardName, mainViewModelInstance.name);
+							if (parsedVmBlueprint && parsedVmBlueprint.inputs) {
+								const parsedInputInfo = parsedVmBlueprint.inputs.find(inp => inp.name === prop.name);
+								if (parsedInputInfo && parsedInputInfo.enumTypeName) {
+									propertyEntry.enumTypeName = parsedInputInfo.enumTypeName;
+									logger.trace(`[dataConnector] Main VM prop '${prop.name}': Using enumTypeName '${parsedInputInfo.enumTypeName}' from parser data.`);
 								} else {
-									logger.warn(`[dataConnector] Main VM prop '${prop.name}': Could not determine specific enumTypeName from live Rive property. Will fallback to using property name in UI.`);
-									// No explicit fallback here, createControlForProperty will use prop.name if enumTypeName is missing
+									logger.warn(`[dataConnector] Main VM prop '${prop.name}': Did not find enumTypeName in parsed data for blueprint '${mainViewModelInstance.name}'. UI will use property name as fallback for enum list.`);
+									// Fallback: let createControlForProperty use prop.name for lookup
+									propertyEntry.enumTypeName = prop.name; 
 								}
+							} else {
+								logger.warn(`[dataConnector] Main VM prop '${prop.name}': Could not find parsed VM blueprint '${mainViewModelInstance.name}' or its inputs to get enumTypeName. UI will use property name as fallback.`);
+								propertyEntry.enumTypeName = prop.name; 
 							}
 						}
 						mainVmInfo.properties.push(propertyEntry);
@@ -442,6 +443,7 @@ export function processDataForControls(parsedData, riveInstance) {
 			console.log('===============================================');
 			console.log(`🔍 DEFAULT VIEWMODEL: ${vmName} (${vmSourceInfo})`);
 			console.log('===============================================');
+			console.log(riveInstance.enums())
 			console.log('\n');
 
 		}, 100);
@@ -509,16 +511,25 @@ function buildNestedVMControls(vmInstance, instanceName) {
 						liveProperty: liveProperty
 					};
 					if (prop.type === 'enumType') {
-						if (prop.enumDefinition && typeof prop.enumDefinition.name === 'string') {
-							nestedPropEntry.enumTypeName = prop.enumDefinition.name;
-						} else if (typeof prop.enumName === 'string') {
-							nestedPropEntry.enumTypeName = prop.enumName;
-						} else {
-							if (liveProperty && liveProperty.enumDefinition && typeof liveProperty.enumDefinition.name === 'string') {
-								nestedPropEntry.enumTypeName = liveProperty.enumDefinition.name;                                
+						let parsedVmBlueprint = null;
+						if (parsedRiveData && parsedRiveData.allViewModelDefinitionsAndInstances && vmInstance.name) {
+							const foundVmDef = parsedRiveData.allViewModelDefinitionsAndInstances.find(def => def.blueprintName === vmInstance.name);
+							// The `inputs` we need were stored under `blueprintProperties` by the parser for the definition
+							if (foundVmDef) parsedVmBlueprint = { name: foundVmDef.blueprintName, inputs: foundVmDef.blueprintProperties }; 
+						}
+
+						if (parsedVmBlueprint && parsedVmBlueprint.inputs) {
+							const parsedInputInfo = parsedVmBlueprint.inputs.find(inp => inp.name === prop.name);
+							if (parsedInputInfo && parsedInputInfo.enumTypeName) {
+								nestedPropEntry.enumTypeName = parsedInputInfo.enumTypeName;
+								logger.trace(`[dataConnector] Nested VM prop '${instanceName}.${prop.name}': Using enumTypeName '${parsedInputInfo.enumTypeName}' from parser data (blueprint: ${vmInstance.name}).`);
 							} else {
-								logger.warn(`[dataConnector] Nested VM prop '${instanceName}.${prop.name}': Could not determine specific enumTypeName from live Rive property. Fallback in UI.`);
+								logger.warn(`[dataConnector] Nested VM prop '${instanceName}.${prop.name}': Did not find enumTypeName in parsed data for blueprint '${vmInstance.name}'. UI will use property name as fallback.`);
+								nestedPropEntry.enumTypeName = prop.name; 
 							}
+						} else {
+							 logger.warn(`[dataConnector] Nested VM prop '${instanceName}.${prop.name}': Could not find parsed blueprint definition '${vmInstance.name}' or its properties. UI will use property name as fallback.`);
+							 nestedPropEntry.enumTypeName = prop.name; 
 						}
 					}
 					result.properties.push(nestedPropEntry);

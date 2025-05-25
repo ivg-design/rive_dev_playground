@@ -321,7 +321,9 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 									break;
 								case 'enumType':
 									// Log the property definition to inspect its structure for enum type name
-									// console.log(`[Parser Enum Inspect] Property Definition for '${propDecl.name}':`, propDecl); // Keep this commented for now, enable if still failing
+									logger.info(`[Parser Enum Inspect] Property Definition for '${propDecl.name}':`, propDecl); // Using logger, ensure 'parser' module is set to INFO or lower
+									// Also using console.log for direct, unfilterable visibility during this critical debug phase:
+									console.log(`[Parser Enum Inspect CONSOLE.LOG] Property Definition for '${propDecl.name}':`, propDecl);
 
 									if (typeof vmInstanceObj.enum === 'function') {
 										const propInput = vmInstanceObj.enum(propDecl.name);
@@ -329,27 +331,31 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 										
 										let determinedEnumTypeName = null;
 										// Educated guesses for the attribute on propDecl holding the enum definition's name
-										if (propDecl.enumDefinition && typeof propDecl.enumDefinition.name === 'string') { // From a previous attempt
+										// Order of guessing might matter if multiple exist.
+										if (propDecl.enumDefinition && typeof propDecl.enumDefinition.name === 'string') {
 											determinedEnumTypeName = propDecl.enumDefinition.name;
-										} else if (typeof propDecl.enumName === 'string') { // Common pattern
+										} else if (typeof propDecl.enumName === 'string') { 
 											determinedEnumTypeName = propDecl.enumName;
-										} else if (propDecl.definition && typeof propDecl.definition.name === 'string') { // If it has a generic 'definition' object
+										} else if (propDecl.definition && typeof propDecl.definition.name === 'string') { 
 											determinedEnumTypeName = propDecl.definition.name;
-										} else if (propDecl.typeName && typeof propDecl.typeName === 'string') { // Another possibility for type name
+										} else if (propDecl.typeName && typeof propDecl.typeName === 'string') { 
 											determinedEnumTypeName = propDecl.typeName;
+										} else if (propDecl.referenceEnumName && typeof propDecl.referenceEnumName === 'string') { // Another guess
+											determinedEnumTypeName = propDecl.referenceEnumName;
 										}
+										// Add more guesses above if needed based on inspection of console.log(propDecl)
 
 										if (determinedEnumTypeName) {
 											inputInfo.enumTypeName = determinedEnumTypeName;
-											logger.info(`[Parser] For enum property '${propDecl.name}', determined enumTypeName as '${determinedEnumTypeName}'.`);
+											logger.info(`[Parser] For enum property '${propDecl.name}', successfully determined enumTypeName as '${determinedEnumTypeName}'.`);
 										} else {
-											logger.warn(`[Parser] For enum property '${propDecl.name}', COULD NOT DETERMINE specific enumTypeName. Falling back to using property name '${propDecl.name}'. This is likely incorrect.`);
+											logger.warn(`[Parser] For enum property '${propDecl.name}', COULD NOT DETERMINE specific enumTypeName from propDecl attributes. Falling back to using property name '${propDecl.name}' as enumTypeName. This is likely incorrect and will prevent dropdown population.`);
 											inputInfo.enumTypeName = propDecl.name; // Fallback
 										}
 									} else {
 										inputInfo.value = 'vmInstanceObj.enum (and .string) is not a function for enumType';
 										inputInfo.enumTypeName = propDecl.name; // Fallback
-										logger.warn(`[Parser] For enum property '${propDecl.name}', vmInstanceObj.enum is not a function.`);
+										logger.warn(`[Parser] For enum property '${propDecl.name}', vmInstanceObj.enum is not a function. Cannot get initial value or reliably determine enumTypeName.`);
 									}
 									break;
 								case 'color':

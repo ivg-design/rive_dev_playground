@@ -260,6 +260,177 @@ div.jsoneditor-search input {
     border: 1px solid #444;
 }
 
+/* Main Header */
+#main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#toggleViewBtn,
+#closeInspectorBtn {
+    padding: 8px 15px;
+    margin-left: 20px;
+    cursor: pointer;
+}
+
+#closeInspectorBtn {
+    margin-top: 15px;
+    margin-left: 0;
+}
+
+/* Live Controls Header */
+.file-picker-section {
+    margin-bottom: 10px;
+}
+
+/* Parser Inspector View */
+#parserInspectorView {
+    display: none;
+}
+
+#inspectorOutputContainer {
+    height: calc(100vh - 150px);
+}
+
+/* Artboard and State Machine Selection Controls */
+#artboardStateMachineControls {
+    display: none;
+    background-color: #333;
+    border: 1px solid #555;
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+/* Selection Row */
+.selection-row {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.selector-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.selector-group label {
+    color: #c8c8c8;
+    font-weight: bold;
+}
+
+
+
+#artboardSelector,
+#animationSelector,
+#stateMachineSelector {
+    padding: 5px 8px;
+    border-radius: 3px;
+    border: 1px solid #555;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    min-width: 120px;
+    font-size: 0.9em;
+}
+
+#artboardSelector:focus,
+#animationSelector:focus,
+#stateMachineSelector:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+#applySelectionBtn {
+    padding: 6px 12px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease;
+}
+
+#applySelectionBtn:hover {
+    background-color: #5aa1f2;
+}
+
+#applySelectionBtn:active {
+    background-color: #3a7bc8;
+}
+
+/* Playback Controls Row */
+.playback-controls-row {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding-top: 10px;
+    border-top: 1px solid #555;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.control-label {
+    color: #c8c8c8;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+/* Playback Control Buttons */
+.play-btn,
+.pause-btn,
+.stop-btn {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8em;
+    color: white;
+    transition: background-color 0.2s ease;
+}
+
+.play-btn {
+    background-color: #35a35f;
+}
+
+.play-btn:hover {
+    background-color: #42c474;
+}
+
+.pause-btn {
+    background-color: #f39c12;
+}
+
+.pause-btn:hover {
+    background-color: #f5b041;
+}
+
+.stop-btn {
+    background-color: #e74c3c;
+}
+
+.stop-btn:hover {
+    background-color: #ec7063;
+}
+
+.play-btn:disabled,
+.pause-btn:disabled,
+.stop-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 #liveViewLayout {
     display: flex;
     flex-direction: row;

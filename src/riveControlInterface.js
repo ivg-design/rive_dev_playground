@@ -412,6 +412,10 @@ export function initDynamicControls(parsedDataFromHandler) {
             boundResizeHandler = riveResizeHandler;
             window.addEventListener('resize', boundResizeHandler);
         }
+
+        // Expose this Rive instance to the window for debugging
+        window.riveInstanceGlobal = riveInstance;
+        logger.info('[controlInterface] Rive instance exposed as window.riveInstanceGlobal for console debugging.');
     });
 
     riveInstance.on(EventType.LoadError, (err) => {
