@@ -359,7 +359,7 @@ export function processDataForControls(parsedData, riveInstance) {
 						debugTestVMBinding(nestedVmInstance);
 
 						// Build nested VM controls recursively
-						const nestedVmInfo = buildNestedVMControls(nestedVmInstance, vmProp.name);
+						const nestedVmInfo = buildNestedVMControls(nestedVmInstance, vmProp.name, parsedData);
 
 						if (nestedVmInfo) {
 							mainVmInfo.nestedViewModels.push(nestedVmInfo);
@@ -469,7 +469,7 @@ export function processDataForControls(parsedData, riveInstance) {
 /**
  * Recursively build nested VM controls following the exampleIndex.mjs pattern
  */
-function buildNestedVMControls(vmInstance, instanceName) {
+function buildNestedVMControls(vmInstance, instanceName, parsedData) {
 	if (!vmInstance) return null;
 
 	const result = {
@@ -482,12 +482,24 @@ function buildNestedVMControls(vmInstance, instanceName) {
 
 	// Direct property access like in exampleIndex.mjs
 	if (vmInstance.properties && Array.isArray(vmInstance.properties)) {
+		logger.debug(`[buildNestedVMControls] VM '${instanceName}' has ${vmInstance.properties.length} properties`);
+		logger.debug(`[buildNestedVMControls] VM '${instanceName}' available methods:`, {
+			hasEnum: typeof vmInstance.enum === 'function',
+			hasString: typeof vmInstance.string === 'function',
+			hasBoolean: typeof vmInstance.boolean === 'function',
+			hasNumber: typeof vmInstance.number === 'function',
+			hasColor: typeof vmInstance.color === 'function',
+			hasTrigger: typeof vmInstance.trigger === 'function'
+		});
+		
 		// Process regular properties
 		vmInstance.properties.forEach((prop) => {
 			if (prop.type === 'viewModel') return; // Skip nested VMs for now
 
 			try {
 				let liveProperty = null;
+
+				logger.debug(`[buildNestedVMControls] Processing property '${prop.name}' of type '${prop.type}' in VM '${instanceName}'`);
 
 				switch (prop.type) {
 					case 'boolean':
@@ -503,7 +515,27 @@ function buildNestedVMControls(vmInstance, instanceName) {
 						liveProperty = vmInstance.color(prop.name);
 						break;
 					case 'enumType':
-						liveProperty = vmInstance.enum ? vmInstance.enum(prop.name) : vmInstance.string(prop.name);
+						logger.debug(`[buildNestedVMControls] Attempting to access enum property '${prop.name}' via vmInstance.enum()`);
+						if (typeof vmInstance.enum === 'function') {
+							try {
+								liveProperty = vmInstance.enum(prop.name);
+								logger.debug(`[buildNestedVMControls] Successfully got enum property '${prop.name}':`, liveProperty);
+							} catch (e) {
+								logger.warn(`[buildNestedVMControls] Error accessing enum property '${prop.name}' via vmInstance.enum():`, e);
+								// Fallback to string method
+								if (typeof vmInstance.string === 'function') {
+									try {
+										liveProperty = vmInstance.string(prop.name);
+										logger.debug(`[buildNestedVMControls] Fallback: got enum property '${prop.name}' via string():`, liveProperty);
+									} catch (e2) {
+										logger.error(`[buildNestedVMControls] Fallback also failed for '${prop.name}':`, e2);
+									}
+								}
+							}
+						} else {
+							logger.warn(`[buildNestedVMControls] vmInstance.enum is not a function for property '${prop.name}', trying string fallback`);
+							liveProperty = vmInstance.string ? vmInstance.string(prop.name) : null;
+						}
 						break;
 					case 'trigger':
 						if (typeof vmInstance.trigger === 'function') {
@@ -513,6 +545,7 @@ function buildNestedVMControls(vmInstance, instanceName) {
 				}
 
 				if (liveProperty) {
+					logger.debug(`[buildNestedVMControls] Successfully created liveProperty for '${prop.name}' in VM '${instanceName}'`);
 					const nestedPropEntry = {
 						name: prop.name,
 						type: prop.type,
@@ -520,8 +553,8 @@ function buildNestedVMControls(vmInstance, instanceName) {
 					};
 					if (prop.type === 'enumType') {
 						let parsedVmBlueprint = null;
-						if (parsedRiveData && parsedRiveData.allViewModelDefinitionsAndInstances && vmInstance.name) {
-							const foundVmDef = parsedRiveData.allViewModelDefinitionsAndInstances.find(def => def.blueprintName === vmInstance.name);
+						if (parsedData && parsedData.allViewModelDefinitionsAndInstances && vmInstance.name) {
+							const foundVmDef = parsedData.allViewModelDefinitionsAndInstances.find(def => def.blueprintName === vmInstance.name);
 							// The `inputs` we need were stored under `blueprintProperties` by the parser for the definition
 							if (foundVmDef) parsedVmBlueprint = { name: foundVmDef.blueprintName, inputs: foundVmDef.blueprintProperties }; 
 						}
@@ -541,10 +574,12 @@ function buildNestedVMControls(vmInstance, instanceName) {
 						}
 					}
 					result.properties.push(nestedPropEntry);
-					// logger.trace(`Added nested property ${instanceName}.${prop.name} (${prop.type})`);
+					logger.debug(`[buildNestedVMControls] Added nested property ${instanceName}.${prop.name} (${prop.type}) to result`);
+				} else {
+					logger.warn(`[buildNestedVMControls] Failed to get liveProperty for '${prop.name}' in VM '${instanceName}' - property will be skipped`);
 				}
 			} catch (e) {
-				logger.warn(`Error accessing nested property ${prop.name}:`, e);
+				logger.warn(`[buildNestedVMControls] Error accessing nested property ${prop.name}:`, e);
 			}
 		});
 
@@ -557,7 +592,7 @@ function buildNestedVMControls(vmInstance, instanceName) {
 				try {
 					const deeperVmInstance = vmInstance.viewModel(vmProp.name);
 					if (deeperVmInstance) {
-						const deeperVmInfo = buildNestedVMControls(deeperVmInstance, vmProp.name);
+						const deeperVmInfo = buildNestedVMControls(deeperVmInstance, vmProp.name, parsedData);
 						if (deeperVmInfo) {
 							result.nestedViewModels.push(deeperVmInfo);
 						}
