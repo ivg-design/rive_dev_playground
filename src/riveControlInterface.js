@@ -66,11 +66,11 @@ function simpleFmt(val) {
 }
 
 function handleConstructorStateChange(sm, st) {
-    console.log("%%%%%%%% CONSTRUCTOR onStateChange Fired %%%%%%%%");
-    console.log("SM:", simpleFmt(sm));
-    console.log("ST:", simpleFmt(st));
+    logger.debug("CONSTRUCTOR onStateChange Fired");
+    logger.debug("SM:", simpleFmt(sm));
+    logger.debug("ST:", simpleFmt(st));
     // Call updateControlsFromRive() to sync UI based on state machine changes.
-    console.log("%%%%%%%% CONSTRUCTOR onStateChange: Calling updateControlsFromRive() %%%%%%%%");
+    logger.debug("CONSTRUCTOR onStateChange: Calling updateControlsFromRive()");
     updateControlsFromRive();
 }
 
@@ -107,7 +107,7 @@ function createControlForProperty(property) {
                     
                     ctrl.addEventListener('input', () => { 
                         const newValue = ctrl.value.replace(/\n/g, '\\\\n');
-                        console.log(`[App] Event: Attempting to set ${name} to:`, newValue);
+                        logger.debug(`[App] Event: Attempting to set ${name} to:`, newValue);
                         liveProperty.value = newValue;
                     });
                 }
@@ -123,7 +123,7 @@ function createControlForProperty(property) {
                     ctrl.checked = !!liveProperty.value;
                     ctrl.addEventListener('change', () => {
                         const newValue = ctrl.checked;
-                        console.log(`[App] Event: Attempting to set ${name} to:`, newValue);
+                        logger.debug(`[App] Event: Attempting to set ${name} to:`, newValue);
                         liveProperty.value = newValue;
                     });
                 }
@@ -139,7 +139,7 @@ function createControlForProperty(property) {
                     ctrl.value = liveProperty.value || 0;
                     ctrl.addEventListener('input', () => {
                         const newValue = parseFloat(ctrl.value) || 0;
-                        console.log(`[App] Event: Attempting to set ${name} to:`, newValue);
+                        logger.debug(`[App] Event: Attempting to set ${name} to:`, newValue);
                         liveProperty.value = newValue;
                     });
                 }
@@ -156,7 +156,7 @@ function createControlForProperty(property) {
                     ctrl.value = argbToHex(liveProperty.value);
                     ctrl.addEventListener('input', () => {
                         const newValue = hexToArgb(ctrl.value);
-                        console.log(`[App] Event: Attempting to set ${name} (${ctrl.value}) to:`, newValue);
+                        logger.debug(`[App] Event: Attempting to set ${name} (${ctrl.value}) to:`, newValue);
                         liveProperty.value = newValue;
                     });
                 }
@@ -175,44 +175,66 @@ function createControlForProperty(property) {
                         const lookupName = property.enumTypeName || property.name;
 
                         logger.debug(`[Enum Debug] Property Name: '${property.name}', Using enumTypeName for lookup: '${lookupName}' (property.enumTypeName was: '${property.enumTypeName}')`);
-                        try {
-                            logger.debug(`[Enum Debug] All available enum definitions in Rive file (stringified): ${JSON.stringify(allEnums)}`); 
-                        } catch (e) {
-                            logger.debug('[Enum Debug] Could not stringify allEnums, logging directly:', allEnums);
-                        }
+                        logger.debug(`[Enum Debug] All available enum definitions:`, allEnums);
+                        
+                        // Enhanced debugging - log each enum name for comparison
+                        logger.debug(`[Enum Debug] Property: '${property.name}', Looking for enum: '${lookupName}'`);
+                        logger.debug(`[Enum Debug] Available enum names:`, allEnums.map(e => e.name));
+                        logger.debug(`[Enum Debug] Full enum definitions:`, allEnums);
 
-                        if (!property.enumTypeName && property.name && property.name !== lookupName) {
-                            // logger.warn(`[controlInterface] Enum property '${property.name}' missing specific enumTypeName...`); // Already have a version of this
+                        let enumDef = allEnums.find(d => d.name === lookupName);
+                        logger.debug(`[Enum Debug] Found enumDef for '${lookupName}':`, enumDef);
+
+                        // If not found, try alternative lookup strategies
+                        if (!enumDef && lookupName !== property.name) {
+                            logger.debug(`[Enum Debug] Primary lookup failed, trying property name '${property.name}'`);
+                            enumDef = allEnums.find(d => d.name === property.name);
                         }
                         
-                        const enumDef = allEnums.find(d => d.name === lookupName);
-                        try {
-                            logger.debug(`[Enum Debug] Found enumDef for '${lookupName}' (stringified): ${enumDef ? JSON.stringify(enumDef) : 'NOT FOUND'}`);
-                        } catch (e) {
-                            logger.debug(`[Enum Debug] Could not stringify enumDef for '${lookupName}', logging directly:`, enumDef);
+                        // If still not found, try case-insensitive search
+                        if (!enumDef) {
+                            logger.debug(`[Enum Debug] Case-sensitive lookup failed, trying case-insensitive`);
+                            enumDef = allEnums.find(d => d.name.toLowerCase() === lookupName.toLowerCase());
                         }
+                        
+                        // If still not found, try partial matching
+                        if (!enumDef) {
+                            logger.debug(`[Enum Debug] Exact lookup failed, trying partial matching`);
+                            enumDef = allEnums.find(d => d.name.includes(lookupName) || lookupName.includes(d.name));
+                        }
+                        
+                        logger.debug(`[Enum Debug] Final enumDef found:`, enumDef);
 
                         const enumValues = enumDef?.values || [];
                         
                         if (enumValues.length === 0) {
                             logger.warn(`[controlInterface] No values found for enum '${lookupName}' (property '${property.name}'). Dropdown will be empty.`);
-                        }
-
-                        enumValues.forEach(v => {
-                            const option = new Option(v, v);
+                            // Add a placeholder option
+                            const option = new Option('No values available', '');
+                            option.disabled = true;
                             ctrl.appendChild(option);
-                        });
-                        
-                        if (liveProperty.value !== undefined && liveProperty.value !== null) {
-                            ctrl.value = String(liveProperty.value);
-                        } else if (enumValues.length > 0) {
-                            ctrl.value = enumValues[0]; // Default to first if Rive value is null/undefined
+                        } else {
+                            enumValues.forEach(v => {
+                                const option = new Option(v, v);
+                                ctrl.appendChild(option);
+                            });
+                            
+                            if (liveProperty.value !== undefined && liveProperty.value !== null) {
+                                ctrl.value = String(liveProperty.value);
+                            } else if (enumValues.length > 0) {
+                                ctrl.value = enumValues[0]; // Default to first if Rive value is null/undefined
+                            }
                         }
+                    } else {
+                        logger.warn('[controlInterface] riveInstance.enums() not available');
+                        const option = new Option('Enums not available', '');
+                        option.disabled = true;
+                        ctrl.appendChild(option);
                     }
                     
                     ctrl.addEventListener('change', () => { 
                         const newValue = ctrl.value;
-                        // console.log(`[App] Event: Attempting to set ${name} to:`, newValue); // Keep commented for now
+                        logger.debug(`[App] Event: Attempting to set ${name} to:`, newValue);
                         liveProperty.value = newValue;
                     });
                 }
@@ -226,7 +248,7 @@ function createControlForProperty(property) {
                     ctrl.disabled = true;
                 } else {
                     ctrl.addEventListener('click', () => {
-                        console.log(`[App] Event: Attempting to fire trigger ${name}`);
+                        logger.debug(`[App] Event: Attempting to fire trigger ${name}`);
                         if (typeof liveProperty.fire === 'function') {
                             liveProperty.fire();
                         } else {
@@ -447,22 +469,19 @@ function setupEventListeners() {
 
     if (EventType.StateChanged) {
         riveInstance.on(EventType.StateChanged, (event) => {
-            console.log("!!!!!!!!!!!! RIVE JS EVENT: StateChanged Fired !!!!!!!!!!", event);
-            logger.debug('[controlInterface] Rive StateChanged event:', event);
+            logger.debug('[controlInterface] RIVE JS EVENT: StateChanged Fired', event);
             updateControlsFromRive(); 
         });
     }
     if (EventType.ValueChanged) { 
         riveInstance.on(EventType.ValueChanged, (event) => {
-            console.log("!!!!!!!!!!!! RIVE JS EVENT: ValueChanged Fired !!!!!!!!!!", event);
-            logger.debug('[controlInterface] Rive ValueChanged event:', event);
+            logger.debug('[controlInterface] RIVE JS EVENT: ValueChanged Fired', event);
             updateControlsFromRive();
         });
     }
     if (EventType.RiveEvent) { 
         riveInstance.on(EventType.RiveEvent, (event) => {
-            console.log("!!!!!!!!!!!! RIVE JS EVENT: RiveEvent (Custom) Fired !!!!!!!!!!", event);
-            logger.debug('[controlInterface] Rive RiveEvent (custom):', event);
+            logger.debug('[controlInterface] RIVE JS EVENT: RiveEvent (Custom) Fired', event);
             // We might want to call updateControlsFromRive() here too if custom events can alter VM/SM Input states
             // updateControlsFromRive(); 
         });
@@ -508,7 +527,15 @@ function buildControlsUI() {
     }
     
     if (structuredControlData.activeViewModelName) {
-        infoDiv.innerHTML += `<p><strong>Active ViewModel:</strong> ${structuredControlData.activeViewModelName}</p>`;
+        // Check if this is the default ViewModel from parsed data
+        const isDefaultVM = parsedRiveData && parsedRiveData.defaultElements && 
+            parsedRiveData.defaultElements.viewModelName === structuredControlData.activeViewModelName;
+        
+        const vmDisplayName = isDefaultVM ? 
+            `${structuredControlData.activeViewModelName} (Default)` : 
+            structuredControlData.activeViewModelName;
+            
+        infoDiv.innerHTML += `<p><strong>Active ViewModel:</strong> ${vmDisplayName}</p>`;
     }
     
     controlsContainer.appendChild(infoDiv);

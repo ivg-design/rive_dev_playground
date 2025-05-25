@@ -322,8 +322,11 @@ export function processDataForControls(parsedData, riveInstance) {
 								if (parsedInputInfo && parsedInputInfo.enumTypeName) {
 									propertyEntry.enumTypeName = parsedInputInfo.enumTypeName;
 									logger.trace(`[dataConnector] Main VM prop '${prop.name}': Using enumTypeName '${parsedInputInfo.enumTypeName}' from parser data.`);
+									logger.debug(`[dataConnector] Main VM prop '${prop.name}': Set enumTypeName to '${parsedInputInfo.enumTypeName}'`);
 								} else {
 									logger.warn(`[dataConnector] Main VM prop '${prop.name}': Did not find enumTypeName in parsed data for blueprint '${mainViewModelInstance.name}'. UI will use property name as fallback for enum list.`);
+									logger.debug(`[dataConnector] Main VM prop '${prop.name}': No enumTypeName found, using property name '${prop.name}' as fallback`);
+									logger.debug(`[dataConnector] parsedInputInfo:`, parsedInputInfo);
 									// Fallback: let createControlForProperty use prop.name for lookup
 									propertyEntry.enumTypeName = prop.name; 
 								}
@@ -428,8 +431,8 @@ export function processDataForControls(parsedData, riveInstance) {
 	logger.info(`Final viewModelControls structure has ${viewModelControls.length} entries`);
 
 
-	// IMPORTANT: Move the default ViewModel name log to be the absolute last thing
-	if (mainViewModelInstance) {
+			// IMPORTANT: Move the default ViewModel name log to be the absolute last thing
+		if (mainViewModelInstance) {
         const vmName = mainViewModelInstance.name || ' ';
         console.dir(mainViewModelInstance)
 		const vmSourceInfo = activeViewModelName || 'Default Instance';
@@ -439,12 +442,17 @@ export function processDataForControls(parsedData, riveInstance) {
 			// Only uncomment if you want to clear everything else
 			// console.clear();
 			// Clear and prominent log for the default ViewModel name
-			console.log('\n');
-			console.log('===============================================');
-			console.log(`🔍 DEFAULT VIEWMODEL: ${vmName} (${vmSourceInfo})`);
-			console.log('===============================================');
-			console.log(riveInstance.enums())
-			console.log('\n');
+			logger.info('\n===============================================');
+			logger.info(`🔍 DEFAULT VIEWMODEL: ${vmName} (${vmSourceInfo})`);
+			logger.info('===============================================');
+			const allEnums = riveInstance.enums();
+			logger.info('🔍 ALL ENUM DEFINITIONS:', allEnums);
+			if (allEnums && allEnums.length > 0) {
+				allEnums.forEach((enumDef, index) => {
+					logger.info(`🔍 Enum ${index + 1}: Name='${enumDef.name}', Values:`, enumDef.values);
+				});
+			}
+			logger.info('===============================================\n');
 
 		}, 100);
 	}

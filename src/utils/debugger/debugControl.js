@@ -23,16 +23,72 @@ const LOG_LEVELS = [
     { name: 'TRACE', value: LogLevel.TRACE }
 ];
 
+// Global state for debug controls
+let debugControlsContainer = null;
+let debugControlsEnabled = false;
+
 /**
  * Creates and injects the debug control panel into the DOM
  */
 export function initDebugControls() {
-    // Always initialize debug controls in this browser environment
-    // No check for process.env.NODE_ENV since it's not available in the browser without bundlers
+    // Don't initialize by default - wait for explicit enable call
+    if (debugControlsEnabled) {
+        createDebugControlsUI();
+    }
     
-    const controlsContainer = document.createElement('div');
-    controlsContainer.id = 'debug-controls-panel';
-    controlsContainer.style.cssText = `
+    // Expose global helper
+    window.debugHelper = {
+        enable: enableDebugControls,
+        disable: disableDebugControls,
+        toggle: toggleDebugControls,
+        isEnabled: () => debugControlsEnabled
+    };
+}
+
+/**
+ * Enables and shows the debug controls
+ */
+function enableDebugControls() {
+    debugControlsEnabled = true;
+    if (!debugControlsContainer) {
+        createDebugControlsUI();
+    } else {
+        debugControlsContainer.style.display = 'block';
+    }
+}
+
+/**
+ * Disables and hides the debug controls
+ */
+function disableDebugControls() {
+    debugControlsEnabled = false;
+    if (debugControlsContainer) {
+        debugControlsContainer.style.display = 'none';
+    }
+}
+
+/**
+ * Toggles the debug controls visibility
+ */
+function toggleDebugControls() {
+    if (debugControlsEnabled) {
+        disableDebugControls();
+    } else {
+        enableDebugControls();
+    }
+}
+
+/**
+ * Creates the actual debug controls UI
+ */
+function createDebugControlsUI() {
+    if (debugControlsContainer) {
+        return; // Already created
+    }
+    
+    debugControlsContainer = document.createElement('div');
+    debugControlsContainer.id = 'debug-controls-panel';
+    debugControlsContainer.style.cssText = `
         position: fixed;
         bottom: 0;
         right: 0;
@@ -59,14 +115,14 @@ export function initDebugControls() {
         border-bottom: 1px solid #555;
         user-select: none;
     `;
-    controlsContainer.appendChild(titleBar);
+    debugControlsContainer.appendChild(titleBar);
     
     // Content container for all controls
     const content = document.createElement('div');
     content.style.cssText = `
         margin-top: 10px;
     `;
-    controlsContainer.appendChild(content);
+    debugControlsContainer.appendChild(content);
     
     // Global controls
     const globalControls = document.createElement('div');
@@ -127,14 +183,14 @@ export function initDebugControls() {
     content.appendChild(statusArea);
     
     // Add to DOM
-    document.body.appendChild(controlsContainer);
+    document.body.appendChild(debugControlsContainer);
     
     // Setup event handlers
     titleBar.addEventListener('click', () => {
-        if (controlsContainer.style.transform === 'translateY(0px)') {
-            controlsContainer.style.transform = 'translateY(calc(100% - 30px))';
+        if (debugControlsContainer.style.transform === 'translateY(0px)') {
+            debugControlsContainer.style.transform = 'translateY(calc(100% - 30px))';
         } else {
-            controlsContainer.style.transform = 'translateY(0px)';
+            debugControlsContainer.style.transform = 'translateY(0px)';
         }
     });
     

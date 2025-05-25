@@ -272,12 +272,15 @@ function populateArtboardSelector(parsedData) {
 	parsedData.artboards.forEach((artboard, index) => {
 		const option = document.createElement('option');
 		option.value = artboard.name;
-		option.textContent = artboard.name;
 		
-		// Select the default artboard if it matches
-		if (parsedData.defaultElements && parsedData.defaultElements.artboardName === artboard.name) {
+		// Emphasize default artboard
+		const isDefault = parsedData.defaultElements && parsedData.defaultElements.artboardName === artboard.name;
+		if (isDefault) {
+			option.textContent = `${artboard.name} (Default)`;
 			option.selected = true;
 			selectedArtboard = artboard.name;
+		} else {
+			option.textContent = artboard.name;
 		}
 		
 		artboardSelector.appendChild(option);
@@ -364,11 +367,24 @@ function populateStateMachineSelector(artboardName) {
 	selectedArtboardData.stateMachines.forEach((stateMachine, index) => {
 		const option = document.createElement('option');
 		option.value = stateMachine.name;
-		option.textContent = stateMachine.name;
 		
-		// Select "State Machine 1" by default if it exists, otherwise select the first one
-		if (stateMachine.name === "State Machine 1" || 
-			(index === 0 && !selectedArtboardData.stateMachines.find(sm => sm.name === "State Machine 1"))) {
+		// Check if this is the default state machine
+		const isDefault = currentParsedData.defaultElements && 
+			currentParsedData.defaultElements.stateMachineNames && 
+			currentParsedData.defaultElements.stateMachineNames.includes(stateMachine.name);
+		
+		// Select "State Machine 1" by default if it exists, otherwise select the first one, or use default from parsed data
+		const shouldSelect = isDefault || 
+			stateMachine.name === "State Machine 1" || 
+			(index === 0 && !selectedArtboardData.stateMachines.find(sm => sm.name === "State Machine 1") && !isDefault);
+		
+		if (isDefault) {
+			option.textContent = `${stateMachine.name} (Default)`;
+		} else {
+			option.textContent = stateMachine.name;
+		}
+		
+		if (shouldSelect) {
 			option.selected = true;
 			selectedStateMachine = stateMachine.name;
 		}
@@ -464,6 +480,29 @@ function resetPlaybackStates() {
 	timelineState = 'stopped';
 	stateMachineState = 'stopped';
 	currentPlaybackMode = 'none';
+	updateButtonStates();
+}
+
+/**
+ * Initializes playback states based on what's auto-playing
+ */
+function initializePlaybackStates(parsedData) {
+	// Check if a state machine is set to auto-play
+	if (parsedData && parsedData.defaultElements && 
+		parsedData.defaultElements.stateMachineNames && 
+		parsedData.defaultElements.stateMachineNames.length > 0) {
+		
+		// State machine is auto-playing
+		stateMachineState = 'playing';
+		timelineState = 'stopped';
+		currentPlaybackMode = 'stateMachine';
+		
+		logger.info('Initialized with auto-playing state machine');
+	} else {
+		// No auto-play, reset to stopped
+		resetPlaybackStates();
+	}
+	
 	updateButtonStates();
 }
 
@@ -620,12 +659,23 @@ function handleToggleStateMachine() {
 			}
 		} else {
 			logger.info(`Stopping state machine: ${selectedStateMachine}`);
+			
+			// For state machines, we need to properly stop them and clear their state
 			riveInstance.stop(selectedStateMachine);
+			
+			// Also pause to ensure it's completely stopped
+			try {
+				riveInstance.pause(selectedStateMachine);
+			} catch (e) {
+				// Pause might not be available for state machines, that's ok
+				logger.debug('Pause not available for state machine, using stop only');
+			}
+			
 			stateMachineState = 'stopped';
 			currentPlaybackMode = 'none';
 			
 			if (statusMessageDiv) {
-				statusMessageDiv.textContent = `Stopped state machine: ${selectedStateMachine}`;
+				statusMessageDiv.textContent = `Stopped state machine: ${selectedStateMachine} (no longer interactive)`;
 			}
 		}
 		
@@ -703,8 +753,8 @@ function handleFileSelect(event) {
 						populateStateMachineSelector(selectedArtboard);
 					}
 					
-					// Reset playback states and update button states
-					resetPlaybackStates();
+					// Set initial playback states based on what's auto-playing
+					initializePlaybackStates(parsedData);
 					
 					// Show the artboard/state machine controls
 					if (artboardStateMachineControls) {

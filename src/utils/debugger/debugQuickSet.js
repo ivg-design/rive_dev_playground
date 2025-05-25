@@ -3,38 +3,41 @@
  * Provides shortcuts for debug level configuration in the console
  */
 
-import { LoggerAPI, LogLevel } from './debugLogger.js';
+import { LoggerAPI, LogLevel, createLogger } from './debugLogger.js';
 
-// Attach to window
+// Create a logger for this module
+const logger = createLogger('debugQuickSet');
+
+// Attach to window (will be extended by debugControl.js)
 window.debugHelper = {
     // Easy functions to change log levels from the browser console
     verbose: () => {
         LoggerAPI.setAllLevels(LogLevel.TRACE);
-        console.log('All modules set to TRACE level');
+        logger.info('All modules set to TRACE level');
     },
     debug: () => {
         LoggerAPI.setAllLevels(LogLevel.DEBUG);
-        console.log('All modules set to DEBUG level');
+        logger.info('All modules set to DEBUG level');
     },
     normal: () => {
         LoggerAPI.setAllLevels(LogLevel.INFO);
-        console.log('All modules set to INFO level');
+        logger.info('All modules set to INFO level');
     },
     quiet: () => {
         LoggerAPI.setAllLevels(LogLevel.WARN);
-        console.log('All modules set to WARN level');
+        logger.info('All modules set to WARN level');
     },
     silent: () => {
         LoggerAPI.setAllLevels(LogLevel.ERROR);
-        console.log('All modules set to ERROR level (silent)');
+        logger.info('All modules set to ERROR level (silent)');
     },
     off: () => {
         LoggerAPI.setAllLevels(LogLevel.NONE);
-        console.log('All logging disabled');
+        logger.info('All logging disabled');
     },
     traceSingle: (module) => {
         LoggerAPI.setModuleLevel(module, LogLevel.TRACE);
-        console.log(`Module '${module}' set to TRACE level`);
+        logger.info(`Module '${module}' set to TRACE level`);
     },
     
     // Helper for toggling Pills Active state directly
@@ -44,14 +47,14 @@ window.debugHelper = {
                 const pillsActive = window.vm.boolean('Pills Active');
                 const newValue = !pillsActive.value;
                 pillsActive.value = newValue;
-                console.log(`Pills Active toggled to: ${newValue}`);
+                logger.info(`Pills Active toggled to: ${newValue}`);
                 return newValue;
             } catch (e) {
-                console.error('Error toggling Pills Active:', e);
+                logger.error('Error toggling Pills Active:', e);
                 return null;
             }
         } else {
-            console.warn('VM not available or missing boolean method');
+            logger.warn('VM not available or missing boolean method');
             return null;
         }
     },
@@ -65,18 +68,19 @@ window.debugHelper = {
                     try { props['Pills Active'] = window.vm.boolean('Pills Active').value; } catch (e) {}
                     try { props['Pills In'] = window.vm.boolean('Pills In').value; } catch (e) {}
                 }
+                // Use console.table for this specific case as it's a data display function
                 console.table(props);
                 return props;
             } catch (e) {
-                console.error('Error checking state:', e);
+                logger.error('Error checking state:', e);
                 return null;
             }
         } else {
-            console.warn('VM not available');
+            logger.warn('VM not available');
             return null;
         }
     }
 };
 
 // Log that debug helpers are ready
-console.log('Debug helpers attached to window.debugHelper - Try window.debugHelper.verbose() in console'); 
+logger.info('Debug helpers attached to window.debugHelper - Debug controls hidden by default, use window.debugHelper.enable() to show'); 

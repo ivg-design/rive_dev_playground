@@ -322,8 +322,15 @@ function runOriginalClientParser(riveEngine, canvasElement, riveFilePathFromPara
 								case 'enumType':
 									// Log the property definition to inspect its structure for enum type name
 									logger.info(`[Parser Enum Inspect] Property Definition for '${propDecl.name}':`, propDecl); // Using logger, ensure 'parser' module is set to INFO or lower
-									// Also using console.log for direct, unfilterable visibility during this critical debug phase:
-									console.log(`[Parser Enum Inspect CONSOLE.LOG] Property Definition for '${propDecl.name}':`, propDecl);
+									// Enhanced debugging for enum property structure
+									logger.debug(`[Parser Enum Inspect] Property Definition for '${propDecl.name}':`, propDecl);
+									
+									// Log all available properties on propDecl for debugging
+									logger.debug(`[Parser Enum Inspect] All properties on propDecl:`, Object.keys(propDecl));
+									logger.debug(`[Parser Enum Inspect] propDecl.enumDefinition:`, propDecl.enumDefinition);
+									logger.debug(`[Parser Enum Inspect] propDecl.enumName:`, propDecl.enumName);
+									logger.debug(`[Parser Enum Inspect] propDecl.definition:`, propDecl.definition);
+									logger.debug(`[Parser Enum Inspect] propDecl.typeName:`, propDecl.typeName);
 
 									if (typeof vmInstanceObj.enum === 'function') {
 										const propInput = vmInstanceObj.enum(propDecl.name);
