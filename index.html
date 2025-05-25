@@ -6,114 +6,135 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Rive Parser Test</title>
 
+        <!-- Golden Layout CSS (CDN) -->
+        <link href="https://unpkg.com/golden-layout@1.5.9/src/css/goldenlayout-base.css" rel="stylesheet" type="text/css">
+        <link href="https://unpkg.com/golden-layout@1.5.9/src/css/goldenlayout-dark-theme.css" rel="stylesheet" type="text/css">
+        
         <!-- JSONEditor CSS -->
         <link href="./node_modules/jsoneditor/dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
+        
         <!-- Link to our custom stylesheet -->
         <link rel="stylesheet" href="style.css">
     </head>
 
     <body class="jsoneditor-dark">
-        <!-- View for Live Dynamic Controls (Initially Visible) -->
-        <div id="liveControlsView">
-            <div id="liveControlsHeader">
-                <div class="header-row">
+        <!-- Golden Layout Container -->
+        <div id="goldenLayoutContainer"></div>
+        
+        <!-- Hidden templates for Golden Layout components -->
+        <div id="componentTemplates" style="display: none;">
+            <!-- File Loader Template -->
+            <div id="fileLoaderTemplate">
+                <div class="file-loader-container">
                     <div class="file-picker-section">
                         <label id="riveFilePickerLabel" for="riveFilePicker">Select a .riv file to parse & control:</label>
-                        <input type="file" id="riveFilePicker" accept=".riv">
-                    </div>
-                    <div class="header-controls">
-                        <div class="canvas-bg-control">
-                            <label for="canvasBackgroundColor">Canvas BG:</label>
-                            <input type="color" id="canvasBackgroundColor" value="#252525">
+                        <div class="file-input-row">
+                            <input type="file" id="riveFilePicker" accept=".riv">
+                            <button id="clearFileBtn" class="clear-file-btn" title="Clear current file">Clear File</button>
                         </div>
-                        <button id="toggleViewBtn" data-view="live">Show Parsed Data Inspector</button>
                     </div>
-                </div>
-
-                <!-- Artboard and State Machine Selection Controls -->
-                <div id="artboardStateMachineControls">
-                    <!-- Selection Row -->
-                    <div class="selection-row">
-                        <div class="selector-group">
-                            <label for="artboardSelector">Artboard:</label>
-                            <select id="artboardSelector">
-                                <option value="">Loading...</option>
-                            </select>
-                        </div>
-
-                                            <div class="selector-group">
-                        <label for="animationSelector">Timeline:</label>
-                        <select id="animationSelector">
-                            <option value="">No Timelines</option>
-                        </select>
-                    </div>
-
-                        <div class="selector-group">
-                            <label for="stateMachineSelector">State Machine:</label>
-                            <select id="stateMachineSelector">
-                                <option value="">No State Machines</option>
-                            </select>
-                        </div>
-
-                        <button id="applySelectionBtn">Apply Selection</button>
-                    </div>
-
-                                    <!-- Playback Controls Row -->
-                <div class="playback-controls-row">
-                    <!-- Timeline Controls -->
-                    <div class="control-group">
-                        <span class="control-label">Timeline:</span>
-                        <button id="toggleTimelineBtn" class="toggle-btn" data-state="stopped">Play</button>
-                        <button id="pauseTimelineBtn" class="pause-btn" data-state="unpaused">⏸</button>
-                    </div>
-                    
-                    <!-- State Machine Controls -->
-                    <div class="control-group">
-                        <span class="control-label">State Machine:</span>
-                        <button id="toggleStateMachineBtn" class="toggle-btn" data-state="stopped">Play</button>
-                    </div>
-                </div>
                 </div>
             </div>
 
-            <div id="liveViewLayout">
-                <canvas id="rive-canvas"></canvas>
+            <!-- Controls Template -->
+            <div id="controlsTemplate">
+                <div class="controls-container">
+                    <!-- Canvas Background Control -->
+                    <div class="control-section">
+                        <h4>Canvas Settings</h4>
+                        <div class="control-row">
+                            <label for="canvasBackgroundColor">Background Color:</label>
+                            <input type="color" id="canvasBackgroundColor" value="#252525">
+                        </div>
+                    </div>
+
+                    <!-- Artboard and State Machine Selection Controls -->
+                    <div id="artboardStateMachineControls" class="control-section">
+                        <h4>Animation Controls</h4>
+                        
+                        <!-- Selection Grid -->
+                        <div class="selection-grid">
+                            <div class="selector-group">
+                                <label for="artboardSelector">Artboard:</label>
+                                <select id="artboardSelector">
+                                    <option value="">Loading...</option>
+                                </select>
+                            </div>
+
+                            <div class="selector-group">
+                                <label for="animationSelector">Timeline:</label>
+                                <select id="animationSelector">
+                                    <option value="">No Timelines</option>
+                                </select>
+                            </div>
+
+                            <div class="selector-group">
+                                <label for="stateMachineSelector">State Machine:</label>
+                                <select id="stateMachineSelector">
+                                    <option value="">No State Machines</option>
+                                </select>
+                            </div>
+
+                            <div class="selector-group apply-group">
+                                <button id="applySelectionBtn">Apply Selection</button>
+                            </div>
+                        </div>
+
+                        <!-- Playback Controls Grid -->
+                        <div class="playback-grid">
+                            <!-- Timeline Controls -->
+                            <div class="control-group">
+                                <span class="control-label">Timeline:</span>
+                                <div class="button-group">
+                                    <button id="toggleTimelineBtn" class="toggle-btn" data-state="stopped">Play</button>
+                                    <button id="pauseTimelineBtn" class="pause-btn" data-state="unpaused">⏸</button>
+                                </div>
+                            </div>
+                            
+                            <!-- State Machine Controls -->
+                            <div class="control-group">
+                                <span class="control-label">State Machine:</span>
+                                <div class="button-group">
+                                    <button id="toggleStateMachineBtn" class="toggle-btn" data-state="stopped">Play</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Template -->
+            <div id="canvasTemplate">
+                <div id="canvasContainer">
+                    <canvas id="rive-canvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Dynamic Controls Template -->
+            <div id="dynamicControlsTemplate">
                 <div id="dynamicControlsContainer">
                     <p>(Dynamic Controls Will Appear Here)</p>
                 </div>
             </div>
-        </div>
 
-        <!-- View for Parser Data Inspector (Initially Hidden) -->
-        <div id="parserInspectorView">
-            <div id="inspectorControlsHeader">
-                <div class="header-row">
-                    <div class="file-picker-section">
-                        <label id="riveFilePickerLabel2" for="riveFilePicker2">Select a .riv file to parse & control:</label>
-                        <input type="file" id="riveFilePicker2" accept=".riv">
-                    </div>
-                    <div class="header-controls">
-                        <div class="canvas-bg-control">
-                            <label for="canvasBackgroundColor2">Canvas BG:</label>
-                            <input type="color" id="canvasBackgroundColor2" value="#252525">
-                        </div>
-                        <button id="closeInspectorBtn" data-view="inspector">Show Live Controls</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- outputContainer will now only hold the jsoneditor -->
-            <div id="inspectorOutputContainer">
+            <!-- JSON Inspector Template -->
+            <div id="jsonInspectorTemplate">
                 <div id="output"></div> <!-- JSONEditor goes here -->
             </div>
-
-            <p class="log-message" id="statusMessage">Please select a Rive file to begin parsing.</p>
         </div>
+
+        <!-- Status Message -->
+        <p class="log-message" id="statusMessage">Please select a Rive file to begin parsing.</p>
 
         <!-- Load the Rive runtime -->
         <script src="./node_modules/@rive-app/webgl2/rive.js"></script>
-        <!-- Link to our custom stylesheet -->
-        <link rel="stylesheet" href="style.css">
+        
+        <!-- jQuery (required by Golden Layout v1.5.9) -->
+        <script src="https://unpkg.com/jquery@3.6.0/dist/jquery.min.js"></script>
+        
+        <!-- Golden Layout JS (CDN) -->
+        <script src="https://unpkg.com/golden-layout@1.5.9/dist/goldenlayout.min.js"></script>
+        
         <!-- JSONEditor JS (Ensure it's loaded before scripts that use it) -->
         <script src="./node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
 
@@ -125,6 +146,7 @@
 
         <!-- Core Scripts -->
         <script src="src/parser.js"></script>
+        <script type="module" src="src/goldenLayoutManager.js"></script>
         <script type="module" src="src/riveParserHandler.js"></script>
         <script type="module" src="src/riveControlInterface.js"></script>
 

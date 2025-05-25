@@ -103,10 +103,88 @@ body {
     font-family: sans-serif;
     background-color: #1e1e1e;
     color: #d4d4d4;
-    display: flex;
-    flex-direction: column;
     height: 100vh;
     box-sizing: border-box;
+}
+
+/* Golden Layout Container */
+#goldenLayoutContainer {
+    width: 100%;
+    height: calc(100vh - 40px); /* Leave space for status message */
+    position: relative;
+    background-color: #1e1e1e;
+    min-height: 400px; /* Ensure minimum height */
+}
+
+/* Ensure Golden Layout root has proper styling */
+.lm_goldenlayout {
+    background-color: #1e1e1e !important;
+}
+
+.lm_root {
+    background-color: #1e1e1e !important;
+}
+
+/* Status message positioning */
+.log-message {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+    background-color: #2a2a2a;
+    border-top: 1px solid #444;
+    margin: 0;
+    z-index: 1000;
+}
+
+/* Golden Layout Component Styling */
+.lm_content {
+    background-color: #1e1e1e !important;
+}
+
+.lm_header {
+    background-color: #2a2a2a !important;
+    border-bottom: 1px solid #444 !important;
+}
+
+.lm_tab {
+    background-color: #333 !important;
+    color: #d4d4d4 !important;
+    border-right: 1px solid #444 !important;
+}
+
+.lm_tab.lm_active {
+    background-color: #4a90e2 !important;
+    color: white !important;
+}
+
+.lm_splitter {
+    background-color: #444 !important;
+}
+
+.lm_splitter:hover {
+    background-color: #6366f1 !important;
+}
+
+/* Component content styling */
+#fileControls,
+#canvasComponent,
+#dynamicControlsComponent,
+#jsonInspectorComponent {
+    height: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow: auto;
+}
+
+#canvasComponent {
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Header row styling */
@@ -239,121 +317,112 @@ div.jsoneditor-search input {
     border: 1px solid #555;
 }
 
-.log-message {
-    font-style: italic;
-    color: #888;
-    margin: 0 15px 15px 15px;
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.view-hidden {
-    display: none !important;
-}
-
-#liveControlsView {
-    /* Placeholder styling, will be refined when dynamic controls are added */
-    width: 100%;
-}
-
-#dynamicControlsContainer {
-    /* Placeholder for where the floating menu will go */
-    min-height: 100px; /* Example */
-}
-
-/* Ensure outputContainer in inspector view still uses flex */
-#parserInspectorView #outputContainer {
-    display: flex; /* This was previously on #outputContainer directly */
-    flex-direction: row;
-    gap: 20px; 
-    flex-grow: 1; 
-    overflow: hidden; 
-    height: calc(100vh - 300px); /* Adjust as needed based on controls + buttons in this view */
-}
-
-#parserInspectorView #rive-canvas {
-    border: 1px solid #444; 
-    width: 30vw; 
-    height: 500px; 
-    background-color: #252525; 
-    flex-shrink: 0; 
-}
-
-#parserInspectorView #output {
-    width: 70vw; 
-    height: 100%; 
-    border: 1px solid #444;
-    border-radius: 8px;
-    background-color: #2a2a2a; 
-    box-sizing: border-box;
-}
-
-/* Style for the toggle buttons if needed */
-#toggleViewBtn, #closeInspectorBtn {
-    /* Add common button styling if desired */
-    cursor: pointer;
-}
-
-#liveControlsHeader,
-#inspectorControlsHeader {
+/* File Loader Component Styling */
+.file-loader-container {
     padding: 15px;
     background-color: #2a2a2a;
     border-radius: 8px;
     border: 1px solid #444;
-    flex-shrink: 0;
 }
 
-/* Toggle View Button Styling */
-#toggleViewBtn,
-#closeInspectorBtn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 0.9em;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    min-width: 250px;
-    text-align: center;
-}
-
-#toggleViewBtn[data-view="live"],
-#closeInspectorBtn[data-view="live"] {
-    background-color: #2563eb;
-    color: white;
-}
-
-#toggleViewBtn[data-view="live"]:hover,
-#closeInspectorBtn[data-view="live"]:hover {
-    background-color: #3b82f6;
-}
-
-#toggleViewBtn[data-view="inspector"],
-#closeInspectorBtn[data-view="inspector"] {
-    background-color: #059669;
-    color: white;
-}
-
-#toggleViewBtn[data-view="inspector"]:hover,
-#closeInspectorBtn[data-view="inspector"]:hover {
-    background-color: #10b981;
-}
-
-/* Live Controls Header */
 .file-picker-section {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-/* Parser Inspector View */
-#parserInspectorView {
-    display: none;
+.file-input-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
-#inspectorOutputContainer {
-    height: calc(100vh - 150px);
+.clear-file-btn {
+    padding: 8px 16px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.clear-file-btn:hover {
+    background-color: #c0392b;
+}
+
+.clear-file-btn:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+/* Controls Component Styling */
+.controls-container {
+    padding: 15px;
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.control-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    border: 1px solid #444;
+}
+
+.control-section h4 {
+    margin: 0 0 15px 0;
+    color: #ffffff;
+    font-size: 1.1em;
+    border-bottom: 1px solid #555;
+    padding-bottom: 8px;
+}
+
+/* Responsive Selection Grid */
+.selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.apply-group {
+    display: flex;
+    align-items: end;
+}
+
+/* Responsive Playback Grid */
+.playback-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.button-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .selection-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .playback-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .file-input-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
 }
 
 /* Artboard and State Machine Selection Controls */
@@ -509,69 +578,61 @@ div.jsoneditor-search input {
     cursor: not-allowed;
 }
 
-#liveControlsView {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-}
 
-#liveViewLayout {
+
+#canvasContainer {
+    width: 100%;
+    height: 100%;
     display: flex;
-    flex-direction: row;
-    gap: 15px;
-    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    background-color: #1e1e1e; /* Dark background for container */
+    border: 1px solid #444;
+    border-radius: 4px;
     overflow: hidden;
-    padding: 15px;
+    position: relative;
     box-sizing: border-box;
 }
 
-#rive-canvas { /* This is now the primary canvas in liveControlsView */
-    width: 70vw; 
-    height: 100%; 
-    border: 1px solid #444; 
-    background-color: #252525; 
-    flex-shrink: 0;
+#rive-canvas {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+    background-color: #252525; /* Canvas background only on the canvas itself */
+    border-radius: 4px;
 }
 
+/* Dynamic Controls Container */
 #dynamicControlsContainer {
-    width: 30vw; 
-    height: 100%; 
-    border: 1px solid #444; 
-    padding: 10px; 
-    background-color: #2a2a2a; 
+    height: 100%;
     overflow-y: auto;
+    overflow-x: hidden;
     box-sizing: border-box;
 }
 
-/* Styles for the Parser Inspector View */
-#parserInspectorView {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
+/* Custom scrollbar styling for controls container */
+#dynamicControlsContainer::-webkit-scrollbar {
+    width: 8px;
 }
 
-#inspectorOutputContainer {
-    flex-grow: 1;
-    overflow: hidden;
-    margin: 0 15px 15px 15px;
+#dynamicControlsContainer::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 4px;
 }
 
-#parserInspectorView #output { /* JSONEditor container inside inspector */
-    width: 100%; /* Take full width of its parent #inspectorOutputContainer */
-    height: 100%; 
-    /* border, background, etc., are handled by jsoneditor or its theme */
-    box-sizing: border-box;
+#dynamicControlsContainer::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+    border: 1px solid #333;
 }
 
-/* REMOVE old styles for #outputContainer, #rive-canvas, #output that were prefixed with #parserInspectorView */
-/* as they are now more specific or handled by the new structure */
-/*
-#parserInspectorView #outputContainer { ... }
-#parserInspectorView #rive-canvas { ... }
-#parserInspectorView #output { ... }
-*/
+#dynamicControlsContainer::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+
+
+
 
 #dynamicControlsContainer h3,
 #dynamicControlsContainer h5 {

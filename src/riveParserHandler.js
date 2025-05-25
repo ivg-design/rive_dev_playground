@@ -8,6 +8,7 @@
 import { initDynamicControls } from './riveControlInterface.js';
 import { processDataForControls } from './dataToControlConnector.js';
 import { createLogger } from './utils/debugger/debugLogger.js';
+import { initializeGoldenLayout, updateJSONEditor, getGoldenLayout } from './goldenLayoutManager.js';
 
 // Create a logger for this module
 const logger = createLogger('parserHandler');
@@ -17,30 +18,21 @@ logger.debug("Pre-Init typeof window.rive:", typeof window.rive, "Value:", windo
 logger.debug("Pre-Init typeof window.Rive:", typeof window.Rive, "Value:", window.Rive); // Note uppercase R
 
 // DOM element references
-const riveFilePicker = document.getElementById('riveFilePicker');
-const riveFilePicker2 = document.getElementById('riveFilePicker2');
-const outputDiv = document.getElementById('output'); 
+let riveFilePicker = null;
+let outputDiv = null; 
 const statusMessageDiv = document.getElementById('statusMessage');
 
-// View containers
-const liveControlsView = document.getElementById('liveControlsView');
-const parserInspectorView = document.getElementById('parserInspectorView');
+// Artboard and State Machine selection controls (will be found after Golden Layout init)
+let artboardStateMachineControls = null;
+let artboardSelector = null;
+let animationSelector = null;
+let stateMachineSelector = null;
+let applySelectionBtn = null;
 
-// Buttons for view toggling
-const toggleViewBtn = document.getElementById('toggleViewBtn');
-const closeInspectorBtn = document.getElementById('closeInspectorBtn');
-
-// Artboard and State Machine selection controls
-const artboardStateMachineControls = document.getElementById('artboardStateMachineControls');
-const artboardSelector = document.getElementById('artboardSelector');
-const animationSelector = document.getElementById('animationSelector');
-const stateMachineSelector = document.getElementById('stateMachineSelector');
-const applySelectionBtn = document.getElementById('applySelectionBtn');
-
-// Playback control buttons
-const toggleTimelineBtn = document.getElementById('toggleTimelineBtn');
-const pauseTimelineBtn = document.getElementById('pauseTimelineBtn');
-const toggleStateMachineBtn = document.getElementById('toggleStateMachineBtn');
+// Playback control buttons (will be found after Golden Layout init)
+let toggleTimelineBtn = null;
+let pauseTimelineBtn = null;
+let toggleStateMachineBtn = null;
 
 
 
@@ -65,101 +57,29 @@ let currentPlaybackMode = 'none'; // 'timeline', 'stateMachine', 'none'
 let resizeHandler = null;
 
 /**
- * Initializes or updates the JSONEditor instance with the provided JSON data.
- * If an instance already exists, it updates its content. Otherwise, it creates a new instance.
- * @param {object | null} jsonData - The JSON data to display. Can be the parsed Rive data, 
- *                                   an error object, or a placeholder message object.
+ * Updates the JSONEditor with new data using Golden Layout manager
+ * @param {object | null} jsonData - The JSON data to display
  */
 function setupJsonEditor(jsonData) {
-	if (!outputDiv) {
-		logger.warn("Output div for JSONEditor not found."); 
-		return;
-	}
-
-	/**
-	 * @type {import 'jsoneditor'.JSONEditorOptions}
-	 */
-	const options = {
-		mode: 'tree',
-		modes: ['tree', 'view', 'code', 'text', 'preview'],
-		search: true,
-		enableTransform: false,
-		/**
-		 * Customizes the display name for object and array nodes in the tree view.
-		 * @param {object} params - Parameters for the node.
-		 * @param {string[]} params.path - The path to the node.
-		 * @param {'object'|'array'} params.type - The type of the node ('object' or 'array').
-		 * @param {number} params.size - The number of children in the node.
-		 * @param {object|Array} params.value - The actual JavaScript object or array.
-		 * @returns {string | undefined} The custom name to display, or undefined for default.
-		 */
-		onNodeName: function({path, type, size, value}) {
-			if (type === 'object') {
-				if (value && typeof value === 'object' && size > 0) {
-					const keys = Object.keys(value);
-					if (keys.length > 0) {
-						const firstKey = keys[0];
-						const firstValue = value[firstKey];
-						if (typeof firstValue === 'string') {
-							const maxLength = 30; 
-							let previewString = firstValue.length > maxLength ? firstValue.substring(0, maxLength) + "..." : firstValue;
-							return `\"${previewString}\"`; 
-						}
-					}
-				}
-				return undefined; 
-			}
-			if (type === 'array') {
-				return `Array [${size}]`;
-			}
-			return undefined; 
-		},
-		/**
-		 * Handles errors reported by the JSONEditor instance itself.
-		 * @param {Error} err - The error object from JSONEditor.
-		 */
-		onError: function (err) {
-			logger.error("JSONEditor Error:", err.toString());
-			if(statusMessageDiv) statusMessageDiv.textContent = "JSONEditor error: " + err.toString();
-		}
-	};
-
-	if (jsonEditorInstance) {
-		logger.debug("JSONEditor instance exists, setting new data.");
-		try {
-			jsonEditorInstance.set(jsonData || {}); 
-		} catch (e) {
-			logger.error("Error setting data in JSONEditor:", e);
-			try { jsonEditorInstance.set({ error: "Failed to load new data", details: e.toString() }); } catch (e2) { /* ignore further error on setting error */ }
-		}
-	} else {
-		logger.debug("Creating new JSONEditor instance.");
-		try {
-			if (outputDiv) { // Ensure outputDiv exists before creating editor
-				jsonEditorInstance = new JSONEditor(outputDiv, options, jsonData || { message: "No data loaded yet." });
-			}
-		} catch (e) {
-			logger.error("Error creating JSONEditor instance:", e);
-			if(outputDiv) outputDiv.innerHTML = `<p style='color:red;'>Failed to initialize JSONEditor: ${e.message}</p>`;
-		}
-	}
+	updateJSONEditor(jsonData);
 }
 
 /**
- * Toggles visibility between the Live Controls View and the Parser Inspector View.
- * @param {boolean} showInspector - If true, shows the Parser Inspector; otherwise shows Live Controls.
+ * Finds and caches DOM elements after Golden Layout initialization
  */
-function toggleViews(showInspector) {
-	if (showInspector) {
-		if(liveControlsView) liveControlsView.style.display = 'none';
-		if(parserInspectorView) parserInspectorView.style.display = 'flex';
-	} else {
-		if(parserInspectorView) parserInspectorView.style.display = 'none';
-		if(liveControlsView) liveControlsView.style.display = 'flex';
-	}
+function findDOMElements() {
+	riveFilePicker = document.getElementById('riveFilePicker');
+	outputDiv = document.getElementById('output');
+	artboardStateMachineControls = document.getElementById('artboardStateMachineControls');
+	artboardSelector = document.getElementById('artboardSelector');
+	animationSelector = document.getElementById('animationSelector');
+	stateMachineSelector = document.getElementById('stateMachineSelector');
+	applySelectionBtn = document.getElementById('applySelectionBtn');
+	toggleTimelineBtn = document.getElementById('toggleTimelineBtn');
+	pauseTimelineBtn = document.getElementById('pauseTimelineBtn');
+	toggleStateMachineBtn = document.getElementById('toggleStateMachineBtn');
 	
-	// Update button state
-	updateToggleViewButton();
+	logger.debug('DOM elements found and cached');
 }
 
 /**
@@ -178,6 +98,36 @@ function handleWindowResize() {
 }
 
 /**
+ * Ensures the canvas fills its container properly
+ */
+function resizeCanvasToContainer() {
+	const canvas = document.getElementById('rive-canvas');
+	const container = document.getElementById('canvasContainer');
+	
+	if (canvas && container) {
+		const containerRect = container.getBoundingClientRect();
+		
+		// Only resize if dimensions actually changed
+		if (canvas.width !== containerRect.width || canvas.height !== containerRect.height) {
+			canvas.width = containerRect.width;
+			canvas.height = containerRect.height;
+			
+			// Also trigger Rive resize if instance exists
+			const riveInstance = getLiveRiveInstance();
+			if (riveInstance && typeof riveInstance.resizeDrawingSurfaceToCanvas === 'function') {
+				try {
+					riveInstance.resizeDrawingSurfaceToCanvas();
+				} catch (error) {
+					logger.warn('Error resizing Rive canvas:', error);
+				}
+			}
+			
+			logger.debug(`Canvas resized to container: ${containerRect.width}x${containerRect.height}`);
+		}
+	}
+}
+
+/**
  * Sets up the window resize listener
  */
 function setupWindowResizeListener() {
@@ -190,7 +140,10 @@ function setupWindowResizeListener() {
 	let resizeTimeout;
 	resizeHandler = () => {
 		clearTimeout(resizeTimeout);
-		resizeTimeout = setTimeout(handleWindowResize, 100); // 100ms debounce
+		resizeTimeout = setTimeout(() => {
+			resizeCanvasToContainer();
+			handleWindowResize();
+		}, 100); // 100ms debounce
 	};
 	
 	window.addEventListener('resize', resizeHandler);
@@ -281,72 +234,75 @@ function resetApplicationState() {
 	logger.debug('Application state reset complete');
 }
 
-// Initialize JSONEditor and set initial view state on DOMContentLoaded.
+// Initialize Golden Layout and set up the application on DOMContentLoaded.
 document.addEventListener('DOMContentLoaded', () => {
-	setupJsonEditor({ message: "Please select a Rive file to parse." });
-	// Default to live controls view (parser inspector is hidden by default via CSS in HTML)
-	if(parserInspectorView) parserInspectorView.style.display = 'none'; // Ensure it is hidden
-	if(liveControlsView) liveControlsView.style.display = 'flex'; // Ensure it is visible
+	// Initialize Golden Layout
+	const layout = initializeGoldenLayout();
 	
-	// Initialize button state
-	updateToggleViewButton();
-	
-	// Set up window resize listener
-	setupWindowResizeListener();
+	if (layout) {
+		// Wait for layout to be ready, then find DOM elements and set up event listeners
+		setTimeout(() => {
+			findDOMElements();
+			setupEventListeners();
+			setupWindowResizeListener();
+			
+			// Initialize with default message
+			setupJsonEditor({ message: "Please select a Rive file to parse." });
+			
+			logger.info('Application initialized with Golden Layout');
+		}, 100);
+	} else {
+		logger.error('Failed to initialize Golden Layout');
+	}
 });
 
-// Event listeners for view toggle buttons
-if (toggleViewBtn) {
-	toggleViewBtn.addEventListener('click', () => {
-		const isInspectorVisible = parserInspectorView && getComputedStyle(parserInspectorView).display !== 'none';
-		toggleViews(!isInspectorVisible);
-	});
-}
-if (closeInspectorBtn) {
-	closeInspectorBtn.addEventListener('click', () => {
-		toggleViews(false); // Show live controls view
-	});
-}
+/**
+ * Sets up event listeners after Golden Layout initialization
+ */
+function setupEventListeners() {
+	// Event listener for the Rive file picker
+	if (riveFilePicker) {
+		riveFilePicker.addEventListener('change', handleFileSelect);
+	}
 
-// Event listeners for the Rive file pickers (both views)
-riveFilePicker.addEventListener('change', handleFileSelect);
-if (riveFilePicker2) {
-	riveFilePicker2.addEventListener('change', handleFileSelect);
-}
+	// Event listeners for artboard and state machine selection
+	if (artboardSelector) {
+		artboardSelector.addEventListener('change', handleArtboardChange);
+	}
+	if (animationSelector) {
+		animationSelector.addEventListener('change', handleAnimationChange);
+	}
+	if (stateMachineSelector) {
+		stateMachineSelector.addEventListener('change', handleStateMachineChange);
+	}
+	if (applySelectionBtn) {
+		applySelectionBtn.addEventListener('click', handleApplySelection);
+	}
 
-// Event listeners for artboard and state machine selection
-if (artboardSelector) {
-	artboardSelector.addEventListener('change', handleArtboardChange);
-}
-if (animationSelector) {
-	animationSelector.addEventListener('change', handleAnimationChange);
-}
-if (stateMachineSelector) {
-	stateMachineSelector.addEventListener('change', handleStateMachineChange);
-}
-if (applySelectionBtn) {
-	applySelectionBtn.addEventListener('click', handleApplySelection);
-}
+	// Event listeners for playback controls
+	if (toggleTimelineBtn) {
+		toggleTimelineBtn.addEventListener('click', handleToggleTimeline);
+	}
+	if (pauseTimelineBtn) {
+		pauseTimelineBtn.addEventListener('click', handlePauseTimeline);
+	}
+	if (toggleStateMachineBtn) {
+		toggleStateMachineBtn.addEventListener('click', handleToggleStateMachine);
+	}
 
-// Event listeners for playback controls
-if (toggleTimelineBtn) {
-	toggleTimelineBtn.addEventListener('click', handleToggleTimeline);
-}
-if (pauseTimelineBtn) {
-	pauseTimelineBtn.addEventListener('click', handlePauseTimeline);
-}
-if (toggleStateMachineBtn) {
-	toggleStateMachineBtn.addEventListener('click', handleToggleStateMachine);
-}
+	// Event listener for canvas background color
+	const canvasBackgroundColor = document.getElementById('canvasBackgroundColor');
+	if (canvasBackgroundColor) {
+		canvasBackgroundColor.addEventListener('change', handleCanvasBackgroundChange);
+	}
 
-// Event listeners for canvas background color (both views)
-const canvasBackgroundColor = document.getElementById('canvasBackgroundColor');
-const canvasBackgroundColor2 = document.getElementById('canvasBackgroundColor2');
-if (canvasBackgroundColor) {
-	canvasBackgroundColor.addEventListener('change', handleCanvasBackgroundChange);
-}
-if (canvasBackgroundColor2) {
-	canvasBackgroundColor2.addEventListener('change', handleCanvasBackgroundChange);
+	// Event listener for clear file button
+	const clearFileBtn = document.getElementById('clearFileBtn');
+	if (clearFileBtn) {
+		clearFileBtn.addEventListener('click', handleClearFile);
+	}
+	
+	logger.debug('Event listeners set up');
 }
 
 /**
@@ -790,14 +746,6 @@ function handleToggleStateMachine() {
 function handleFileSelect(event) {
 	const file = event.target.files[0];
 	
-	// Sync both file pickers
-	if (riveFilePicker && riveFilePicker !== event.target) {
-		riveFilePicker.files = event.target.files;
-	}
-	if (riveFilePicker2 && riveFilePicker2 !== event.target) {
-		riveFilePicker2.files = event.target.files;
-	}
-	
 	// Reset all state when a new file is selected
 	resetApplicationState();
 
@@ -899,40 +847,38 @@ function handleCanvasBackgroundChange(event) {
 	const canvas = document.getElementById('rive-canvas');
 	const color = event.target.value;
 	
+	// Apply background directly to the canvas element
 	if (canvas) {
 		canvas.style.backgroundColor = color;
 		logger.info(`Canvas background color changed to: ${color}`);
-	}
-	
-	// Sync both color pickers
-	if (canvasBackgroundColor && canvasBackgroundColor !== event.target) {
-		canvasBackgroundColor.value = color;
-	}
-	if (canvasBackgroundColor2 && canvasBackgroundColor2 !== event.target) {
-		canvasBackgroundColor2.value = color;
+	} else {
+		logger.warn('Canvas element not found for background color change');
 	}
 }
 
 /**
- * Updates the toggle view button state and text
+ * Handles clearing the current file
  */
-function updateToggleViewButton() {
-	const isInspectorVisible = parserInspectorView && getComputedStyle(parserInspectorView).display !== 'none';
+function handleClearFile() {
+	logger.info('Clearing current file');
 	
-	// Update main toggle button
-	if (toggleViewBtn) {
-		if (isInspectorVisible) {
-			toggleViewBtn.setAttribute('data-view', 'inspector');
-			toggleViewBtn.textContent = 'Show Live Controls';
-		} else {
-			toggleViewBtn.setAttribute('data-view', 'live');
-			toggleViewBtn.textContent = 'Show Parsed Data Inspector';
-		}
+	// Clear the file input
+	if (riveFilePicker) {
+		riveFilePicker.value = '';
 	}
 	
-	// Update close inspector button (it's always in inspector mode)
-	if (closeInspectorBtn) {
-		closeInspectorBtn.setAttribute('data-view', 'inspector');
-		closeInspectorBtn.textContent = 'Show Live Controls';
+	// Reset all application state
+	resetApplicationState();
+	
+	// Clear the JSON editor
+	setupJsonEditor({ message: "Please select a Rive file to begin parsing." });
+	
+	// Update status message
+	if (statusMessageDiv) {
+		statusMessageDiv.textContent = 'File cleared. Please select a new Rive file to begin parsing.';
 	}
+	
+	logger.info('File cleared successfully');
 }
+
+
