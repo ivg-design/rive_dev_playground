@@ -204,6 +204,79 @@ function removeWindowResizeListener() {
 	}
 }
 
+/**
+ * Resets all application state when a new file is selected
+ */
+function resetApplicationState() {
+	logger.info('Resetting application state for new file selection');
+	
+	// Reset global state variables
+	currentRiveInstance = null;
+	currentParsedData = null;
+	selectedArtboard = null;
+	selectedAnimation = null;
+	selectedStateMachine = null;
+	liveRiveInstance = null;
+	
+	// Reset playback states
+	resetPlaybackStates();
+	
+	// Clear selectors
+	if (artboardSelector) {
+		artboardSelector.innerHTML = '<option value="">Loading...</option>';
+	}
+	if (animationSelector) {
+		animationSelector.innerHTML = '<option value="">No Timelines</option>';
+	}
+	if (stateMachineSelector) {
+		stateMachineSelector.innerHTML = '<option value="">No State Machines</option>';
+	}
+	
+	// Hide artboard/state machine controls
+	if (artboardStateMachineControls) {
+		artboardStateMachineControls.style.display = 'none';
+	}
+	
+	// Clear status message
+	if (statusMessageDiv) {
+		statusMessageDiv.textContent = 'Loading new file...';
+	}
+	
+	// Clear JSON editor
+	if (jsonEditorInstance) {
+		try {
+			jsonEditorInstance.set({ message: "Loading new file..." });
+		} catch (e) {
+			logger.warn('Error clearing JSON editor:', e);
+		}
+	}
+	
+	// Clear dynamic controls container
+	const controlsContainer = document.getElementById('dynamicControlsContainer');
+	if (controlsContainer) {
+		controlsContainer.innerHTML = '<p>Loading new animation...</p>';
+	}
+	
+	// Clear any global Rive instance references
+	if (window.riveInstanceGlobal) {
+		try {
+			if (typeof window.riveInstanceGlobal.cleanup === 'function') {
+				window.riveInstanceGlobal.cleanup();
+			}
+		} catch (e) {
+			logger.warn('Error cleaning up global Rive instance:', e);
+		}
+		window.riveInstanceGlobal = null;
+	}
+	
+	// Clear VM reference
+	if (window.vm) {
+		window.vm = null;
+	}
+	
+	logger.debug('Application state reset complete');
+}
+
 // Initialize JSONEditor and set initial view state on DOMContentLoaded.
 document.addEventListener('DOMContentLoaded', () => {
 	setupJsonEditor({ message: "Please select a Rive file to parse." });
@@ -696,6 +769,9 @@ function handleToggleStateMachine() {
  */
 function handleFileSelect(event) {
 	const file = event.target.files[0];
+	
+	// Reset all state when a new file is selected
+	resetApplicationState();
 
 	if (!window.rive) {
 		logger.error("Rive engine (window.rive) not found!");

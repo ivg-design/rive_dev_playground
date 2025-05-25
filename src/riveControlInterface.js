@@ -172,35 +172,57 @@ function createControlForProperty(property) {
                 } else {
                     if (riveInstance && typeof riveInstance.enums === 'function') {
                         const allEnums = riveInstance.enums();
-                        const lookupName = property.enumTypeName || property.name;
-
-                        logger.debug(`[Enum Debug] Property Name: '${property.name}', Using enumTypeName for lookup: '${lookupName}' (property.enumTypeName was: '${property.enumTypeName}')`);
-                        logger.debug(`[Enum Debug] All available enum definitions:`, allEnums);
                         
-                        // Enhanced debugging - log each enum name for comparison
-                        logger.debug(`[Enum Debug] Property: '${property.name}', Looking for enum: '${lookupName}'`);
-                        logger.debug(`[Enum Debug] Available enum names:`, allEnums.map(e => e.name));
-                        logger.debug(`[Enum Debug] Full enum definitions:`, allEnums);
-
-                        let enumDef = allEnums.find(d => d.name === lookupName);
-                        logger.debug(`[Enum Debug] Found enumDef for '${lookupName}':`, enumDef);
-
-                        // If not found, try alternative lookup strategies
-                        if (!enumDef && lookupName !== property.name) {
-                            logger.debug(`[Enum Debug] Primary lookup failed, trying property name '${property.name}'`);
+                        logger.debug(`[Enum Debug] Property Name: '${property.name}', enumTypeName: '${property.enumTypeName}'`);
+                        logger.debug(`[Enum Debug] Available global enum names:`, allEnums.map(e => e.name));
+                        
+                        // NEW APPROACH: Get the actual enum type from the live property
+                        let enumDef = null;
+                        let actualEnumTypeName = null;
+                        
+                        // Try to get the enum type name from the live property itself
+                        if (liveProperty && typeof liveProperty.enumType === 'string') {
+                            actualEnumTypeName = liveProperty.enumType;
+                            logger.debug(`[Enum Debug] Found enumType on live property: '${actualEnumTypeName}'`);
+                            enumDef = allEnums.find(d => d.name === actualEnumTypeName);
+                        }
+                        
+                        // If that didn't work, try the enumTypeName from parser
+                        if (!enumDef && property.enumTypeName) {
+                            logger.debug(`[Enum Debug] Trying enumTypeName from parser: '${property.enumTypeName}'`);
+                            enumDef = allEnums.find(d => d.name === property.enumTypeName);
+                        }
+                        
+                        // If still not found, try property name
+                        if (!enumDef) {
+                            logger.debug(`[Enum Debug] Trying property name: '${property.name}'`);
                             enumDef = allEnums.find(d => d.name === property.name);
                         }
                         
-                        // If still not found, try case-insensitive search
+                        // If still not found, try case-insensitive search on all attempts
                         if (!enumDef) {
-                            logger.debug(`[Enum Debug] Case-sensitive lookup failed, trying case-insensitive`);
-                            enumDef = allEnums.find(d => d.name.toLowerCase() === lookupName.toLowerCase());
+                            logger.debug(`[Enum Debug] Trying case-insensitive searches`);
+                            const searchTerms = [actualEnumTypeName, property.enumTypeName, property.name].filter(Boolean);
+                            for (const term of searchTerms) {
+                                enumDef = allEnums.find(d => d.name.toLowerCase() === term.toLowerCase());
+                                if (enumDef) {
+                                    logger.debug(`[Enum Debug] Found via case-insensitive match: '${term}' -> '${enumDef.name}'`);
+                                    break;
+                                }
+                            }
                         }
                         
                         // If still not found, try partial matching
                         if (!enumDef) {
-                            logger.debug(`[Enum Debug] Exact lookup failed, trying partial matching`);
-                            enumDef = allEnums.find(d => d.name.includes(lookupName) || lookupName.includes(d.name));
+                            logger.debug(`[Enum Debug] Trying partial matching`);
+                            const searchTerms = [actualEnumTypeName, property.enumTypeName, property.name].filter(Boolean);
+                            for (const term of searchTerms) {
+                                enumDef = allEnums.find(d => d.name.includes(term) || term.includes(d.name));
+                                if (enumDef) {
+                                    logger.debug(`[Enum Debug] Found via partial match: '${term}' -> '${enumDef.name}'`);
+                                    break;
+                                }
+                            }
                         }
                         
                         logger.debug(`[Enum Debug] Final enumDef found:`, enumDef);
@@ -208,12 +230,13 @@ function createControlForProperty(property) {
                         const enumValues = enumDef?.values || [];
                         
                         if (enumValues.length === 0) {
-                            logger.warn(`[controlInterface] No values found for enum '${lookupName}' (property '${property.name}'). Dropdown will be empty.`);
+                            logger.warn(`[controlInterface] No values found for enum property '${property.name}'. Tried: actualEnumType='${actualEnumTypeName}', enumTypeName='${property.enumTypeName}', propertyName='${property.name}'`);
                             // Add a placeholder option
                             const option = new Option('No values available', '');
                             option.disabled = true;
                             ctrl.appendChild(option);
                         } else {
+                            logger.debug(`[Enum Debug] Successfully found ${enumValues.length} enum values:`, enumValues);
                             enumValues.forEach(v => {
                                 const option = new Option(v, v);
                                 ctrl.appendChild(option);
@@ -281,17 +304,39 @@ export function initDynamicControls(parsedDataFromHandler) {
 
     // Clear previous instance and polling interval
     if (riveInstance && typeof riveInstance.cleanup === 'function') {
+        logger.debug('[controlInterface] Cleaning up previous Rive instance');
         riveInstance.cleanup();
     }
     if (uiUpdateInterval) {
         clearInterval(uiUpdateInterval);
         uiUpdateInterval = null;
+        logger.debug('[controlInterface] Cleared UI update interval');
     }
+    
+    // Clear global references
+    if (window.riveInstanceGlobal && window.riveInstanceGlobal !== riveInstance) {
+        try {
+            if (typeof window.riveInstanceGlobal.cleanup === 'function') {
+                window.riveInstanceGlobal.cleanup();
+            }
+        } catch (e) {
+            logger.warn('[controlInterface] Error cleaning up global Rive instance:', e);
+        }
+        window.riveInstanceGlobal = null;
+    }
+    
+    if (window.vm) {
+        window.vm = null;
+        logger.debug('[controlInterface] Cleared global VM reference');
+    }
+    
     // Note: Window resize listener cleanup is now handled by riveParserHandler.js
     riveInstance = null;
     parsedRiveData = parsedDataFromHandler;
     dynamicControlsInitialized = false;
     structuredControlData = null;
+    
+    logger.debug('[controlInterface] State reset complete, initializing with new data');
 
     const controlsContainer = document.getElementById('dynamicControlsContainer');
     if (!controlsContainer) {

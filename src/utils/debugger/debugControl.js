@@ -27,11 +27,80 @@ const LOG_LEVELS = [
 let debugControlsContainer = null;
 let debugControlsEnabled = false;
 
+// LocalStorage keys for persistence
+const STORAGE_KEYS = {
+    DEBUG_ENABLED: 'rive-tester-debug-enabled',
+    DEBUG_LEVELS: 'rive-tester-debug-levels',
+    DEBUG_GLOBAL_ENABLED: 'rive-tester-debug-global-enabled'
+};
+
+/**
+ * Loads debug settings from localStorage
+ */
+function loadDebugSettings() {
+    try {
+        // Load debug controls visibility
+        const savedEnabled = localStorage.getItem(STORAGE_KEYS.DEBUG_ENABLED);
+        if (savedEnabled === 'true') {
+            debugControlsEnabled = true;
+        }
+        
+        // Load global debug state
+        const globalEnabled = localStorage.getItem(STORAGE_KEYS.DEBUG_GLOBAL_ENABLED);
+        if (globalEnabled !== null) {
+            LoggerAPI.enable(globalEnabled === 'true');
+        }
+        
+        // Load module-specific levels
+        const savedLevels = localStorage.getItem(STORAGE_KEYS.DEBUG_LEVELS);
+        if (savedLevels) {
+            const levels = JSON.parse(savedLevels);
+            Object.entries(levels).forEach(([module, level]) => {
+                LoggerAPI.setModuleLevel(module, level);
+            });
+        }
+    } catch (e) {
+        console.warn('Failed to load debug settings from localStorage:', e);
+    }
+}
+
+/**
+ * Saves debug settings to localStorage
+ */
+function saveDebugSettings() {
+    try {
+        localStorage.setItem(STORAGE_KEYS.DEBUG_ENABLED, debugControlsEnabled.toString());
+        
+        // Save current module levels (we'll need to track these)
+        const currentLevels = {};
+        MODULES.forEach(module => {
+            // We'll need to get current levels from the UI since LoggerAPI doesn't expose them
+            const levelSelect = document.getElementById(`debug-level-${module}`);
+            if (levelSelect) {
+                currentLevels[module] = parseInt(levelSelect.value);
+            }
+        });
+        localStorage.setItem(STORAGE_KEYS.DEBUG_LEVELS, JSON.stringify(currentLevels));
+        
+        // Save global enabled state (we'll track this separately)
+        // For now, we'll assume it's enabled if any module is above NONE
+        const globalLevelSelect = document.getElementById('debug-all-level');
+        if (globalLevelSelect) {
+            localStorage.setItem(STORAGE_KEYS.DEBUG_GLOBAL_ENABLED, 'true');
+        }
+    } catch (e) {
+        console.warn('Failed to save debug settings to localStorage:', e);
+    }
+}
+
 /**
  * Creates and injects the debug control panel into the DOM
  */
 export function initDebugControls() {
-    // Don't initialize by default - wait for explicit enable call
+    // Load saved settings first
+    loadDebugSettings();
+    
+    // Initialize UI if it was enabled
     if (debugControlsEnabled) {
         createDebugControlsUI();
     }
@@ -41,7 +110,8 @@ export function initDebugControls() {
         enable: enableDebugControls,
         disable: disableDebugControls,
         toggle: toggleDebugControls,
-        isEnabled: () => debugControlsEnabled
+        isEnabled: () => debugControlsEnabled,
+        clearSettings: clearDebugSettings
     };
 }
 
@@ -55,6 +125,7 @@ function enableDebugControls() {
     } else {
         debugControlsContainer.style.display = 'block';
     }
+    saveDebugSettings();
 }
 
 /**
@@ -65,6 +136,7 @@ function disableDebugControls() {
     if (debugControlsContainer) {
         debugControlsContainer.style.display = 'none';
     }
+    saveDebugSettings();
 }
 
 /**
@@ -198,17 +270,24 @@ function createDebugControlsUI() {
     document.getElementById('debug-enable-all').addEventListener('click', () => {
         LoggerAPI.enable(true);
         updateStatus('Logging enabled globally');
+        saveDebugSettings();
     });
     
     document.getElementById('debug-disable-all').addEventListener('click', () => {
         LoggerAPI.enable(false);
         updateStatus('Logging disabled globally');
+        saveDebugSettings();
     });
     
     document.getElementById('debug-set-all-level').addEventListener('click', () => {
         const level = parseInt(document.getElementById('debug-all-level').value);
         LoggerAPI.setAllLevels(level);
+        // Update all module dropdowns to reflect the change
+        MODULES.forEach(module => {
+            document.getElementById(`debug-level-${module}`).value = level;
+        });
         updateStatus(`All modules set to ${getLevelName(level)}`);
+        saveDebugSettings();
     });
     
     // Module-specific controls
@@ -217,16 +296,12 @@ function createDebugControlsUI() {
             const level = parseInt(document.getElementById(`debug-level-${module}`).value);
             LoggerAPI.setModuleLevel(module, level);
             updateStatus(`Module '${module}' set to ${getLevelName(level)}`);
+            saveDebugSettings();
         });
     });
     
-    // Set initial selected values based on current configuration
-    // This would require accessing the internal state of the logger, which we don't expose
-    // For simplicity, we'll just default to INFO for all dropdowns
-    document.getElementById('debug-all-level').value = LogLevel.INFO;
-    MODULES.forEach(module => {
-        document.getElementById(`debug-level-${module}`).value = LogLevel.INFO;
-    });
+    // Set initial selected values based on saved configuration
+    loadSavedUISettings();
 }
 
 /**
@@ -253,6 +328,61 @@ function updateStatus(message) {
 function getLevelName(level) {
     const found = LOG_LEVELS.find(l => l.value === level);
     return found ? found.name : 'UNKNOWN';
+}
+
+/**
+ * Loads saved UI settings and applies them to the dropdowns
+ */
+function loadSavedUISettings() {
+    try {
+        const savedLevels = localStorage.getItem(STORAGE_KEYS.DEBUG_LEVELS);
+        if (savedLevels) {
+            const levels = JSON.parse(savedLevels);
+            
+            // Set module-specific dropdowns
+            MODULES.forEach(module => {
+                const levelSelect = document.getElementById(`debug-level-${module}`);
+                if (levelSelect && levels[module] !== undefined) {
+                    levelSelect.value = levels[module];
+                } else if (levelSelect) {
+                    levelSelect.value = LogLevel.INFO; // Default
+                }
+            });
+            
+            // Set global dropdown to the most common level or INFO
+            const globalSelect = document.getElementById('debug-all-level');
+            if (globalSelect) {
+                globalSelect.value = LogLevel.INFO; // Default
+            }
+        } else {
+            // No saved settings, use defaults
+            document.getElementById('debug-all-level').value = LogLevel.INFO;
+            MODULES.forEach(module => {
+                document.getElementById(`debug-level-${module}`).value = LogLevel.INFO;
+            });
+        }
+    } catch (e) {
+        console.warn('Failed to load saved UI settings:', e);
+        // Fallback to defaults
+        document.getElementById('debug-all-level').value = LogLevel.INFO;
+        MODULES.forEach(module => {
+            document.getElementById(`debug-level-${module}`).value = LogLevel.INFO;
+        });
+    }
+}
+
+/**
+ * Clears all debug settings from localStorage
+ */
+function clearDebugSettings() {
+    try {
+        Object.values(STORAGE_KEYS).forEach(key => {
+            localStorage.removeItem(key);
+        });
+        updateStatus('Debug settings cleared');
+    } catch (e) {
+        console.warn('Failed to clear debug settings:', e);
+    }
 }
 
 // Initialize the debug controls when this module is imported
