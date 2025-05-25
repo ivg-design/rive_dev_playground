@@ -7,7 +7,7 @@
 
 import { initDynamicControls } from './riveControlInterface.js';
 import { processDataForControls } from './dataToControlConnector.js';
-import { createLogger } from './utils/debugger/debugLogger.js';
+import { createLogger } from '../utils/debugger/debugLogger.js';
 import { initializeGoldenLayout, updateJSONEditor, getGoldenLayout } from './goldenLayoutManager.js';
 
 // Create a logger for this module

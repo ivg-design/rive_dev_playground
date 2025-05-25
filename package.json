@@ -1,11 +1,11 @@
 {
-  "name": "rive-tester",
+  "name": "rive-playground",
   "version": "1.0.0",
-  "description": "A testing environment for Rive animations",
+  "description": "Interactive Rive file parser, inspector, and debugging tool",
   "type": "module",
   "scripts": {
     "test": "node test.js",
-    "dev": "node test.js --watch",
+    "dev": "npx http-server . -p 8080 -o",
     "test-deployment": "node scripts/test-deployment.js"
   },
   "dependencies": {

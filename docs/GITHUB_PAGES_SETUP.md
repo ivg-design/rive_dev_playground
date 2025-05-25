@@ -75,14 +75,20 @@ Based on your existing CEP documentation setup, the URLs will be:
 ```
 GitHub Pages Root
 ├── index.html                 # Landing page with tool links
-└── rive-tester/              # Rive Tester application
+└── rive-playground/          # Rive Playground application
     ├── index.html            # Main app interface
-    ├── style.css             # App styling
     ├── src/                  # Source modules
-    │   ├── parser.js
-    │   ├── riveControlInterface.js
-    │   ├── dataToControlConnector.js
-    │   └── utils/
+    │   ├── components/       # Core application components
+    │   │   ├── goldenLayoutManager.js
+    │   │   ├── parser.js
+    │   │   ├── riveParserHandler.js
+    │   │   ├── riveControlInterface.js
+    │   │   └── dataToControlConnector.js
+    │   ├── styles/           # CSS and styling
+    │   │   └── style.css
+    │   └── utils/            # Utility functions and helpers
+    │       └── debugger/     # Debug logging system
+    ├── docs/                 # Documentation files
     ├── node_modules/         # Dependencies (Rive runtime, etc.)
     ├── *.riv                 # Sample Rive files
     └── README.md             # Documentation

@@ -41,14 +41,19 @@ jobs:
 
             - name: Copy Rive Playground files
               run: |
-                  # Copy main files
+                  # Copy main files from new structure
                   cp index.html _site/rive-playground/
-                  cp style.css _site/rive-playground/
                   cp package.json _site/rive-playground/
                   cp README.md _site/rive-playground/
 
-                  # Copy source directory
-                  cp -r src _site/rive-playground/
+                  # Copy source directory with new structure
+                  mkdir -p _site/rive-playground/src
+                  cp -r src/components _site/rive-playground/src/
+                  cp -r src/styles _site/rive-playground/src/
+                  cp -r src/utils _site/rive-playground/src/
+
+                  # Copy docs directory
+                  cp -r docs _site/rive-playground/
 
                   # Copy animations directory if it exists
                   if [ -d "animations" ]; then

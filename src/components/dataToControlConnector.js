@@ -4,7 +4,7 @@
  * the riveControlInterface.js can use to build UI controls with proper connections.
  */
 
-import { createLogger } from './utils/debugger/debugLogger.js';
+import { createLogger } from '../utils/debugger/debugLogger.js';
 
 // Create a logger for this module
 const logger = createLogger('dataConnector');
