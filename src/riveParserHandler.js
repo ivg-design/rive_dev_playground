@@ -18,6 +18,7 @@ logger.debug("Pre-Init typeof window.Rive:", typeof window.Rive, "Value:", windo
 
 // DOM element references
 const riveFilePicker = document.getElementById('riveFilePicker');
+const riveFilePicker2 = document.getElementById('riveFilePicker2');
 const outputDiv = document.getElementById('output'); 
 const statusMessageDiv = document.getElementById('statusMessage');
 
@@ -40,6 +41,8 @@ const applySelectionBtn = document.getElementById('applySelectionBtn');
 const toggleTimelineBtn = document.getElementById('toggleTimelineBtn');
 const pauseTimelineBtn = document.getElementById('pauseTimelineBtn');
 const toggleStateMachineBtn = document.getElementById('toggleStateMachineBtn');
+
+
 
 /**
  * Holds the current instance of the JSONEditor.
@@ -149,13 +152,14 @@ function setupJsonEditor(jsonData) {
 function toggleViews(showInspector) {
 	if (showInspector) {
 		if(liveControlsView) liveControlsView.style.display = 'none';
-		if(parserInspectorView) parserInspectorView.style.display = 'block'; // Or 'flex' if it's a flex container
-		if(toggleViewBtn) toggleViewBtn.textContent = 'Show Live Controls';
+		if(parserInspectorView) parserInspectorView.style.display = 'flex';
 	} else {
 		if(parserInspectorView) parserInspectorView.style.display = 'none';
-		if(liveControlsView) liveControlsView.style.display = 'block'; // Or 'flex'
-		if(toggleViewBtn) toggleViewBtn.textContent = 'Show Parsed Data Inspector';
+		if(liveControlsView) liveControlsView.style.display = 'flex';
 	}
+	
+	// Update button state
+	updateToggleViewButton();
 }
 
 /**
@@ -282,7 +286,10 @@ document.addEventListener('DOMContentLoaded', () => {
 	setupJsonEditor({ message: "Please select a Rive file to parse." });
 	// Default to live controls view (parser inspector is hidden by default via CSS in HTML)
 	if(parserInspectorView) parserInspectorView.style.display = 'none'; // Ensure it is hidden
-	if(liveControlsView) liveControlsView.style.display = 'block'; // Ensure it is visible
+	if(liveControlsView) liveControlsView.style.display = 'flex'; // Ensure it is visible
+	
+	// Initialize button state
+	updateToggleViewButton();
 	
 	// Set up window resize listener
 	setupWindowResizeListener();
@@ -301,8 +308,11 @@ if (closeInspectorBtn) {
 	});
 }
 
-// Event listener for the Rive file picker.
+// Event listeners for the Rive file pickers (both views)
 riveFilePicker.addEventListener('change', handleFileSelect);
+if (riveFilePicker2) {
+	riveFilePicker2.addEventListener('change', handleFileSelect);
+}
 
 // Event listeners for artboard and state machine selection
 if (artboardSelector) {
@@ -327,6 +337,16 @@ if (pauseTimelineBtn) {
 }
 if (toggleStateMachineBtn) {
 	toggleStateMachineBtn.addEventListener('click', handleToggleStateMachine);
+}
+
+// Event listeners for canvas background color (both views)
+const canvasBackgroundColor = document.getElementById('canvasBackgroundColor');
+const canvasBackgroundColor2 = document.getElementById('canvasBackgroundColor2');
+if (canvasBackgroundColor) {
+	canvasBackgroundColor.addEventListener('change', handleCanvasBackgroundChange);
+}
+if (canvasBackgroundColor2) {
+	canvasBackgroundColor2.addEventListener('change', handleCanvasBackgroundChange);
 }
 
 /**
@@ -770,6 +790,14 @@ function handleToggleStateMachine() {
 function handleFileSelect(event) {
 	const file = event.target.files[0];
 	
+	// Sync both file pickers
+	if (riveFilePicker && riveFilePicker !== event.target) {
+		riveFilePicker.files = event.target.files;
+	}
+	if (riveFilePicker2 && riveFilePicker2 !== event.target) {
+		riveFilePicker2.files = event.target.files;
+	}
+	
 	// Reset all state when a new file is selected
 	resetApplicationState();
 
@@ -861,5 +889,50 @@ function handleFileSelect(event) {
 		logger.error("runOriginalClientParser function not found.");
 		if(statusMessageDiv) statusMessageDiv.textContent = "Error: Parser function not found.";
 		setupJsonEditor({ error: "Parser function not found." });
+	}
+}
+
+/**
+ * Handles canvas background color change
+ */
+function handleCanvasBackgroundChange(event) {
+	const canvas = document.getElementById('rive-canvas');
+	const color = event.target.value;
+	
+	if (canvas) {
+		canvas.style.backgroundColor = color;
+		logger.info(`Canvas background color changed to: ${color}`);
+	}
+	
+	// Sync both color pickers
+	if (canvasBackgroundColor && canvasBackgroundColor !== event.target) {
+		canvasBackgroundColor.value = color;
+	}
+	if (canvasBackgroundColor2 && canvasBackgroundColor2 !== event.target) {
+		canvasBackgroundColor2.value = color;
+	}
+}
+
+/**
+ * Updates the toggle view button state and text
+ */
+function updateToggleViewButton() {
+	const isInspectorVisible = parserInspectorView && getComputedStyle(parserInspectorView).display !== 'none';
+	
+	// Update main toggle button
+	if (toggleViewBtn) {
+		if (isInspectorVisible) {
+			toggleViewBtn.setAttribute('data-view', 'inspector');
+			toggleViewBtn.textContent = 'Show Live Controls';
+		} else {
+			toggleViewBtn.setAttribute('data-view', 'live');
+			toggleViewBtn.textContent = 'Show Parsed Data Inspector';
+		}
+	}
+	
+	// Update close inspector button (it's always in inspector mode)
+	if (closeInspectorBtn) {
+		closeInspectorBtn.setAttribute('data-view', 'inspector');
+		closeInspectorBtn.textContent = 'Show Live Controls';
 	}
 }

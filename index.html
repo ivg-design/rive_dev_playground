@@ -13,17 +13,21 @@
     </head>
 
     <body class="jsoneditor-dark">
-        <div id="main-header">
-            <h1>Rive File Parser</h1>
-            <button id="toggleViewBtn">Show Parsed Data Inspector</button>
-        </div>
-
         <!-- View for Live Dynamic Controls (Initially Visible) -->
         <div id="liveControlsView">
             <div id="liveControlsHeader">
-                <div class="file-picker-section">
-                    <label id="riveFilePickerLabel" for="riveFilePicker">Select a .riv file to parse & control:</label>
-                    <input type="file" id="riveFilePicker" accept=".riv">
+                <div class="header-row">
+                    <div class="file-picker-section">
+                        <label id="riveFilePickerLabel" for="riveFilePicker">Select a .riv file to parse & control:</label>
+                        <input type="file" id="riveFilePicker" accept=".riv">
+                    </div>
+                    <div class="header-controls">
+                        <div class="canvas-bg-control">
+                            <label for="canvasBackgroundColor">Canvas BG:</label>
+                            <input type="color" id="canvasBackgroundColor" value="#252525">
+                        </div>
+                        <button id="toggleViewBtn" data-view="live">Show Parsed Data Inspector</button>
+                    </div>
                 </div>
 
                 <!-- Artboard and State Machine Selection Controls -->
@@ -82,7 +86,21 @@
 
         <!-- View for Parser Data Inspector (Initially Hidden) -->
         <div id="parserInspectorView">
-            <!-- REMOVED #controls div as file picker moved -->
+            <div id="inspectorControlsHeader">
+                <div class="header-row">
+                    <div class="file-picker-section">
+                        <label id="riveFilePickerLabel2" for="riveFilePicker2">Select a .riv file to parse & control:</label>
+                        <input type="file" id="riveFilePicker2" accept=".riv">
+                    </div>
+                    <div class="header-controls">
+                        <div class="canvas-bg-control">
+                            <label for="canvasBackgroundColor2">Canvas BG:</label>
+                            <input type="color" id="canvasBackgroundColor2" value="#252525">
+                        </div>
+                        <button id="closeInspectorBtn" data-view="inspector">Show Live Controls</button>
+                    </div>
+                </div>
+            </div>
 
             <!-- outputContainer will now only hold the jsoneditor -->
             <div id="inspectorOutputContainer">
@@ -90,7 +108,6 @@
             </div>
 
             <p class="log-message" id="statusMessage">Please select a Rive file to begin parsing.</p>
-            <button id="closeInspectorBtn">Back to Live Controls</button>
         </div>
 
         <!-- Load the Rive runtime -->

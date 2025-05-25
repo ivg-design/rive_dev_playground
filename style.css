@@ -94,14 +94,13 @@ body {
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
+    overflow: hidden;
     box-sizing: border-box;
-    background-color: #2a2a2a;
+    background-color: #1e1e1e;
 }
 
 body {
     font-family: sans-serif;
-    padding: 20px;
     background-color: #1e1e1e;
     color: #d4d4d4;
     display: flex;
@@ -110,12 +109,55 @@ body {
     box-sizing: border-box;
 }
 
-h1 {
-    color: #4a90e2;
-    border-bottom: 1px solid #444;
-    padding-bottom: 10px;
-    margin-top: 0;
-    flex-shrink: 0;
+/* Header row styling */
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.canvas-bg-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.canvas-bg-control label {
+    color: #c8c8c8;
+    font-weight: bold;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+#canvasBackgroundColor,
+#canvasBackgroundColor2 {
+    width: 40px;
+    height: 30px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+#canvasBackgroundColor::-webkit-color-swatch-wrapper,
+#canvasBackgroundColor2::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: 3px;
+}
+
+#canvasBackgroundColor::-webkit-color-swatch,
+#canvasBackgroundColor2::-webkit-color-swatch {
+    border: none;
+    border-radius: 3px;
 }
 
 #controls {
@@ -129,18 +171,18 @@ h1 {
 }
 
 
-#riveFilePickerLabel {
+#riveFilePickerLabel,
+#riveFilePickerLabel2 {
     display: block;
-    margin-bottom: 10px;
     font-weight: bold;
     color: #c8c8c8;
 }
 
-#riveFilePicker {
+#riveFilePicker,
+#riveFilePicker2 {
     padding: 8px;
     border-radius: 4px;
     border: 1px solid #555;
-    margin-bottom: 10px;
     background-color: #333;
     color: #d4d4d4;
 }
@@ -200,7 +242,7 @@ div.jsoneditor-search input {
 .log-message {
     font-style: italic;
     color: #888;
-    margin-top: 15px;
+    margin: 0 15px 15px 15px;
     text-align: center;
     flex-shrink: 0;
 }
@@ -252,36 +294,57 @@ div.jsoneditor-search input {
     cursor: pointer;
 }
 
-#liveControlsHeader {
-    margin-bottom: 15px;
-    padding: 10px;
-    background-color: #2a2a2a; /* Match other control areas */
+#liveControlsHeader,
+#inspectorControlsHeader {
+    padding: 15px;
+    background-color: #2a2a2a;
     border-radius: 8px;
     border: 1px solid #444;
+    flex-shrink: 0;
 }
 
-/* Main Header */
-#main-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
+/* Toggle View Button Styling */
 #toggleViewBtn,
 #closeInspectorBtn {
-    padding: 8px 15px;
-    margin-left: 20px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
     cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    min-width: 250px;
+    text-align: center;
 }
 
-#closeInspectorBtn {
-    margin-top: 15px;
-    margin-left: 0;
+#toggleViewBtn[data-view="live"],
+#closeInspectorBtn[data-view="live"] {
+    background-color: #2563eb;
+    color: white;
+}
+
+#toggleViewBtn[data-view="live"]:hover,
+#closeInspectorBtn[data-view="live"]:hover {
+    background-color: #3b82f6;
+}
+
+#toggleViewBtn[data-view="inspector"],
+#closeInspectorBtn[data-view="inspector"] {
+    background-color: #059669;
+    color: white;
+}
+
+#toggleViewBtn[data-view="inspector"]:hover,
+#closeInspectorBtn[data-view="inspector"]:hover {
+    background-color: #10b981;
 }
 
 /* Live Controls Header */
 .file-picker-section {
-    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 /* Parser Inspector View */
@@ -446,13 +509,21 @@ div.jsoneditor-search input {
     cursor: not-allowed;
 }
 
+#liveControlsView {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
 #liveViewLayout {
     display: flex;
     flex-direction: row;
-    gap: 20px;
+    gap: 15px;
     flex-grow: 1;
-    height: calc(100vh - 280px); /* Adjust this based on total height of header, #liveControlsHeader, buttons etc. */
     overflow: hidden;
+    padding: 15px;
+    box-sizing: border-box;
 }
 
 #rive-canvas { /* This is now the primary canvas in liveControlsView */
@@ -475,16 +546,16 @@ div.jsoneditor-search input {
 
 /* Styles for the Parser Inspector View */
 #parserInspectorView {
-    /* display: none; -- This will be controlled by JS via .view-hidden */
-    height: 100%; /* Try to make it take available space when shown */
+    height: 100vh;
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
 }
 
-#inspectorOutputContainer { /* Was #outputContainer, now specific to inspector */
-    flex-grow: 1; 
-    overflow: hidden; /* Container for jsoneditor, jsoneditor handles its own scroll */
-    /* border: 1px dashed lime; /* For debugging layout */
+#inspectorOutputContainer {
+    flex-grow: 1;
+    overflow: hidden;
+    margin: 0 15px 15px 15px;
 }
 
 #parserInspectorView #output { /* JSONEditor container inside inspector */
