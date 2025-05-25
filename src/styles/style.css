@@ -624,7 +624,7 @@ div.jsoneditor-search input {
     transform: translateY(-1px);
 }
 
-.file-input {
+.file-section .file-input {
     flex: 1;
     min-width: 200px;
     padding: 8px 12px;
@@ -1036,7 +1036,7 @@ div.jsoneditor-search input {
     align-items: center;
 }
 
-.file-input {
+.asset-controls .file-input {
     display: none;
 }
 
