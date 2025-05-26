@@ -5,31 +5,80 @@
 
 import { createLogger } from '../utils/debugger/debugLogger.js';
 
-// Create a logger for this module
+// Create a logger for this module with debug levels
 const logger = createLogger('assetManager');
+
+// Debug levels for this module
+const DEBUG_LEVELS = {
+    ERROR: 0,   // Critical errors only
+    WARN: 1,    // Warnings and errors
+    INFO: 2,    // General information, warnings, and errors
+    DEBUG: 3,   // Detailed debugging information
+    TRACE: 4    // Very detailed tracing
+};
 
 let currentRiveInstance = null;
 let assetManagerContainer = null;
+let assetMap = new Map(); // Store assets captured during loading
 
 /**
  * Initialize the asset manager with a Rive instance
  * @param {Object} riveInstance - The active Rive instance
  */
 export function initializeAssetManager(riveInstance) {
+    logger.debug('[INIT] Initializing Asset Manager', { riveInstance: !!riveInstance });
+    
     currentRiveInstance = riveInstance;
     assetManagerContainer = document.getElementById('assetManagerContainer');
     
     if (!assetManagerContainer) {
-        logger.error('Asset manager container not found');
+        logger.error('[INIT] Asset manager container not found');
         return;
     }
     
     if (!riveInstance) {
+        logger.info('[INIT] No Rive instance provided, showing empty state');
         showNoAssetsMessage();
         return;
     }
     
+    logger.debug('[INIT] Building Asset Manager UI');
     buildAssetManagerUI();
+}
+
+/**
+ * Set the asset map from the assetLoader callback
+ * @param {Map} assets - Map of asset name to asset object
+ */
+export function setAssetMap(assets) {
+    logger.debug('[ASSET_MAP] Setting asset map', { assetCount: assets.size });
+    
+    assetMap = assets;
+    logger.info(`[ASSET_MAP] Asset map updated with ${assetMap.size} assets`);
+    
+    // Log asset details at trace level
+    if (assetMap.size > 0) {
+        logger.trace('[ASSET_MAP] Asset details:', Array.from(assetMap.entries()).map(([name, asset]) => ({
+            name,
+            isImage: asset.isImage,
+            isFont: asset.isFont,
+            fileExtension: asset.fileExtension
+        })));
+    }
+    
+    // Rebuild UI if container exists
+    if (assetManagerContainer) {
+        logger.debug('[ASSET_MAP] Rebuilding UI with new asset map');
+        buildAssetManagerUI();
+    }
+}
+
+/**
+ * Get the current asset map
+ * @returns {Map} The current asset map
+ */
+export function getAssetMap() {
+    return assetMap;
 }
 
 /**
@@ -51,15 +100,17 @@ function showNoAssetsMessage() {
  * Build the asset manager UI
  */
 function buildAssetManagerUI() {
-    if (!currentRiveInstance || !assetManagerContainer) {
+    if (!assetManagerContainer) {
+        logger.warn('[UI] Asset manager container not available for UI build');
         return;
     }
     
     try {
-        const assets = currentRiveInstance.assets();
-        logger.info(`Found ${assets.length} assets in Rive file`);
+        const assetCount = assetMap.size;
+        logger.info(`[UI] Building Asset Manager UI with ${assetCount} assets`);
         
-        if (assets.length === 0) {
+        if (assetCount === 0) {
+            logger.debug('[UI] No assets to display, showing empty state');
             assetManagerContainer.innerHTML = `
                 <div class="asset-manager-empty">
                     <div class="empty-icon">📦</div>
@@ -75,15 +126,25 @@ function buildAssetManagerUI() {
         header.className = 'asset-manager-header';
         header.innerHTML = `
             <h3>Asset Manager</h3>
-            <div class="asset-count">${assets.length} asset${assets.length !== 1 ? 's' : ''}</div>
+            <div class="asset-count">${assetCount} asset${assetCount !== 1 ? 's' : ''}</div>
         `;
         
         // Create asset list
         const assetList = document.createElement('div');
         assetList.className = 'asset-list';
         
-        assets.forEach((asset, index) => {
-            const assetItem = createAssetItem(asset, index);
+        // Sort assets alphabetically by name
+        const sortedAssets = Array.from(assetMap.entries()).sort(([nameA], [nameB]) => {
+            return nameA.localeCompare(nameB, undefined, { 
+                numeric: true, 
+                sensitivity: 'base' 
+            });
+        });
+        
+        logger.debug(`[UI] Sorted ${sortedAssets.length} assets alphabetically`);
+        
+        sortedAssets.forEach(([assetName, asset], index) => {
+            const assetItem = createAssetItem(asset, assetName, index);
             assetList.appendChild(assetItem);
         });
         
@@ -107,12 +168,14 @@ function buildAssetManagerUI() {
 /**
  * Create an asset item element
  * @param {Object} asset - The asset object from Rive
+ * @param {string} assetName - The asset name
  * @param {number} index - The asset index
  * @returns {HTMLElement} The asset item element
  */
-function createAssetItem(asset, index) {
+function createAssetItem(asset, assetName, index) {
     const assetItem = document.createElement('div');
     assetItem.className = 'asset-item';
+    assetItem.setAttribute('data-asset-name', assetName);
     assetItem.setAttribute('data-asset-index', index);
     
     // Determine asset type and icon
@@ -120,16 +183,16 @@ function createAssetItem(asset, index) {
     const assetIcon = getAssetIcon(assetType);
     
     // Get asset details
-    const assetName = asset.name || `Asset ${index + 1}`;
+    const displayName = assetName || `Asset ${index + 1}`;
     const assetId = asset.uniqueId || asset.id || 'Unknown ID';
     const cdnUuid = asset.cdnUuid || 'No CDN UUID';
-    const fileExtension = asset.fileExtension || 'Unknown';
+    const fileExtension = asset.fileExtension || getExtensionFromName(assetName);
     
     assetItem.innerHTML = `
         <div class="asset-header">
             <div class="asset-icon">${assetIcon}</div>
             <div class="asset-info">
-                <div class="asset-name" title="${assetName}">${assetName}</div>
+                <div class="asset-name" title="${displayName}">${displayName}</div>
                 <div class="asset-details">
                     <span class="asset-type">${assetType}</span>
                     ${fileExtension !== 'Unknown' ? `<span class="asset-extension">.${fileExtension}</span>` : ''}
@@ -142,9 +205,15 @@ function createAssetItem(asset, index) {
         
         <div class="asset-metadata">
             <div class="metadata-item">
-                <label>Asset ID:</label>
-                <span>${assetId}</span>
+                <label>Asset Name:</label>
+                <span>${assetName}</span>
             </div>
+            ${assetId !== 'Unknown ID' ? `
+                <div class="metadata-item">
+                    <label>Asset ID:</label>
+                    <span>${assetId}</span>
+                </div>
+            ` : ''}
             ${cdnUuid !== 'No CDN UUID' ? `
                 <div class="metadata-item">
                     <label>CDN UUID:</label>
@@ -162,6 +231,7 @@ function createAssetItem(asset, index) {
                                id="file-input-${index}" 
                                class="file-input" 
                                accept="${getAcceptTypes(assetType)}"
+                               data-asset-name="${assetName}"
                                data-asset-index="${index}">
                         <label for="file-input-${index}" class="file-input-label">
                             📁 Choose Local File
@@ -171,8 +241,11 @@ function createAssetItem(asset, index) {
                         <input type="url" 
                                class="url-input" 
                                placeholder="Enter URL to asset..."
+                               data-asset-name="${assetName}"
                                data-asset-index="${index}">
-                        <button class="url-apply-btn" data-asset-index="${index}">
+                        <button class="url-apply-btn" 
+                                data-asset-name="${assetName}" 
+                                data-asset-index="${index}">
                             🔗 Apply URL
                         </button>
                     </div>
@@ -180,10 +253,16 @@ function createAssetItem(asset, index) {
             </div>
             
             <div class="asset-actions">
-                <button class="reset-btn" data-asset-index="${index}" title="Reset to original embedded asset">
+                <button class="reset-btn" 
+                        data-asset-name="${assetName}" 
+                        data-asset-index="${index}" 
+                        title="Reset to original embedded asset">
                     🔄 Reset
                 </button>
-                <button class="info-btn" data-asset-index="${index}" title="Show detailed asset information">
+                <button class="info-btn" 
+                        data-asset-name="${assetName}" 
+                        data-asset-index="${index}" 
+                        title="Show detailed asset information">
                     ℹ️ Info
                 </button>
             </div>
@@ -191,7 +270,27 @@ function createAssetItem(asset, index) {
     `;
     
     // Add event listeners
-    setupAssetItemEventListeners(assetItem, asset, index);
+    setupAssetItemEventListeners(assetItem, asset, assetName, index);
+    
+    // Add click-to-expand functionality
+    const assetHeader = assetItem.querySelector('.asset-header');
+    if (assetHeader) {
+        assetHeader.addEventListener('click', (event) => {
+            // Don't expand if clicking on status indicator
+            if (event.target.closest('.status-indicator')) {
+                return;
+            }
+            
+            const isExpanded = assetItem.classList.contains('expanded');
+            logger.debug(`[UI] Asset item ${isExpanded ? 'collapsing' : 'expanding'}:`, assetName);
+            
+            if (isExpanded) {
+                assetItem.classList.remove('expanded');
+            } else {
+                assetItem.classList.add('expanded');
+            }
+        });
+    }
     
     return assetItem;
 }
@@ -200,14 +299,15 @@ function createAssetItem(asset, index) {
  * Set up event listeners for an asset item
  * @param {HTMLElement} assetItem - The asset item element
  * @param {Object} asset - The asset object
+ * @param {string} assetName - The asset name
  * @param {number} index - The asset index
  */
-function setupAssetItemEventListeners(assetItem, asset, index) {
+function setupAssetItemEventListeners(assetItem, asset, assetName, index) {
     // File input change
     const fileInput = assetItem.querySelector(`#file-input-${index}`);
     if (fileInput) {
         fileInput.addEventListener('change', (event) => {
-            handleFileReplacement(event, asset, index);
+            handleFileReplacement(event, asset, assetName, index);
         });
     }
     
@@ -217,7 +317,7 @@ function setupAssetItemEventListeners(assetItem, asset, index) {
         urlApplyBtn.addEventListener('click', () => {
             const urlInput = assetItem.querySelector('.url-input');
             if (urlInput && urlInput.value.trim()) {
-                handleUrlReplacement(urlInput.value.trim(), asset, index);
+                handleUrlReplacement(urlInput.value.trim(), asset, assetName, index);
             }
         });
     }
@@ -227,7 +327,7 @@ function setupAssetItemEventListeners(assetItem, asset, index) {
     if (urlInput) {
         urlInput.addEventListener('keypress', (event) => {
             if (event.key === 'Enter' && urlInput.value.trim()) {
-                handleUrlReplacement(urlInput.value.trim(), asset, index);
+                handleUrlReplacement(urlInput.value.trim(), asset, assetName, index);
             }
         });
     }
@@ -236,7 +336,7 @@ function setupAssetItemEventListeners(assetItem, asset, index) {
     const resetBtn = assetItem.querySelector('.reset-btn');
     if (resetBtn) {
         resetBtn.addEventListener('click', () => {
-            handleAssetReset(asset, index);
+            handleAssetReset(asset, assetName, index);
         });
     }
     
@@ -244,7 +344,7 @@ function setupAssetItemEventListeners(assetItem, asset, index) {
     const infoBtn = assetItem.querySelector('.info-btn');
     if (infoBtn) {
         infoBtn.addEventListener('click', () => {
-            showAssetInfo(asset, index);
+            showAssetInfo(asset, assetName, index);
         });
     }
 }
@@ -253,26 +353,37 @@ function setupAssetItemEventListeners(assetItem, asset, index) {
  * Handle file replacement for an asset
  * @param {Event} event - The file input change event
  * @param {Object} asset - The asset object
+ * @param {string} assetName - The asset name
  * @param {number} index - The asset index
  */
-function handleFileReplacement(event, asset, index) {
+function handleFileReplacement(event, asset, assetName, index) {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+        logger.debug('[FILE_REPLACE] No file selected');
+        return;
+    }
     
-    logger.info(`Replacing asset "${asset.name}" with local file: ${file.name}`);
+    logger.info(`[FILE_REPLACE] Replacing asset "${assetName}" with local file: ${file.name}`);
+    logger.debug('[FILE_REPLACE] File details:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified
+    });
     
     try {
         // Create a URL for the file
         const fileUrl = URL.createObjectURL(file);
+        logger.trace('[FILE_REPLACE] Created blob URL:', fileUrl);
         
-        // Apply the replacement
-        replaceAsset(asset, fileUrl, index, 'file', file.name);
+        // Apply the replacement using the pattern from the user's example
+        substituteImage(assetName, fileUrl);
         
         // Update UI to show replacement status
         updateAssetStatus(index, 'file', file.name);
         
     } catch (error) {
-        logger.error(`Error replacing asset with file:`, error);
+        logger.error(`[FILE_REPLACE] Error replacing asset with file:`, error);
         showAssetError(index, 'Failed to load local file');
     }
 }
@@ -281,99 +392,106 @@ function handleFileReplacement(event, asset, index) {
  * Handle URL replacement for an asset
  * @param {string} url - The URL to replace with
  * @param {Object} asset - The asset object
+ * @param {string} assetName - The asset name
  * @param {number} index - The asset index
  */
-function handleUrlReplacement(url, asset, index) {
-    logger.info(`Replacing asset "${asset.name}" with URL: ${url}`);
+function handleUrlReplacement(url, asset, assetName, index) {
+    logger.info(`[URL_REPLACE] Replacing asset "${assetName}" with URL: ${url}`);
     
     try {
         // Validate URL
-        new URL(url);
+        const urlObj = new URL(url);
+        logger.debug('[URL_REPLACE] URL validation passed:', {
+            protocol: urlObj.protocol,
+            hostname: urlObj.hostname,
+            pathname: urlObj.pathname
+        });
         
-        // Apply the replacement
-        replaceAsset(asset, url, index, 'url', url);
+        // Apply the replacement using the pattern from the user's example
+        substituteImage(assetName, url);
         
         // Update UI to show replacement status
         updateAssetStatus(index, 'url', url);
         
     } catch (error) {
-        logger.error(`Error replacing asset with URL:`, error);
+        logger.error(`[URL_REPLACE] Error replacing asset with URL:`, error);
         showAssetError(index, 'Invalid URL or failed to load');
     }
 }
 
 /**
- * Replace an asset in the Rive instance
- * @param {Object} asset - The asset object
- * @param {string} source - The new source (URL or blob URL)
- * @param {number} index - The asset index
- * @param {string} type - The replacement type ('file' or 'url')
- * @param {string} displayName - The display name for the replacement
+ * Substitute an image asset (following the user's example pattern)
+ * @param {string} name - The asset name
+ * @param {string} url - The URL or blob URL to load
  */
-function replaceAsset(asset, source, index, type, displayName) {
-    if (!currentRiveInstance || !asset) {
-        logger.error('Cannot replace asset: missing Rive instance or asset');
+function substituteImage(name, url) {
+    const asset = assetMap.get(name);
+    if (!asset || !url) {
+        logger.error(`[SUBSTITUTE] Cannot substitute image: asset "${name}" not found or no URL provided`);
         return;
     }
     
-    try {
-        // Fetch the asset data
-        fetch(source)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                return response.arrayBuffer();
-            })
-            .then(arrayBuffer => {
-                // Decode the image using Rive's decoder
-                if (window.rive && window.rive.decodeImage) {
-                    const uint8Array = new Uint8Array(arrayBuffer);
-                    const decodedImage = window.rive.decodeImage(uint8Array);
-                    
-                    if (decodedImage && asset.setRenderImage) {
-                        // Set the new render image
-                        asset.setRenderImage(decodedImage);
-                        
-                        // Clean up the decoded image reference
-                        decodedImage.unref();
-                        
-                        logger.info(`Successfully replaced asset "${asset.name}"`);
-                        updateAssetStatus(index, type, displayName, 'success');
-                        
-                    } else {
-                        throw new Error('Failed to decode image or asset does not support setRenderImage');
-                    }
-                } else {
-                    throw new Error('Rive image decoder not available');
-                }
-            })
-            .catch(error => {
-                logger.error(`Failed to replace asset "${asset.name}":`, error);
-                showAssetError(index, error.message);
+    logger.debug(`[SUBSTITUTE] Starting image substitution for "${name}" from URL: ${url}`);
+    
+    fetch(url)
+        .then((response) => {
+            logger.trace(`[SUBSTITUTE] Fetch response for "${name}":`, {
+                status: response.status,
+                statusText: response.statusText,
+                contentType: response.headers.get('content-type'),
+                contentLength: response.headers.get('content-length')
             });
             
-    } catch (error) {
-        logger.error(`Error in replaceAsset:`, error);
-        showAssetError(index, error.message);
-    }
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.arrayBuffer();
+        })
+        .then((buf) => {
+            logger.debug(`[SUBSTITUTE] Received ${buf.byteLength} bytes for "${name}"`);
+            
+            if (window.rive && window.rive.decodeImage) {
+                logger.trace(`[SUBSTITUTE] Decoding image for "${name}"`);
+                return window.rive.decodeImage(new Uint8Array(buf));
+            } else {
+                throw new Error('Rive decodeImage not available');
+            }
+        })
+        .then((img) => {
+            if (asset.setRenderImage) {
+                logger.debug(`[SUBSTITUTE] Setting render image for "${name}"`);
+                asset.setRenderImage(img);
+                img.unref(); // Clean up the decoded image reference
+                logger.info(`[SUBSTITUTE] Successfully replaced asset "${name}"`);
+            } else {
+                throw new Error('Asset does not support setRenderImage');
+            }
+        })
+        .catch((error) => {
+            logger.error(`[SUBSTITUTE] Image decode/replacement error for "${name}":`, error);
+            // Find the asset index for error display
+            let index = 0;
+            for (const [mapName] of assetMap) {
+                if (mapName === name) break;
+                index++;
+            }
+            showAssetError(index, error.message);
+        });
 }
 
 /**
  * Reset an asset to its original embedded version
  * @param {Object} asset - The asset object
+ * @param {string} assetName - The asset name
  * @param {number} index - The asset index
  */
-function handleAssetReset(asset, index) {
-    logger.info(`Resetting asset "${asset.name}" to original`);
+function handleAssetReset(asset, assetName, index) {
+    logger.info(`[RESET] Resetting asset "${assetName}" to original`);
     
     try {
-        // Reset to original (this might need to be implemented differently based on Rive API)
-        if (asset.resetToOriginal) {
-            asset.resetToOriginal();
-        } else {
-            logger.warn('Asset reset not supported by current Rive version');
-        }
+        // For now, we don't have a direct reset method in the Rive API
+        // This would need to be implemented by reloading the original asset
+        logger.warn('[RESET] Asset reset functionality not yet implemented - would require reloading the Rive file');
         
         // Update UI
         updateAssetStatus(index, 'embedded', 'Original');
@@ -383,12 +501,18 @@ function handleAssetReset(asset, index) {
         if (assetItem) {
             const fileInput = assetItem.querySelector('.file-input');
             const urlInput = assetItem.querySelector('.url-input');
-            if (fileInput) fileInput.value = '';
-            if (urlInput) urlInput.value = '';
+            if (fileInput) {
+                fileInput.value = '';
+                logger.debug('[RESET] Cleared file input');
+            }
+            if (urlInput) {
+                urlInput.value = '';
+                logger.debug('[RESET] Cleared URL input');
+            }
         }
         
     } catch (error) {
-        logger.error(`Error resetting asset:`, error);
+        logger.error(`[RESET] Error resetting asset:`, error);
         showAssetError(index, 'Failed to reset asset');
     }
 }
@@ -396,10 +520,10 @@ function handleAssetReset(asset, index) {
 /**
  * Show detailed asset information
  * @param {Object} asset - The asset object
+ * @param {string} assetName - The asset name
  * @param {number} index - The asset index
  */
-function showAssetInfo(asset, index) {
-    const assetName = asset.name || `Asset ${index + 1}`;
+function showAssetInfo(asset, assetName, index) {
     const assetType = getAssetType(asset);
     
     // Create info modal or expand details
@@ -408,7 +532,7 @@ function showAssetInfo(asset, index) {
         'Type': assetType,
         'Unique ID': asset.uniqueId || 'N/A',
         'CDN UUID': asset.cdnUuid || 'N/A',
-        'File Extension': asset.fileExtension || 'N/A',
+        'File Extension': asset.fileExtension || getExtensionFromName(assetName),
         'Is Image': asset.isImage ? 'Yes' : 'No',
         'Is Font': asset.isFont ? 'Yes' : 'No'
     };
@@ -501,26 +625,37 @@ function getAssetType(asset) {
  * @returns {string} The icon emoji
  */
 function getAssetIcon(assetType) {
-    switch (assetType.toLowerCase()) {
-        case 'image': return '🖼️';
-        case 'font': return '🔤';
-        case 'audio': return '🔊';
-        case 'video': return '🎥';
+    switch (assetType) {
+        case 'Image': return '🖼️';
+        case 'Font': return '🔤';
+        case 'Audio': return '🔊';
+        case 'Video': return '🎥';
         default: return '📄';
     }
 }
 
 /**
- * Get the accept types for file input based on asset type
+ * Get file extension from asset name
+ * @param {string} assetName - The asset name
+ * @returns {string} The file extension
+ */
+function getExtensionFromName(assetName) {
+    if (!assetName || typeof assetName !== 'string') return 'Unknown';
+    const parts = assetName.split('.');
+    return parts.length > 1 ? parts[parts.length - 1] : 'Unknown';
+}
+
+/**
+ * Get accept types for file input based on asset type
  * @param {string} assetType - The asset type
  * @returns {string} The accept attribute value
  */
 function getAcceptTypes(assetType) {
-    switch (assetType.toLowerCase()) {
-        case 'image': return 'image/*';
-        case 'font': return '.ttf,.otf,.woff,.woff2';
-        case 'audio': return 'audio/*';
-        case 'video': return 'video/*';
+    switch (assetType) {
+        case 'Image': return 'image/*';
+        case 'Font': return '.ttf,.otf,.woff,.woff2';
+        case 'Audio': return 'audio/*';
+        case 'Video': return 'video/*';
         default: return '*/*';
     }
 }
@@ -529,19 +664,21 @@ function getAcceptTypes(assetType) {
  * Clear the asset manager
  */
 export function clearAssetManager() {
+    logger.debug('[CLEAR] Clearing Asset Manager');
+    
+    const previousAssetCount = assetMap.size;
+    assetMap.clear();
     currentRiveInstance = null;
-    if (assetManagerContainer) {
-        showNoAssetsMessage();
-    }
+    showNoAssetsMessage();
+    
+    logger.info(`[CLEAR] Asset manager cleared (removed ${previousAssetCount} assets)`);
 }
 
 /**
- * Refresh the asset manager with current Rive instance
+ * Refresh the asset manager UI
  */
 export function refreshAssetManager() {
     if (currentRiveInstance) {
         buildAssetManagerUI();
-    } else {
-        showNoAssetsMessage();
     }
 } 

@@ -78,6 +78,27 @@ function findDOMElements() {
 	pauseTimelineBtn = document.getElementById('pauseTimelineBtn');
 	toggleStateMachineBtn = document.getElementById('toggleStateMachineBtn');
 	
+	// Debug logging for each element
+	logger.debug('DOM element search results:', {
+		riveFilePicker: !!riveFilePicker,
+		outputDiv: !!outputDiv,
+		artboardSelector: !!artboardSelector,
+		animationSelector: !!animationSelector,
+		stateMachineSelector: !!stateMachineSelector,
+		applySelectionBtn: !!applySelectionBtn,
+		toggleTimelineBtn: !!toggleTimelineBtn,
+		pauseTimelineBtn: !!pauseTimelineBtn,
+		toggleStateMachineBtn: !!toggleStateMachineBtn
+	});
+	
+	// Check if controls template exists
+	const controlsTemplate = document.getElementById('controlsTemplate');
+	const controlsComponent = document.getElementById('controls');
+	logger.debug('Template and component check:', {
+		controlsTemplate: !!controlsTemplate,
+		controlsComponent: !!controlsComponent
+	});
+	
 	logger.debug('DOM elements found and cached');
 }
 
@@ -299,7 +320,25 @@ document.addEventListener('DOMContentLoaded', () => {
 		// Wait for layout to be ready, then find DOM elements and set up event listeners
 		setTimeout(() => {
 			findDOMElements();
-			setupEventListeners();
+			
+			// Debug: Check if file picker was found
+			if (!riveFilePicker) {
+				logger.error('riveFilePicker not found after Golden Layout initialization');
+				// Try to find it again after a longer delay
+				setTimeout(() => {
+					findDOMElements();
+					if (riveFilePicker) {
+						logger.info('riveFilePicker found on second attempt');
+						setupEventListeners();
+					} else {
+						logger.error('riveFilePicker still not found after second attempt');
+					}
+				}, 500);
+			} else {
+				logger.info('riveFilePicker found successfully');
+				setupEventListeners();
+			}
+			
 			setupWindowResizeListener();
 			
 			// Expose resize function globally for Golden Layout

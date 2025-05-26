@@ -39,6 +39,7 @@ npx http-server . -p 8080
 
 ### 🛠️ Development
 - [**📁 Project Structure**](#-project-structure)
+- [**🎨 CSS Architecture**](#-css-architecture)
 
 ## ✨ Features
 
@@ -79,9 +80,17 @@ rive_dev_playground/
 │   │   ├── parser.js                 # Rive file parsing logic
 │   │   ├── riveParserHandler.js      # Main application controller
 │   │   ├── riveControlInterface.js   # Dynamic control generation
-│   │   └── dataToControlConnector.js # Data processing bridge
-│   ├── styles/                  # CSS and styling
-│   │   └── style.css            # Main application styles
+│   │   ├── dataToControlConnector.js # Data processing bridge
+│   │   └── assetManager.js           # Asset management and replacement
+│   ├── styles/                  # Modular CSS architecture
+│   │   ├── base.css             # Global styles and resets
+│   │   ├── golden-layout.css    # Layout framework styles
+│   │   ├── json-editor.css      # JSON Editor dark theme
+│   │   ├── controls.css         # Controls panel styling
+│   │   ├── dynamic-controls.css # Dynamic controls and ViewModels
+│   │   ├── canvas.css           # Canvas container styles
+│   │   ├── asset-manager.css    # Asset Manager panel
+│   │   └── style.css            # Legacy styles (minimal)
 │   └── utils/                   # Utility functions and helpers
 │       └── debugger/            # Debug logging system
 ├── docs/                        # Documentation files
@@ -99,6 +108,68 @@ rive_dev_playground/
 ├── package.json                 # Node.js dependencies
 └── README.md                    # This file
 ```
+
+## 🎨 CSS Architecture
+
+The application uses a modular CSS architecture for better maintainability and to prevent conflicts. The CSS has been split into logical modules:
+
+### Core Modules
+
+- **`base.css`** - Global styles, resets, body, html, and restore bar
+- **`golden-layout.css`** - Golden Layout specific styles and component containers
+- **`json-editor.css`** - JSON Editor dark theme and inspector panel styles
+- **`controls.css`** - Controls panel, form elements, and input styling
+- **`dynamic-controls.css`** - Dynamic controls panel and ViewModel styling
+- **`canvas.css`** - Canvas container and canvas-related styles
+- **`asset-manager.css`** - Asset Manager panel and asset replacement UI
+
+### Legacy
+- **`style.css`** - Minimal legacy styles that may still be referenced
+
+### Loading Order
+
+The CSS files are loaded in this order in `index.html`:
+
+1. `base.css` - Foundation styles
+2. `golden-layout.css` - Layout framework
+3. `json-editor.css` - JSON Editor theme
+4. `controls.css` - Form controls
+5. `dynamic-controls.css` - Dynamic controls
+6. `canvas.css` - Canvas styles
+7. `asset-manager.css` - Asset management
+
+### Scrollbar Consistency
+
+All scrollable panels use consistent scrollbar styling:
+
+```css
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+    border: 1px solid #333;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+```
+
+### Benefits
+
+- **Maintainability**: Each module focuses on a specific component
+- **Conflict Prevention**: Isolated styles reduce CSS conflicts
+- **Performance**: Easier to identify and optimize specific areas
+- **Debugging**: Easier to locate and fix styling issues
+- **Collaboration**: Multiple developers can work on different modules
 
 ## 🎯 Core Features
 

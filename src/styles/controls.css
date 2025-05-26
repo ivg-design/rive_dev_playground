@@ -1,0 +1,467 @@
+/* ===== CONTROLS PANEL STYLES ===== */
+
+/* Professional Controls Component Styling */
+.controls-container {
+    padding: 12px;
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+    background-color: #1a1a1a;
+    min-width: 300px;
+    max-width: 40vw;
+    width: 100%;
+}
+
+.control-section {
+    margin-bottom: 8px;
+    padding: 10px;
+    background-color: #2a2a2a;
+    border-radius: 6px;
+    border: 1px solid #404040;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    min-height: fit-content;
+}
+
+/* File Section */
+.file-section .file-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.file-section .file-group > div:first-child {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+/* File Selected Indicator */
+.file-selected-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: #1a4a1a;
+    border: 1px solid #2a6a2a;
+    border-radius: 4px;
+    color: #90ee90;
+    font-size: 0.85em;
+}
+
+.file-selected-indicator span {
+    flex: 1;
+    font-weight: 500;
+}
+
+.change-file-btn {
+    padding: 4px 8px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8em;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.change-file-btn:hover {
+    background-color: #357abd;
+}
+
+/* Animation Controls Grid */
+.animation-controls-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.control-row .select-input {
+    flex: 1;
+    min-width: 150px;
+}
+
+.inline-controls {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-shrink: 0;
+    width: 104px; /* 50px + 4px gap + 50px = 104px total */
+}
+
+/* Display Controls Grid */
+.display-controls-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.display-controls-grid .control-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Background Color Row */
+.bg-row {
+    justify-content: stretch;
+}
+
+.bg-color-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 36px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    overflow: hidden;
+}
+
+.bg-color-container .color-input {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    height: 100% !important;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 1;
+    padding: 0 !important;
+}
+
+.bg-color-label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.85em;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 2;
+    color: var(--label-color, #ffffff);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(255, 255, 255, 0.3);
+    mix-blend-mode: difference;
+}
+
+/* Layout Row */
+.layout-row {
+    gap: 6px;
+}
+
+.layout-row .select-input {
+    flex: 1;
+    min-width: 100px;
+}
+
+.layout-row .number-input {
+    flex-shrink: 0;
+    width: 70px;
+}
+
+/* Apply Button Styling */
+.apply-btn {
+    padding: 6px 12px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    height: 32px;
+    white-space: nowrap;
+    box-sizing: border-box;
+    line-height: 1.2;
+    flex-shrink: 0;
+    width: 104px; /* Match inline controls width exactly */
+}
+
+.apply-btn:hover {
+    background-color: #357abd;
+    transform: translateY(-1px);
+}
+
+.file-section .file-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    color: #d4d4d4;
+    font-size: 0.85em;
+    height: 36px;
+    box-sizing: border-box;
+    line-height: 1.2;
+}
+
+.clear-file-btn {
+    padding: 8px 16px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    height: 36px;
+    box-sizing: border-box;
+    line-height: 1.2;
+    width: 104px;
+}
+
+.clear-file-btn:hover {
+    background-color: #c82333;
+    transform: translateY(-1px);
+}
+
+/* Input Styling */
+.select-input {
+    padding: 8px 12px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    color: #d4d4d4;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 36px;
+    min-width: 120px;
+    box-sizing: border-box;
+    line-height: 1.2;
+}
+
+.select-input:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 1px rgba(74, 144, 226, 0.3);
+}
+
+.select-input:hover {
+    border-color: #666;
+}
+
+.number-input {
+    padding: 8px 12px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    color: #d4d4d4;
+    font-size: 0.85em;
+    height: 36px;
+    width: 90px;
+    box-sizing: border-box;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.number-input:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 1px rgba(74, 144, 226, 0.3);
+}
+
+.number-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.color-input {
+    width: 60px;
+    height: 36px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+.color-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: 4px;
+}
+
+.color-input::-webkit-color-swatch {
+    border: none;
+    border-radius: 4px;
+}
+
+/* Apply Group */
+.apply-group {
+    display: flex;
+    align-items: flex-end;
+}
+
+.primary-btn {
+    padding: 8px 20px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    height: 36px;
+    white-space: nowrap;
+    box-sizing: border-box;
+    line-height: 1.2;
+}
+
+.primary-btn:hover {
+    background-color: #357abd;
+    transform: translateY(-1px);
+}
+
+.button-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+
+/* Playback Control Buttons */
+.toggle-btn,
+.pause-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: white;
+    transition: all 0.2s ease;
+    min-width: 60px;
+    height: 36px;
+    box-sizing: border-box;
+    line-height: 1.2;
+}
+
+/* Inline Control Buttons - Smaller for inline use */
+.inline-controls .toggle-btn {
+    padding: 6px 4px;
+    width: 50px;
+    min-width: 50px;
+    height: 32px;
+    font-size: 0.8em;
+}
+
+.inline-controls .pause-btn {
+    padding: 6px 4px;
+    width: 50px;
+    min-width: 50px;
+    height: 32px;
+    font-size: 0.8em;
+}
+
+/* State Machine button should be 104px */
+#toggleStateMachineBtn {
+    width: 104px !important;
+}
+
+/* Toggle Button States (Play/Stop) */
+.toggle-btn[data-state="stopped"] {
+    background-color: #35a35f;
+}
+
+.toggle-btn[data-state="stopped"]:hover {
+    background-color: #42c474;
+}
+
+.toggle-btn[data-state="playing"] {
+    background-color: #e74c3c;
+}
+
+.toggle-btn[data-state="playing"]:hover {
+    background-color: #ec7063;
+}
+
+/* Pause Button States */
+.pause-btn[data-state="unpaused"] {
+    background-color: #f39c12;
+    border: 2px solid #f39c12;
+}
+
+.pause-btn[data-state="unpaused"]:hover {
+    background-color: #f5b041;
+    border-color: #f5b041;
+}
+
+.pause-btn[data-state="paused"] {
+    background-color: #2c3e50;
+    border: 2px solid #f39c12;
+    box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.3);
+}
+
+.pause-btn[data-state="paused"]:hover {
+    background-color: #34495e;
+    border-color: #f5b041;
+    box-shadow: 0 0 0 2px rgba(245, 176, 65, 0.4);
+}
+
+.toggle-btn:disabled,
+.pause-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .control-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .control-row .select-input {
+        min-width: unset;
+        margin-bottom: 4px;
+    }
+    
+    .inline-controls {
+        justify-content: flex-start;
+    }
+    
+    .file-section .file-group {
+        flex-direction: column;
+    }
+    
+    .display-controls-grid .control-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+@media (max-width: 400px) {
+    .controls-container {
+        padding: 8px;
+    }
+    
+    .control-section {
+        padding: 8px;
+        margin-bottom: 6px;
+    }
+    
+    .inline-controls .toggle-btn,
+    .inline-controls .pause-btn {
+        padding: 4px 8px;
+        width: 50px;
+        min-width: 50px;
+        height: 28px;
+        font-size: 0.75em;
+    }
+} 

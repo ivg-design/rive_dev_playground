@@ -6,6 +6,7 @@
 
 import { processDataForControls } from './dataToControlConnector.js';
 import { createLogger } from '../utils/debugger/debugLogger.js';
+import { setAssetMap } from './assetManager.js';
 
 // Create a logger for this module
 const logger = createLogger('controlInterface');
@@ -489,6 +490,9 @@ export function initDynamicControls(parsedDataFromHandler) {
         logger.info('[controlInterface] No state machines found in parsed data to autoplay.');
     }
 
+    // Create asset map for Asset Manager
+    const assetMap = new Map();
+    
     const riveOptions = {
         src: src,
         canvas: canvas,
@@ -497,6 +501,14 @@ export function initDynamicControls(parsedDataFromHandler) {
         autoplay: true, // Autoplay the selected state machine
         autoBind: true,
         onStateChange: handleConstructorStateChange,
+        // Capture assets for the Asset Manager
+        assetLoader: (asset) => {
+            if (asset.isImage) {
+                assetMap.set(asset.name, asset);
+                logger.debug(`Captured image asset: ${asset.name}`);
+            }
+            return false; // Let Rive handle the loading
+        },
     };
 
     logger.info('[controlInterface] Creating new Rive instance with options:', { 
@@ -575,8 +587,12 @@ export function initDynamicControls(parsedDataFromHandler) {
         window.riveInstanceGlobal = riveInstance;
         logger.info('[controlInterface] Rive instance exposed as window.riveInstanceGlobal for console debugging.');
         
-        // Initialize Asset Manager with the new Rive instance
+        // Initialize Asset Manager with the asset map
         try {
+            logger.info(`[controlInterface] Initializing Asset Manager with ${assetMap.size} captured assets`);
+            setAssetMap(assetMap);
+            
+            // Also initialize with the Rive instance for compatibility
             import('./assetManager.js').then(({ initializeAssetManager }) => {
                 initializeAssetManager(riveInstance);
                 logger.info('[controlInterface] Asset Manager initialized with Rive instance');

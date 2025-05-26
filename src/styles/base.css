@@ -1,0 +1,131 @@
+/* ===== BASE STYLES ===== */
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    background-color: #1e1e1e;
+}
+
+body {
+    font-family: sans-serif;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+/* Global scrollbar reset - ensure our specific styles take precedence */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #444 #1a1a1a;
+}
+
+/* Reset any default webkit scrollbar styles */
+*::-webkit-scrollbar {
+    width: 8px;
+}
+
+*::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Status message positioning */
+.log-message {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+    background-color: #2a2a2a;
+    border-top: 1px solid #444;
+    margin: 0;
+    z-index: 1000;
+}
+
+/* Restore Bar */
+.restore-bar {
+    width: 100%;
+    background-color: #2a2a2a;
+    border-bottom: 1px solid #444;
+    z-index: 2000;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.restore-bar.collapsed {
+    height: 24px;
+    overflow: hidden;
+}
+
+.restore-bar-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    flex-wrap: wrap;
+}
+
+.restore-bar-collapsed {
+    padding: 4px 12px;
+    color: #888;
+    font-size: 0.8em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.layout-reset-btn {
+    padding: 2px 8px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.7em;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.layout-reset-btn:hover {
+    background-color: #c82333;
+}
+
+.restore-label {
+    color: #cccccc;
+    font-size: 0.85em;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.restore-btn {
+    padding: 4px 12px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.restore-btn:hover {
+    background-color: #357abd;
+} 

@@ -10,6 +10,7 @@ const logger = createLogger('goldenLayout');
 
 let goldenLayout = null;
 let jsonEditorInstance = null;
+let restoreMenuUpdateTimeout = null;
 
 /**
  * Default Golden Layout configuration for v1.5.9
@@ -251,11 +252,15 @@ const componentFactories = {
             const element = container.getElement();
             if (element && element.length > 0) {
                 element[0].appendChild(content);
+                // Allow Golden Layout's lm_content to scroll if our component overflows
+                element[0].style.overflow = 'auto'; 
             } else if (element && element.appendChild) {
                 element.appendChild(content);
+                // Allow Golden Layout's lm_content to scroll
+                element.style.overflow = 'auto';
             }
             
-            logger.info('Asset Manager component created');
+            logger.info('Asset Manager component created and configured for scrolling');
         } catch (error) {
             logger.error('Error creating assetManager component:', error);
         }
@@ -325,11 +330,6 @@ export function initializeGoldenLayout() {
             }, 100);
         });
 
-        // Add error handling
-        goldenLayout.on('componentCreated', (component) => {
-            logger.info('Component created:', component.config.type);
-        });
-
         goldenLayout.on('initialised', () => {
             logger.info('Golden Layout initialized successfully');
             addRestoreMenu();
@@ -353,11 +353,50 @@ export function initializeGoldenLayout() {
             
             // Set up constraints for controls panel
             setupControlsConstraints();
+            
+            // Set up periodic restore menu sync to catch any missed events
+            const syncInterval = setInterval(() => {
+                if (goldenLayout && goldenLayout.isInitialised) {
+                    debouncedAddRestoreMenu();
+                } else {
+                    clearInterval(syncInterval);
+                }
+            }, 2000); // Check every 2 seconds
+            
+            // Store the interval for cleanup
+            goldenLayout._syncInterval = syncInterval;
         });
 
-        // Handle item destruction to update restore menu
+        // Handle item destruction and creation to update restore menu
         goldenLayout.on('itemDestroyed', (item) => {
-            setTimeout(addRestoreMenu, 100); // Delay to ensure layout is updated
+            logger.debug('Item destroyed:', item.config);
+            debouncedAddRestoreMenu();
+        });
+
+        // Handle component creation to update restore menu
+        goldenLayout.on('componentCreated', (component) => {
+            logger.info('Component created:', component.config.componentName);
+            debouncedAddRestoreMenu();
+        });
+
+        // Handle tab creation (when panels are restored)
+        goldenLayout.on('tabCreated', (tab) => {
+            logger.debug('Tab created:', tab.contentItem.config);
+            debouncedAddRestoreMenu();
+        });
+
+        // Handle stack creation (when new panel containers are created)
+        goldenLayout.on('stackCreated', (stack) => {
+            logger.debug('Stack created');
+            debouncedAddRestoreMenu();
+        });
+
+        // Handle item added events (broader than just components)
+        goldenLayout.on('itemCreated', (item) => {
+            if (item.config && item.config.componentName) {
+                logger.debug('Item created with component:', item.config.componentName);
+                debouncedAddRestoreMenu();
+            }
         });
 
         // Initialize the layout
@@ -461,6 +500,16 @@ export function getJSONEditor() {
 }
 
 /**
+ * Debounced version of addRestoreMenu to prevent excessive updates
+ */
+function debouncedAddRestoreMenu() {
+    if (restoreMenuUpdateTimeout) {
+        clearTimeout(restoreMenuUpdateTimeout);
+    }
+    restoreMenuUpdateTimeout = setTimeout(addRestoreMenu, 150);
+}
+
+/**
  * Add restore bar for closed panels
  */
 function addRestoreMenu() {
@@ -470,17 +519,30 @@ function addRestoreMenu() {
         existingBar.remove();
     }
 
-    if (!goldenLayout) return;
+    if (!goldenLayout || !goldenLayout.isInitialised) {
+        logger.debug('Golden Layout not ready for restore menu');
+        return;
+    }
 
     const allComponents = ['controls', 'canvas', 'dynamicControls', 'jsonInspector', 'assetManager'];
     const missingComponents = [];
+    const foundComponents = [];
 
     // Check which components are missing
     allComponents.forEach(componentName => {
         const found = findComponentInLayout(goldenLayout.root, componentName);
         if (!found) {
             missingComponents.push(componentName);
+            logger.debug(`Component ${componentName} is missing from layout`);
+        } else {
+            foundComponents.push(componentName);
+            logger.trace(`Component ${componentName} found in layout`);
         }
+    });
+
+    logger.debug(`Restore menu update: Found ${foundComponents.length} components, Missing ${missingComponents.length} components`, {
+        found: foundComponents,
+        missing: missingComponents
     });
 
     // Always show the bar, but collapse it if no missing components
@@ -535,16 +597,33 @@ function addRestoreMenu() {
  * Find component in layout recursively
  */
 function findComponentInLayout(item, componentName) {
+    // Check if this item is the component we're looking for
     if (item.config && item.config.componentName === componentName) {
+        logger.trace(`Found component ${componentName} in layout`);
         return true;
     }
-    if (item.contentItems) {
+    
+    // Check if this item has the component type directly
+    if (item.config && item.config.type === 'component' && item.config.componentName === componentName) {
+        logger.trace(`Found component ${componentName} as direct component type`);
+        return true;
+    }
+    
+    // Recursively search in content items
+    if (item.contentItems && Array.isArray(item.contentItems)) {
         for (let child of item.contentItems) {
             if (findComponentInLayout(child, componentName)) {
                 return true;
             }
         }
     }
+    
+    // Also check if the item has a componentName property directly (for some Golden Layout versions)
+    if (item.componentName === componentName) {
+        logger.trace(`Found component ${componentName} via direct componentName property`);
+        return true;
+    }
+    
     return false;
 }
 
@@ -566,7 +645,17 @@ function getComponentDisplayName(componentName) {
  * Restore a missing component
  */
 function restoreComponent(componentName) {
-    if (!goldenLayout) return;
+    if (!goldenLayout || !goldenLayout.isInitialised) {
+        logger.error('Cannot restore component: Golden Layout not ready');
+        return;
+    }
+
+    // Check if component already exists
+    if (findComponentInLayout(goldenLayout.root, componentName)) {
+        logger.warn(`Component ${componentName} already exists in layout`);
+        debouncedAddRestoreMenu(); // Update menu to reflect current state
+        return;
+    }
 
     const newItemConfig = {
         type: 'component',
@@ -574,28 +663,52 @@ function restoreComponent(componentName) {
         title: getComponentDisplayName(componentName)
     };
 
+    logger.info(`Attempting to restore component: ${componentName}`);
+
     try {
-        // Try to add to the first available container
-        const root = goldenLayout.root;
-        if (root.contentItems && root.contentItems.length > 0) {
-            const firstContainer = root.contentItems[0];
-            if (firstContainer.addChild) {
-                firstContainer.addChild(newItemConfig);
-            } else if (firstContainer.contentItems && firstContainer.contentItems.length > 0) {
-                // Try to add to a stack or column
-                const target = firstContainer.contentItems.find(item => 
-                    item.type === 'stack' || item.type === 'column'
-                );
-                if (target && target.addChild) {
-                    target.addChild(newItemConfig);
+        // Find the best place to add the component
+        let targetContainer = null;
+        
+        // Try to find a suitable container (stack, row, or column)
+        const findSuitableContainer = (item) => {
+            if (item.type === 'stack' && item.addChild) {
+                return item;
+            }
+            if ((item.type === 'row' || item.type === 'column') && item.addChild) {
+                return item;
+            }
+            if (item.contentItems) {
+                for (let child of item.contentItems) {
+                    const found = findSuitableContainer(child);
+                    if (found) return found;
                 }
+            }
+            return null;
+        };
+
+        targetContainer = findSuitableContainer(goldenLayout.root);
+        
+        if (targetContainer) {
+            logger.debug(`Adding component ${componentName} to container type: ${targetContainer.type}`);
+            targetContainer.addChild(newItemConfig);
+            logger.info(`Successfully restored component: ${componentName}`);
+        } else {
+            // Fallback: try to add to root if it supports it
+            if (goldenLayout.root.addChild) {
+                goldenLayout.root.addChild(newItemConfig);
+                logger.info(`Restored component ${componentName} to root`);
+            } else {
+                throw new Error('No suitable container found for component restoration');
             }
         }
         
-        setTimeout(addRestoreMenu, 100); // Update menu after restoration
-        logger.info(`Restored component: ${componentName}`);
+        // Update menu after a delay to ensure the component is fully created
+        setTimeout(debouncedAddRestoreMenu, 200);
+        
     } catch (error) {
         logger.error(`Error restoring component ${componentName}:`, error);
+        // Still update the menu in case of partial success
+        debouncedAddRestoreMenu();
     }
 }
 
@@ -670,6 +783,14 @@ export function resetLayoutToDefault() {
 }
 
 /**
+ * Manually refresh the restore menu (useful for debugging or if events are missed)
+ */
+export function refreshRestoreMenu() {
+    logger.debug('Manually refreshing restore menu');
+    debouncedAddRestoreMenu();
+}
+
+/**
  * Destroy Golden Layout
  */
 export function destroyGoldenLayout() {
@@ -684,6 +805,17 @@ export function destroyGoldenLayout() {
             // Remove resize handler
             if (goldenLayout._resizeHandler) {
                 window.removeEventListener('resize', goldenLayout._resizeHandler);
+            }
+            
+            // Clear sync interval
+            if (goldenLayout._syncInterval) {
+                clearInterval(goldenLayout._syncInterval);
+            }
+            
+            // Clear any pending restore menu updates
+            if (restoreMenuUpdateTimeout) {
+                clearTimeout(restoreMenuUpdateTimeout);
+                restoreMenuUpdateTimeout = null;
             }
             
             goldenLayout.destroy();
