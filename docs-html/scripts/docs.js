@@ -73,7 +73,7 @@ function initSidebarNavigation() {
  */
 function initActiveNavigation() {
 	const sections = document.querySelectorAll(
-		"section[id], h1[id], h2[id], h3[id]",
+		"section[id], h1[id], h2[id], h3[id]"
 	);
 	const sidebarLinks = document.querySelectorAll('.sidebar-link[href^="#"]');
 
