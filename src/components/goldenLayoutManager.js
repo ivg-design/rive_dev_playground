@@ -877,17 +877,17 @@ function openDocumentation() {
 			const baseUrl = currentUrl.split("/").slice(0, 3).join("/");
 			docsUrl = `${baseUrl.replace("8000", "8001")}/`;
 		} else if (currentUrl.includes("github.io")) {
-			// GitHub Pages - docs are deployed to /source_docs/ path from root
+			// GitHub Pages - docs are deployed to /docs/ path from root
 			if (currentUrl.includes("/rive-playground/")) {
 				// We're in the app, go up to root then to docs
-				docsUrl = "../source_docs/";
+				docsUrl = "../docs/";
 			} else {
 				// We're at root level
-				docsUrl = "./source_docs/";
+				docsUrl = "./docs/";
 			}
 		} else {
 			// Fallback to relative docs path
-			docsUrl = "../source_docs/";
+			docsUrl = "../docs/";
 		}
 
 		logger.info("Opening documentation:", docsUrl);
@@ -895,7 +895,7 @@ function openDocumentation() {
 	} catch (error) {
 		logger.error("Error opening documentation:", error);
 		// Fallback: try relative path
-		docsUrl = "../source_docs/";
+		docsUrl = "../docs/";
 		window.open(docsUrl, "_blank", "noopener,noreferrer");
 	}
 }
