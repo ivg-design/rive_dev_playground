@@ -1,3 +1,7 @@
+## [1.2.2] - 2025-05-27
+### Changes
+- [fix] configure pymdownx.emoji for proper Material icon rendering in docs
+- fix: deploy mkdocs_site as /docs in GitHub Pages workflow
 ## [1.2.1] - 2025-05-27
 ### Changes
 - chore: remove outdated documentation files and assets from the repository[fix]\n\n- Deleted various markdown files related to user guides, debugging, runtime controls, asset management, installation, and quick start.\n- Removed associated CSS and HTML files for documentation.\n- Cleaned up the repository to streamline the documentation structure and focus on essential content.
