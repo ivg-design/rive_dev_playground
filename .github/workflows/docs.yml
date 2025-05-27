@@ -1,14 +1,7 @@
-name: Deploy Documentation
+name: Deploy Documentation (DISABLED - Docs now included in main deployment)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'docs/**'
-      - 'mkdocs.yml'
-      - 'requirements.txt'
-      - '.github/workflows/docs.yml'
+  # Disabled - docs are now built and deployed as part of deploy-rive-tester.yml
   workflow_dispatch:
 
 permissions:

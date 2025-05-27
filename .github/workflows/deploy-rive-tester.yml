@@ -32,6 +32,20 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
+            - name: Setup Python for docs
+              uses: actions/setup-python@v4
+              with:
+                  python-version: '3.11'
+
+            - name: Install docs dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install -r requirements.txt
+
+            - name: Build documentation
+              run: |
+                  mkdocs build --clean --strict
+
             - name: Setup Pages
               uses: actions/configure-pages@v4
 
@@ -52,8 +66,8 @@ jobs:
                   cp -r src/styles _site/rive-playground/src/
                   cp -r src/utils _site/rive-playground/src/
 
-                  # Copy docs directory
-                  cp -r docs _site/rive-playground/
+                  # Copy built documentation
+                  cp -r site _site/docs
 
                   # Copy animations directory if it exists
                   if [ -d "animations" ]; then
@@ -265,11 +279,11 @@ jobs:
                               
                               <div class="tool-card">
                                   <div class="tool-icon">📚</div>
-                                  <h2>Adobe CEP Documentation</h2>
-                                  <p>Comprehensive documentation and guides for developing Adobe Creative Suite extensions using CEP (Common Extensibility Platform) with modern web technologies.</p>
-                                  <a href="https://ivg-design.github.io/cep" class="btn btn-secondary">
+                                  <h2>Rive Playground Documentation</h2>
+                                  <p>Comprehensive documentation for the Rive Playground including user guides, development docs, and API reference. Learn how to use all features and extend the tool.</p>
+                                  <a href="./docs/" class="btn btn-secondary">
                                       View Documentation
-                                      <span>↗</span>
+                                      <span>→</span>
                                   </a>
                               </div>
                           </div>

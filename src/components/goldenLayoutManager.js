@@ -808,11 +808,17 @@ function openDocumentation() {
             const baseUrl = currentUrl.split('/').slice(0, 3).join('/');
             docsUrl = `${baseUrl.replace('8000', '8001')}/`;
         } else if (currentUrl.includes('github.io')) {
-            // GitHub Pages - MkDocs will be deployed to /docs/ path
-            docsUrl = 'https://ivg-design.github.io/rive_dev_playground/docs/';
+            // GitHub Pages - docs are deployed to /docs/ path from root
+            if (currentUrl.includes('/rive-playground/')) {
+                // We're in the app, go up to root then to docs
+                docsUrl = '../docs/';
+            } else {
+                // We're at root level
+                docsUrl = './docs/';
+            }
         } else {
-            // Fallback to MkDocs site
-            docsUrl = './site/';
+            // Fallback to relative docs path
+            docsUrl = '../docs/';
         }
         
         logger.info('Opening documentation:', docsUrl);
@@ -820,7 +826,7 @@ function openDocumentation() {
     } catch (error) {
         logger.error('Error opening documentation:', error);
         // Fallback: try relative path
-        window.open('./docs/', '_blank', 'noopener,noreferrer');
+        window.open('../docs/', '_blank', 'noopener,noreferrer');
     }
 }
 
