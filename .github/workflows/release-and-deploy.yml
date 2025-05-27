@@ -445,7 +445,7 @@ jobs:
                           <div class="tool-icon">📚</div>
                           <h2>Rive Playground Documentation</h2>
                           <p>Comprehensive documentation for the Rive Playground including user guides, development docs, and API reference. Learn how to use all features and extend the tool.</p>
-                          <a href="./source_docs/" class="btn btn-secondary">
+                          <a href="./docs/" class="btn btn-secondary">
                               View Documentation
                               <span>→</span>
                           </a>
