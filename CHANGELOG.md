@@ -5,6 +5,10 @@
 - Reformatted all project files using Prettier
 - Fixed GitHub Actions workflow: added `version_type` input to `semantic-release.yml` for correct context access
 - General documentation and config improvements
+- Renamed documentation source folder from `docs/` to `source_docs/`
+- Renamed generated documentation site from `docs-html/` to `mkdocs_site/`
+- Updated all scripts, configuration, and workflow files to reference the new folder names
+- Ensured MkDocs and deployment workflows use the new paths
 
 ## [1.2.0] - 2025-05-27
 
