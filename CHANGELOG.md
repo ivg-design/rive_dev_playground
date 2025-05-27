@@ -1,3 +1,6 @@
+## [1.2.5] - 2025-05-27
+### Changes
+- fix: simplify pymdownx.emoji configuration and update VSCode settings for GitHub Actions workflow [fix]
 ## [1.2.4] - 2025-05-27
 ### Changes
 - fix: update documentation links and paths to reflect the new Rive Tester application structure and improve emoji rendering configuration[fix]
