@@ -365,15 +365,38 @@ document.addEventListener('DOMContentLoaded', () => {
 			// Initialize layout scale state
 			const riveFitSelect = document.getElementById('riveFitSelect');
 			const layoutScaleInput = document.getElementById('layoutScaleInput');
+			const scaleUpBtn = document.getElementById('scaleUpBtn');
+			const scaleDownBtn = document.getElementById('scaleDownBtn');
+			
 			if (riveFitSelect && layoutScaleInput) {
 				const fitValue = riveFitSelect.value;
-				layoutScaleInput.disabled = fitValue !== 'layout';
+							logger.debug(`[Init] Fit mode: ${fitValue}, Scale input value: "${layoutScaleInput.value}", Input element:`, layoutScaleInput);
+			
+			// Force set the value to ensure it's visible
+			if (!layoutScaleInput.value || layoutScaleInput.value === '') {
+				layoutScaleInput.value = '1.0';
+				logger.debug('[Init] Forced scale input value to 1.0');
+			}
+			
+			layoutScaleInput.disabled = fitValue !== 'layout';
 				if (fitValue === 'layout') {
 					layoutScaleInput.style.opacity = '1';
 					layoutScaleInput.style.cursor = 'text';
 				} else {
 					layoutScaleInput.style.opacity = '0.5';
 					layoutScaleInput.style.cursor = 'not-allowed';
+				}
+				
+				// Initialize scale buttons
+				if (scaleUpBtn && scaleDownBtn) {
+					const isLayoutMode = fitValue === 'layout';
+					scaleUpBtn.disabled = !isLayoutMode;
+					scaleDownBtn.disabled = !isLayoutMode;
+					scaleUpBtn.style.opacity = isLayoutMode ? '1' : '0.5';
+					scaleDownBtn.style.opacity = isLayoutMode ? '1' : '0.5';
+					scaleUpBtn.style.cursor = isLayoutMode ? 'pointer' : 'not-allowed';
+					scaleDownBtn.style.cursor = isLayoutMode ? 'pointer' : 'not-allowed';
+					logger.debug(`[Init] Scale buttons initialized, layout mode: ${isLayoutMode}`);
 				}
 			}
 			
@@ -448,6 +471,8 @@ function setupEventListeners() {
 	const riveFitSelect = document.getElementById('riveFitSelect');
 	const riveAlignmentSelect = document.getElementById('riveAlignmentSelect');
 	const layoutScaleInput = document.getElementById('layoutScaleInput');
+	const scaleUpBtn = document.getElementById('scaleUpBtn');
+	const scaleDownBtn = document.getElementById('scaleDownBtn');
 
 	if (riveFitSelect) {
 		riveFitSelect.addEventListener('change', handleRiveLayoutChange);
@@ -457,6 +482,12 @@ function setupEventListeners() {
 	}
 	if (layoutScaleInput) {
 		layoutScaleInput.addEventListener('input', handleRiveLayoutChange);
+	}
+	if (scaleUpBtn) {
+		scaleUpBtn.addEventListener('click', handleScaleUp);
+	}
+	if (scaleDownBtn) {
+		scaleDownBtn.addEventListener('click', handleScaleDown);
 	}
 	
 	logger.debug('Event listeners set up');
@@ -1211,17 +1242,32 @@ function handleRiveLayoutChange() {
 	const fitValue = riveFitSelect.value;
 	const alignmentValue = riveAlignmentSelect.value;
 	const scaleValue = parseFloat(layoutScaleInput.value) || 1;
+	
+	logger.debug(`[LayoutChange] Fit: ${fitValue}, Alignment: ${alignmentValue}, Scale input value: "${layoutScaleInput.value}", Parsed scale: ${scaleValue}`);
 
 	// Enable/disable layout scale input based on fit type
 	layoutScaleInput.disabled = fitValue !== 'layout';
 	
-	// Update visual state
+	// Update visual state for scale input
 	if (fitValue === 'layout') {
 		layoutScaleInput.style.opacity = '1';
 		layoutScaleInput.style.cursor = 'text';
 	} else {
 		layoutScaleInput.style.opacity = '0.5';
 		layoutScaleInput.style.cursor = 'not-allowed';
+	}
+	
+	// Update scale button states
+	const scaleUpBtn = document.getElementById('scaleUpBtn');
+	const scaleDownBtn = document.getElementById('scaleDownBtn');
+	if (scaleUpBtn && scaleDownBtn) {
+		const isLayoutMode = fitValue === 'layout';
+		scaleUpBtn.disabled = !isLayoutMode;
+		scaleDownBtn.disabled = !isLayoutMode;
+		scaleUpBtn.style.opacity = isLayoutMode ? '1' : '0.5';
+		scaleDownBtn.style.opacity = isLayoutMode ? '1' : '0.5';
+		scaleUpBtn.style.cursor = isLayoutMode ? 'pointer' : 'not-allowed';
+		scaleDownBtn.style.cursor = isLayoutMode ? 'pointer' : 'not-allowed';
 	}
 
 	try {
@@ -1283,6 +1329,80 @@ function handleRiveLayoutChange() {
 			statusMessageDiv.textContent = `Error updating layout: ${error.message}`;
 		}
 	}
+}
+
+/**
+ * Handles scale up button click
+ */
+function handleScaleUp() {
+	const layoutScaleInput = document.getElementById('layoutScaleInput');
+	const riveFitSelect = document.getElementById('riveFitSelect');
+	
+	logger.debug(`[ScaleUp] Button clicked. Input found: ${!!layoutScaleInput}, Fit select found: ${!!riveFitSelect}`);
+	
+	if (!layoutScaleInput || !riveFitSelect) {
+		logger.warn('[ScaleUp] Missing required elements');
+		return;
+	}
+	
+	const fitValue = riveFitSelect.value;
+	logger.debug(`[ScaleUp] Current fit mode: ${fitValue}`);
+	
+	if (fitValue !== 'layout') {
+		logger.debug('[ScaleUp] Not in layout mode, ignoring click');
+		return;
+	}
+	
+	const currentValue = parseFloat(layoutScaleInput.value) || 1;
+	const step = parseFloat(layoutScaleInput.step) || 0.1;
+	const max = parseFloat(layoutScaleInput.max) || 5;
+	
+	logger.debug(`[ScaleUp] Current: ${currentValue}, Step: ${step}, Max: ${max}`);
+	
+	const newValue = Math.min(currentValue + step, max);
+	layoutScaleInput.value = newValue.toFixed(1);
+	
+	logger.debug(`[ScaleUp] New value set: ${newValue.toFixed(1)}`);
+	
+	// Trigger the layout change
+	handleRiveLayoutChange();
+}
+
+/**
+ * Handles scale down button click
+ */
+function handleScaleDown() {
+	const layoutScaleInput = document.getElementById('layoutScaleInput');
+	const riveFitSelect = document.getElementById('riveFitSelect');
+	
+	logger.debug(`[ScaleDown] Button clicked. Input found: ${!!layoutScaleInput}, Fit select found: ${!!riveFitSelect}`);
+	
+	if (!layoutScaleInput || !riveFitSelect) {
+		logger.warn('[ScaleDown] Missing required elements');
+		return;
+	}
+	
+	const fitValue = riveFitSelect.value;
+	logger.debug(`[ScaleDown] Current fit mode: ${fitValue}`);
+	
+	if (fitValue !== 'layout') {
+		logger.debug('[ScaleDown] Not in layout mode, ignoring click');
+		return;
+	}
+	
+	const currentValue = parseFloat(layoutScaleInput.value) || 1;
+	const step = parseFloat(layoutScaleInput.step) || 0.1;
+	const min = parseFloat(layoutScaleInput.min) || 0.1;
+	
+	logger.debug(`[ScaleDown] Current: ${currentValue}, Step: ${step}, Min: ${min}`);
+	
+	const newValue = Math.max(currentValue - step, min);
+	layoutScaleInput.value = newValue.toFixed(1);
+	
+	logger.debug(`[ScaleDown] New value set: ${newValue.toFixed(1)}`);
+	
+	// Trigger the layout change
+	handleRiveLayoutChange();
 }
 
 

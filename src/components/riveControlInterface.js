@@ -1088,6 +1088,8 @@ class RiveControlInterface {
         this.fitSelect = document.getElementById('riveFitSelect');
         this.alignmentSelect = document.getElementById('riveAlignmentSelect');
         this.scaleInput = document.getElementById('layoutScaleInput');
+        this.scaleUpBtn = document.getElementById('scaleUpBtn');
+        this.scaleDownBtn = document.getElementById('scaleDownBtn');
 
         // State management
         this.state = {
@@ -1172,6 +1174,12 @@ class RiveControlInterface {
         }
         if (this.scaleInput) {
             this.scaleInput.addEventListener('input', (e) => this.updateScale(e));
+        }
+        if (this.scaleUpBtn) {
+            this.scaleUpBtn.addEventListener('click', () => this.handleScaleUp());
+        }
+        if (this.scaleDownBtn) {
+            this.scaleDownBtn.addEventListener('click', () => this.handleScaleDown());
         }
 
         // Keyboard shortcuts
@@ -1495,6 +1503,26 @@ class RiveControlInterface {
 
     updateFitMode(event) {
         this.state.fitMode = event.target.value;
+        
+        // Enable/disable scale input based on fit mode
+        if (this.scaleInput) {
+            const isLayoutMode = event.target.value === 'layout';
+            this.scaleInput.disabled = !isLayoutMode;
+            this.scaleInput.style.opacity = isLayoutMode ? '1' : '0.5';
+            this.scaleInput.style.cursor = isLayoutMode ? 'text' : 'not-allowed';
+        }
+        
+        // Enable/disable scale buttons based on fit mode
+        if (this.scaleUpBtn && this.scaleDownBtn) {
+            const isLayoutMode = event.target.value === 'layout';
+            this.scaleUpBtn.disabled = !isLayoutMode;
+            this.scaleDownBtn.disabled = !isLayoutMode;
+            this.scaleUpBtn.style.opacity = isLayoutMode ? '1' : '0.5';
+            this.scaleDownBtn.style.opacity = isLayoutMode ? '1' : '0.5';
+            this.scaleUpBtn.style.cursor = isLayoutMode ? 'pointer' : 'not-allowed';
+            this.scaleDownBtn.style.cursor = isLayoutMode ? 'pointer' : 'not-allowed';
+        }
+        
         this.applyDisplaySettings();
         this.saveSettings();
         this.showNotification(`Fit mode set to ${event.target.value}`, 'info');
@@ -1517,15 +1545,84 @@ class RiveControlInterface {
         }
     }
 
+    handleScaleUp() {
+        logger.debug(`[RiveControlInterface] ScaleUp clicked. Input: ${!!this.scaleInput}, Fit mode: ${this.state.fitMode}`);
+        
+        if (!this.scaleInput || this.state.fitMode !== 'layout') {
+            logger.debug('[RiveControlInterface] ScaleUp ignored - not in layout mode or no input');
+            return;
+        }
+        
+        const currentValue = parseFloat(this.scaleInput.value) || 1;
+        const step = parseFloat(this.scaleInput.step) || 0.1;
+        const max = parseFloat(this.scaleInput.max) || 5;
+        
+        logger.debug(`[RiveControlInterface] ScaleUp - Current: ${currentValue}, Step: ${step}, Max: ${max}`);
+        
+        const newValue = Math.min(currentValue + step, max);
+        this.scaleInput.value = newValue.toFixed(1);
+        
+        logger.debug(`[RiveControlInterface] ScaleUp - New value: ${newValue.toFixed(1)}`);
+        
+        // Trigger the update
+        this.updateScale({ target: this.scaleInput });
+    }
+
+    handleScaleDown() {
+        if (!this.scaleInput || this.state.fitMode !== 'layout') return;
+        
+        const currentValue = parseFloat(this.scaleInput.value) || 1;
+        const step = parseFloat(this.scaleInput.step) || 0.1;
+        const min = parseFloat(this.scaleInput.min) || 0.1;
+        
+        const newValue = Math.max(currentValue - step, min);
+        this.scaleInput.value = newValue.toFixed(1);
+        
+        // Trigger the update
+        this.updateScale({ target: this.scaleInput });
+    }
+
     applyDisplaySettings() {
         if (!this.riveInstance) return;
 
         try {
+            // Map string values to Rive enums
+            const fitMap = {
+                'contain': rive.Fit.Contain,
+                'cover': rive.Fit.Cover,
+                'fill': rive.Fit.Fill,
+                'fitWidth': rive.Fit.FitWidth,
+                'fitHeight': rive.Fit.FitHeight,
+                'scaleDown': rive.Fit.ScaleDown,
+                'none': rive.Fit.None,
+                'layout': rive.Fit.Layout
+            };
+
+            const alignmentMap = {
+                'center': rive.Alignment.Center,
+                'topLeft': rive.Alignment.TopLeft,
+                'topCenter': rive.Alignment.TopCenter,
+                'topRight': rive.Alignment.TopRight,
+                'centerLeft': rive.Alignment.CenterLeft,
+                'centerRight': rive.Alignment.CenterRight,
+                'bottomLeft': rive.Alignment.BottomLeft,
+                'bottomCenter': rive.Alignment.BottomCenter,
+                'bottomRight': rive.Alignment.BottomRight
+            };
+
+            // Create layout configuration
+            const layoutConfig = {
+                fit: fitMap[this.state.fitMode] || rive.Fit.Contain,
+                alignment: alignmentMap[this.state.alignment] || rive.Alignment.Center
+            };
+
+            // Add layout scale factor if using Layout fit mode
+            if (this.state.fitMode === 'layout') {
+                layoutConfig.layoutScaleFactor = this.state.scale;
+            }
+
             // Apply fit mode and alignment
-            this.riveInstance.layout = new rive.Layout({
-                fit: rive.Fit[this.state.fitMode] || rive.Fit.contain,
-                alignment: rive.Alignment[this.state.alignment] || rive.Alignment.center
-            });
+            this.riveInstance.layout = new rive.Layout(layoutConfig);
 
             // Apply background color
             const canvas = document.getElementById('rive-canvas');
@@ -1688,6 +1785,25 @@ class RiveControlInterface {
                 if (settings.scale !== undefined && this.scaleInput) {
                     this.scaleInput.value = settings.scale;
                     this.state.scale = settings.scale;
+                }
+                
+                // Initialize scale input state based on fit mode
+                if (this.fitSelect && this.scaleInput) {
+                    const isLayoutMode = this.state.fitMode === 'layout';
+                    this.scaleInput.disabled = !isLayoutMode;
+                    this.scaleInput.style.opacity = isLayoutMode ? '1' : '0.5';
+                    this.scaleInput.style.cursor = isLayoutMode ? 'text' : 'not-allowed';
+                }
+                
+                // Initialize scale button state based on fit mode
+                if (this.scaleUpBtn && this.scaleDownBtn) {
+                    const isLayoutMode = this.state.fitMode === 'layout';
+                    this.scaleUpBtn.disabled = !isLayoutMode;
+                    this.scaleDownBtn.disabled = !isLayoutMode;
+                    this.scaleUpBtn.style.opacity = isLayoutMode ? '1' : '0.5';
+                    this.scaleDownBtn.style.opacity = isLayoutMode ? '1' : '0.5';
+                    this.scaleUpBtn.style.cursor = isLayoutMode ? 'pointer' : 'not-allowed';
+                    this.scaleDownBtn.style.cursor = isLayoutMode ? 'pointer' : 'not-allowed';
                 }
                 
             } catch (error) {

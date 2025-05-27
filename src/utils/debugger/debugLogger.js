@@ -15,12 +15,12 @@ export const LogLevel = {
 
 // Module configuration with default levels
 const moduleConfig = {
-    // Core modules
-    'parser': LogLevel.INFO,
-    'parserHandler': LogLevel.INFO,
-    'controlInterface': LogLevel.INFO,
-    'dataConnector': LogLevel.INFO,
-    'goldenLayout': LogLevel.INFO,
+    // Core modules - default to NONE unless overridden by saved settings
+    'parser': LogLevel.NONE,
+    'parserHandler': LogLevel.NONE,
+    'controlInterface': LogLevel.NONE,
+    'dataConnector': LogLevel.NONE,
+    'goldenLayout': LogLevel.NONE,
     
     // Default for any module not specified
     'default': LogLevel.NONE
@@ -31,7 +31,7 @@ const config = {
     enabled: true,                // Master switch to enable/disable all logging
     showTimestamp: true,          // Include timestamp in logs
     showModuleName: true,         // Include module name in logs
-    defaultLevel: LogLevel.INFO,  // Default level if not specified
+    defaultLevel: LogLevel.NONE,  // Default level if not specified
     consoleOutput: true,          // Log to console
     
     // Function to format log messages

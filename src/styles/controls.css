@@ -1241,7 +1241,7 @@
     }
 
     .ctrl-number-input {
-        padding: 0 var(--ctrl-panel-number-increment-width) 0 8px;
+        padding: 0 calc(var(--ctrl-panel-number-increment-width) + 8px) 0 12px;
     }
 
     /* Ensure other rows maintain single row height */
@@ -1272,28 +1272,49 @@
     font-size: 0.75rem;
     color: #e2e8f0;
     background: rgba(15, 23, 42, 0.8);
-    padding: 0 86px 0 8px;
+    padding: 0 90px 0 8px;
     border-radius: 4px;
     border: 1px solid rgba(148, 163, 184, 0.2);
     width: 100%;
     outline: none;
     transition: all 0.3s ease;
-    text-align: center;
+    text-align: left;
+    padding-left: 12px;
     font-weight: 500;
     height: 100%;
+    /* Hide browser default number input controls */
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: none;
+    /* Ensure text is visible */
+    z-index: 1;
+    position: relative;
+}
+
+/* Hide Chrome's default number input spinner */
+.ctrl-number-input::-webkit-outer-spin-button,
+.ctrl-number-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+    display: none;
+}
+
+/* Hide Firefox's default number input spinner */
+.ctrl-number-input[type=number] {
+    -moz-appearance: textfield;
 }
 
 @container file-controls (min-width: 768px) {
     .ctrl-number-input {
         font-size: 0.85rem;
-        padding: 0 108px 0 12px;
+        padding: 0 112px 0 16px;
     }
 }
 
 @container file-controls (min-width: 1200px) {
     .ctrl-number-input {
         font-size: 0.95rem;
-        padding: 0 132px 0 16px;
+        padding: 0 136px 0 5px;
     }
 }
 
@@ -1311,6 +1332,7 @@
     display: flex;
     flex-direction: column;
     gap: 1px;
+    z-index: 2;
 }
 
 @container file-controls (min-width: 768px) {
@@ -1353,6 +1375,16 @@
 
 .ctrl-number-increment-btn:hover {
     background: rgba(59, 130, 246, 1);
+}
+
+.ctrl-number-increment-btn:disabled {
+    background: rgba(107, 114, 128, 0.5);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.ctrl-number-increment-btn:disabled:hover {
+    background: rgba(107, 114, 128, 0.5);
 }
 
 /* ===== SINGLE ROW CONTROL STRIP LAYOUT ===== */

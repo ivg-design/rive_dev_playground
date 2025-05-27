@@ -360,28 +360,28 @@ function loadSavedUISettings() {
                 if (levelSelect && levels[module] !== undefined) {
                     levelSelect.value = levels[module];
                 } else if (levelSelect) {
-                    levelSelect.value = LogLevel.INFO; // Default
+                    levelSelect.value = LogLevel.NONE; // Default to NONE
                 }
             });
             
-            // Set global dropdown to the most common level or INFO
+            // Set global dropdown to the most common level or NONE
             const globalSelect = document.getElementById('debug-all-level');
             if (globalSelect) {
-                globalSelect.value = LogLevel.INFO; // Default
+                globalSelect.value = LogLevel.NONE; // Default to NONE
             }
         } else {
-            // No saved settings, use defaults
-            document.getElementById('debug-all-level').value = LogLevel.INFO;
+            // No saved settings, use defaults (NONE)
+            document.getElementById('debug-all-level').value = LogLevel.NONE;
             MODULES.forEach(module => {
-                document.getElementById(`debug-level-${module}`).value = LogLevel.INFO;
+                document.getElementById(`debug-level-${module}`).value = LogLevel.NONE;
             });
         }
     } catch (e) {
         console.warn('Failed to load saved UI settings:', e);
-        // Fallback to defaults
-        document.getElementById('debug-all-level').value = LogLevel.INFO;
+        // Fallback to defaults (NONE)
+        document.getElementById('debug-all-level').value = LogLevel.NONE;
         MODULES.forEach(module => {
-            document.getElementById(`debug-level-${module}`).value = LogLevel.INFO;
+            document.getElementById(`debug-level-${module}`).value = LogLevel.NONE;
         });
     }
 }
@@ -417,7 +417,7 @@ function getCurrentSettings() {
             const levels = JSON.parse(savedLevels);
             
             MODULES.forEach(module => {
-                const level = levels[module] !== undefined ? levels[module] : LogLevel.INFO;
+                const level = levels[module] !== undefined ? levels[module] : LogLevel.NONE;
                 const levelName = getLevelName(level);
                 settings.modules[module] = {
                     level: level,
@@ -425,11 +425,11 @@ function getCurrentSettings() {
                 };
             });
         } else {
-            // No saved settings, show defaults
+            // No saved settings, show defaults (NONE)
             MODULES.forEach(module => {
                 settings.modules[module] = {
-                    level: LogLevel.INFO,
-                    levelName: 'INFO'
+                    level: LogLevel.NONE,
+                    levelName: 'NONE'
                 };
             });
         }
