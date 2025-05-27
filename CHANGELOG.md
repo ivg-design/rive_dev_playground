@@ -1,3 +1,8 @@
+## [1.1.2] - 2025-05-27
+
+### Changes
+- fix: fix scale control functionality to RiveControlInterface and RiveParserHandler [fix]
+
 ## [1.1.1] - 2025-05-27
 
 ### Changes
