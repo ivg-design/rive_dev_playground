@@ -1,3 +1,10 @@
+## [1.1.1] - 2025-05-27
+
+### Changes
+- fix: add null checks for classList operations and ensure version updates on all deployments [fix]
+- fix: improve error handling in Golden Layout controls state check
+- docs: trigger deployment for version 1.1.0
+
 ## [1.1.0] - 2025-05-27
 
 ### Changes
