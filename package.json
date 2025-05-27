@@ -1,6 +1,6 @@
 {
   "name": "rive-playground",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Interactive Rive file parser, inspector, and debugging tool",
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
     "dev": "npx http-server . -p 8080 -o",
     "test-deployment": "node scripts/test-deployment.js",
     "version:patch": "scripts/version.sh patch",
-    "version:minor": "scripts/version.sh minor", 
+    "version:minor": "scripts/version.sh minor",
     "version:major": "scripts/version.sh major",
     "version:check": "echo \"Current version: $(node -p 'require(\\\"./package.json\\\").version')\"",
     "release": "echo \"Use 'npm run version:patch|minor|major \\\"commit message\\\"' to create a release\""

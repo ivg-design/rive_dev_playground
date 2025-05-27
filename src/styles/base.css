@@ -150,3 +150,18 @@ body {
 .restore-btn:hover {
     background-color: #357abd;
 } 
+/* Version display */
+.version-info {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #888;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-family: monospace;
+    z-index: 10000;
+    pointer-events: none;
+    backdrop-filter: blur(5px);
+}
