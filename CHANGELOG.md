@@ -1,3 +1,8 @@
+## [1.1.0] - 2025-05-27
+
+### Changes
+- chore: Update project name and enhance dependencies for Rive Playground [minor]
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
