@@ -234,7 +234,7 @@ jobs:
           cp -r src/styles _site/rive-playground/src/
           cp -r src/utils _site/rive-playground/src/
           # Copy built documentation
-          cp -r site _site/docs
+          cp -r mkdocs_site _site/docs
           # Copy animations directory if it exists
           if [ -d "animations" ]; then
             cp -r animations _site/rive-playground/
