@@ -1,309 +1,220 @@
-# Rive Playground
+# Rive Tester
 
-> **Interactive Rive file parser, inspector, and debugging tool**
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://ivg-design.github.io/rive_dev_playground/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Rive](https://img.shields.io/badge/rive-compatible-orange.svg)](https://rive.app)
 
-A web-based tool for parsing, inspecting, and debugging Rive animation files. Load `.riv` files, explore their structure, test animations with dynamic controls, and analyze state machines and ViewModel properties.
+Interactive Rive file parser, inspector, and debugging tool built for the web.
 
 ## 🚀 Quick Start
 
-### Live Demo
-- **🌐 Rive Playground**: [https://ivg-design.github.io/rive_dev_playground/rive-playground/](https://ivg-design.github.io/rive_dev_playground/rive-playground/)
-- **📚 Documentation Hub**: [https://ivg-design.github.io/rive_dev_playground/](https://ivg-design.github.io/rive_dev_playground/)
+### Online Version
+**[Launch Rive Tester →](https://ivg-design.github.io/rive_dev_playground/)**
 
 ### Local Development
 ```bash
-# Clone the repository
+git clone https://github.com/ivg-design/rive_dev_playground.git
+cd rive_dev_playground
+python -m http.server 8080
+```
+
+Open `http://localhost:8080` in your browser.
+
+## 📚 Documentation
+
+**[Complete Documentation →](https://ivg-design.github.io/rive_dev_playground/docs/)**
+
+- **[Quick Start Guide](https://ivg-design.github.io/rive_dev_playground/docs/guide/quick-start/)** - Get up and running in minutes
+- **[User Guide](https://ivg-design.github.io/rive_dev_playground/docs/guide/interface/)** - Complete interface documentation
+- **[Asset Manager](https://ivg-design.github.io/rive_dev_playground/docs/guide/asset-manager/)** - Replace embedded assets in real-time
+- **[API Reference](https://ivg-design.github.io/rive_dev_playground/docs/development/api-reference/)** - Technical documentation
+
+## ✨ Features
+
+### 🎮 Interactive Playground
+- Load local `.riv` files with real-time animation playback
+- Professional IDE-like interface with dockable panels
+- WebGL2 rendering for high-performance animations
+
+### 🔍 Deep Inspection
+- Analyze artboards, state machines, and ViewModels
+- Interactive JSON tree view with search and filtering
+- Complete Rive file structure exploration
+
+### 🎛️ Runtime Controls
+- Auto-generated UI controls for ViewModel properties
+- Real-time property manipulation and testing
+- Support for all property types (boolean, number, enum, etc.)
+
+### 📦 Asset Manager
+- View and inspect embedded assets (images, fonts)
+- Replace assets with local files or URLs in real-time
+- Asset metadata and status information
+
+### 🐛 Debugging Tools
+- Global runtime access via `window.riveInstanceGlobal`
+- Modular logging system with configurable levels
+- Comprehensive error handling and debug information
+
+### 🎨 Modern UI
+- Dark theme with responsive design
+- Modular CSS architecture for maintainability
+- Professional Golden Layout panel system
+
+## 🛠️ Technical Stack
+
+| Component | Description |
+|-----------|-------------|
+| **@rive-app/webgl2** | Official Rive WebGL2 runtime |
+| **Golden Layout** | Professional dockable panel system |
+| **JSONEditor** | Interactive JSON tree viewer |
+| **MkDocs Material** | Documentation framework |
+
+## 📁 Project Structure
+
+```
+rive_dev_playground/
+├── index.html              # Main application entry point
+├── src/                    # Source code
+│   ├── components/         # Core application components
+│   │   ├── goldenLayoutManager.js
+│   │   ├── assetManager.js
+│   │   ├── riveParserHandler.js
+│   │   └── ...
+│   ├── styles/            # Modular CSS architecture
+│   │   ├── base.css
+│   │   ├── asset-manager.css
+│   │   ├── golden-layout.css
+│   │   └── ...
+│   └── utils/             # Utility functions and debugging
+│       └── debugger/
+├── docs/                  # MkDocs documentation source
+│   ├── index.md
+│   ├── guide/
+│   ├── advanced/
+│   └── development/
+├── node_modules/          # Dependencies
+├── package.json           # Node.js configuration
+├── mkdocs.yml            # Documentation configuration
+└── requirements.txt       # Python dependencies for docs
+```
+
+## 🎯 CSS Architecture
+
+The project uses a modular CSS architecture for maintainability:
+
+- **`base.css`** - Global styles, resets, restore bar
+- **`golden-layout.css`** - Layout framework styles  
+- **`json-editor.css`** - JSON Editor dark theme
+- **`controls.css`** - Controls panel and form elements
+- **`dynamic-controls.css`** - Dynamic controls and ViewModels
+- **`canvas.css`** - Canvas container styles
+- **`asset-manager.css`** - Asset Manager panel
+- **`style.css`** - Legacy styles (minimal)
+
+## 🚀 Development
+
+### Prerequisites
+- Modern web browser with WebGL2 support
+- Node.js 16+ (for package management)
+- Python 3.8+ (for documentation)
+
+### Local Development
+```bash
+# Clone repository
 git clone https://github.com/ivg-design/rive_dev_playground.git
 cd rive_dev_playground
 
 # Install dependencies
 npm install
 
-# Start local development server
-npm run dev
-# or
-npx http-server . -p 8080
-
-# Open http://localhost:8080
+# Start development server
+python -m http.server 8080
 ```
 
-## 📋 Table of Contents
+### 🏷️ Semantic Versioning
 
-### 📖 Documentation
-- [**🎯 Features Overview**](#-features)
-- [**⚡ Quick Start Guide**](#-quick-start)
-- [**🐛 Debugging Guide**](docs/DEBUGGING.md)
-- [**🎮 Runtime Controls**](docs/RUNTIME_CONTROLS.md)
-- [**🚀 Deployment Guide**](docs/DEPLOYMENT.md)
-- [**📄 GitHub Pages Setup**](docs/GITHUB_PAGES_SETUP.md)
+The project uses automated semantic versioning. Create releases using commit message flags:
 
-### 🛠️ Development
-- [**📁 Project Structure**](#-project-structure)
-- [**🎨 CSS Architecture**](#-css-architecture)
+```bash
+# Quick version releases using npm scripts
+npm run version:patch "fix: canvas clearing issue"
+npm run version:minor "feat: add asset manager panel"  
+npm run version:major "feat!: redesign control interface"
 
-## ✨ Features
+# Or use the helper script directly
+./scripts/version.sh patch "fix: resolve status bar layout"
+./scripts/version.sh minor "feat: add semantic versioning"
+./scripts/version.sh major "feat!: breaking API changes"
 
-### 🎮 Interactive Playground
-- **File Loading**: Select local `.riv` files via file input
-- **Live Preview**: Real-time animation playback with controls
-- **Multi-Layout**: Professional IDE-like interface with dockable panels using Golden Layout
-- **Responsive Design**: Works on desktop browsers
-
-### 🔍 Deep Inspection
-- **Artboard Analysis**: Explore all artboards, animations, and timelines
-- **State Machine Inspector**: Analyze state machines, inputs, and transitions
-- **ViewModel Explorer**: Inspect ViewModel hierarchies and properties
-- **Asset Manager**: View, inspect, and replace embedded assets (images, fonts, etc.)
-- **JSON Inspector**: Interactive tree view of parsed Rive data using JSONEditor
-
-### 🎛️ Runtime Controls
-- **Dynamic Controls**: Auto-generated UI controls for ViewModel properties
-- **State Machine Inputs**: Toggle boolean inputs, adjust numbers, trigger events
-- **Animation Playback**: Play, pause, stop timelines and state machines
-- **Layout Controls**: Adjust fit modes, alignment, and scaling
-- **Background Customization**: Change canvas background colors
-- **Asset Replacement**: Replace embedded assets with local files or URLs in real-time
-
-### 🐛 Debugging Features
-- **Global Access**: `window.riveInstanceGlobal` for console debugging
-- **Modular Logging**: Configurable debug levels per module
-- **Error Handling**: Basic error reporting and recovery
-
-## 🏗️ Project Structure
-
-```
-rive_dev_playground/
-├── index.html                   # Main application entry point
-├── src/                         # Source code
-│   ├── components/              # Core application components
-│   │   ├── goldenLayoutManager.js    # Layout system management
-│   │   ├── parser.js                 # Rive file parsing logic
-│   │   ├── riveParserHandler.js      # Main application controller
-│   │   ├── riveControlInterface.js   # Dynamic control generation
-│   │   ├── dataToControlConnector.js # Data processing bridge
-│   │   └── assetManager.js           # Asset management and replacement
-│   ├── styles/                  # Modular CSS architecture
-│   │   ├── base.css             # Global styles and resets
-│   │   ├── golden-layout.css    # Layout framework styles
-│   │   ├── json-editor.css      # JSON Editor dark theme
-│   │   ├── controls.css         # Controls panel styling
-│   │   ├── dynamic-controls.css # Dynamic controls and ViewModels
-│   │   ├── canvas.css           # Canvas container styles
-│   │   ├── asset-manager.css    # Asset Manager panel
-│   │   └── style.css            # Legacy styles (minimal)
-│   └── utils/                   # Utility functions and helpers
-│       └── debugger/            # Debug logging system
-├── docs/                        # Documentation files
-│   ├── DEBUGGING.md             # Debugging guide
-│   ├── RUNTIME_CONTROLS.md      # Runtime controls documentation
-│   ├── DEPLOYMENT.md            # Deployment instructions
-│   └── GITHUB_PAGES_SETUP.md    # GitHub Pages setup guide
-├── assets/                      # Static assets
-│   ├── css/                     # Additional stylesheets
-│   └── js/                      # Additional JavaScript
-├── scripts/                     # Build and utility scripts
-│   └── test-deployment.js       # Deployment testing script
-├── .github/                     # GitHub configuration
-│   └── workflows/               # CI/CD workflows
-├── package.json                 # Node.js dependencies
-└── README.md                    # This file
+# Push to trigger automated release
+git push origin main
 ```
 
-## 🎨 CSS Architecture
+**[📚 Complete Versioning Guide →](https://ivg-design.github.io/rive_dev_playground/docs/development/versioning/)**
 
-The application uses a modular CSS architecture for better maintainability and to prevent conflicts. The CSS has been split into logical modules:
+### Documentation Development
+```bash
+# Install documentation dependencies
+pip install -r requirements.txt
 
-### Core Modules
+# Serve documentation locally
+python -m mkdocs serve
 
-- **`base.css`** - Global styles, resets, body, html, and restore bar
-- **`golden-layout.css`** - Golden Layout specific styles and component containers
-- **`json-editor.css`** - JSON Editor dark theme and inspector panel styles
-- **`controls.css`** - Controls panel, form elements, and input styling
-- **`dynamic-controls.css`** - Dynamic controls panel and ViewModel styling
-- **`canvas.css`** - Canvas container and canvas-related styles
-- **`asset-manager.css`** - Asset Manager panel and asset replacement UI
-
-### Legacy
-- **`style.css`** - Minimal legacy styles that may still be referenced
-
-### Loading Order
-
-The CSS files are loaded in this order in `index.html`:
-
-1. `base.css` - Foundation styles
-2. `golden-layout.css` - Layout framework
-3. `json-editor.css` - JSON Editor theme
-4. `controls.css` - Form controls
-5. `dynamic-controls.css` - Dynamic controls
-6. `canvas.css` - Canvas styles
-7. `asset-manager.css` - Asset management
-
-### Scrollbar Consistency
-
-All scrollable panels use consistent scrollbar styling:
-
-```css
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #1a1a1a;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #444;
-    border-radius: 4px;
-    border: 1px solid #333;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
+# Build documentation
+python -m mkdocs build
 ```
 
-### Benefits
+## 🔧 Configuration
 
-- **Maintainability**: Each module focuses on a specific component
-- **Conflict Prevention**: Isolated styles reduce CSS conflicts
-- **Performance**: Easier to identify and optimize specific areas
-- **Debugging**: Easier to locate and fix styling issues
-- **Collaboration**: Multiple developers can work on different modules
+### Environment Variables
+- `BASE_URL` - Base URL for the application (default: `/`)
+- `DOCS_URL` - Documentation URL (auto-detected)
 
-## 🎯 Core Features
-
-### 🎮 Rive File Parsing
-- **Client-Side Processing**: No server required, runs entirely in browser
-- **WebGL2 Runtime**: Uses official `@rive-app/webgl2` runtime
-- **Comprehensive Extraction**: Artboards, animations, state machines, ViewModels, assets
-- **Error Recovery**: Basic handling of malformed or unsupported files
-
-### 🎛️ Dynamic Control Generation
-- **Auto-Discovery**: Automatically detects controllable properties
-- **Type-Aware**: Generates appropriate UI controls for each property type
-- **Real-Time Updates**: Changes reflect immediately in the animation
-- **Enum Support**: Dropdown population for enum properties
-
-### 🔍 JSON Inspector
-- **Interactive Tree View**: Explore parsed data with JSONEditor
-- **Search & Filter**: Find specific properties or values
-- **Multiple View Modes**: Tree, code, text, and preview modes
-- **Dark Theme**: Professional dark styling
-
-## 🐛 Debugging Features
-
-### Global Runtime Access
-The application exposes the Rive instance globally for debugging:
-
+### Debug Configuration
 ```javascript
-// Access the current Rive instance
+// Enable debug logging for specific modules
+LoggerAPI.setModuleLevel('assetManager', LogLevel.DEBUG);
+LoggerAPI.setModuleLevel('parser', LogLevel.INFO);
+
+// Global debug access
 const rive = window.riveInstanceGlobal;
-
-// Inspect artboards
-console.log(rive.artboardNames);
-
-// Access ViewModels
-const vm = rive.viewModelInstance;
-console.log(vm.properties);
-
-// Control state machines
-const sm = rive.stateMachineInputs('StateMachineName');
-sm.forEach(input => console.log(input.name, input.value));
+const assetMap = rive.assetMap;
 ```
 
-### Debug Logging System
-Modular logging with configurable levels:
+## 🤝 Contributing
 
-```javascript
-// Import the logger
-import { createLogger, LogLevel, LoggerAPI } from './src/utils/debugger/debugLogger.js';
+1. **Fork the repository**
+2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
+3. **Commit your changes** (`git commit -m 'Add amazing feature'`)
+4. **Push to the branch** (`git push origin feature/amazing-feature`)
+5. **Open a Pull Request**
 
-// Create a logger for your module
-const logger = createLogger('myModule');
-
-// Use different log levels
-logger.debug('Detailed debug information');
-logger.info('General information');
-logger.warn('Warning message');
-logger.error('Error message');
-
-// Configure logging levels
-LoggerAPI.setModuleLevel('parser', LogLevel.DEBUG);
-LoggerAPI.setAllLevels(LogLevel.INFO);
-```
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Modern web browser with WebGL2 support
-- Node.js 16+ (for development)
-- Local web server (for file loading)
-
-### Installation
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/ivg-design/rive_dev_playground.git
-   cd rive_dev_playground
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Start development server**:
-   ```bash
-   # Option 1: Using npm script
-   npm run dev
-   
-   # Option 2: Using http-server
-   npx http-server . -p 8080
-   
-   # Option 3: Using Python
-   python -m http.server 8080
-   ```
-
-4. **Open in browser**:
-   Navigate to `http://localhost:8080`
-
-### First Steps
-1. **Load a Rive file**: Click "Choose File" to select a `.riv` file
-2. **Explore the interface**: Use the dockable panels to inspect different aspects
-3. **Try the controls**: Adjust properties in the Dynamic Controls panel
-4. **Inspect the data**: Browse the parsed structure in the JSON Inspector
-
-## 🔧 Technical Details
-
-### Dependencies
-- **@rive-app/webgl2**: Official Rive WebGL2 runtime
-- **jsoneditor**: JSON tree view and editor
-- **golden-layout**: Professional layout system for dockable panels
-- **jQuery**: Required by Golden Layout
-
-### Browser Support
-- Chrome/Chromium (recommended)
-- Firefox
-- Safari
-- Edge
-
-Requires WebGL2 support for Rive animations.
+### Development Guidelines
+- Follow existing code style and patterns
+- Add documentation for new features
+- Test across different browsers
+- Update the changelog for significant changes
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- **Rive Team**: For the Rive runtime and tools
-- **JSONEditor**: For the JSON viewing component
-- **Golden Layout**: For the layout system
+- **[Rive Team](https://rive.app)** - For the amazing Rive runtime and tools
+- **[JSONEditor](https://github.com/josdejong/jsoneditor)** - For the JSON viewing component  
+- **[Golden Layout](https://golden-layout.com/)** - For the professional layout system
+- **[MkDocs Material](https://squidfunk.github.io/mkdocs-material/)** - For the documentation framework
 
-## 📞 Support
+## 🔗 Links
 
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/ivg-design/rive_dev_playground/issues)
-- **📧 Contact**: [IVG Design](mailto:contact@ivg-design.com)
+- **[Live Application](https://ivg-design.github.io/rive_dev_playground/)**
+- **[Documentation](https://ivg-design.github.io/rive_dev_playground/docs/)**
+- **[Rive.app](https://rive.app)**
+- **[Rive Community](https://rive.app/community)**
+- **[GitHub Issues](https://github.com/ivg-design/rive_dev_playground/issues)**
 
 ---
 
-**Built by [IVG Design](https://github.com/ivg-design)**
+**Built with ❤️ by [IVG Design](https://github.com/ivg-design) for the Rive community**

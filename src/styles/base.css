@@ -44,16 +44,13 @@ body {
 
 /* Status message positioning */
 .log-message {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
     height: 40px;
     line-height: 40px;
     text-align: center;
     background-color: #2a2a2a;
     border-top: 1px solid #444;
     margin: 0;
+    flex-shrink: 0;
     z-index: 1000;
 }
 
@@ -89,21 +86,45 @@ body {
     align-items: center;
 }
 
+.restore-bar-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.docs-btn,
 .layout-reset-btn {
     padding: 2px 8px;
-    background-color: #dc3545;
-    color: white;
     border: none;
     border-radius: 3px;
     cursor: pointer;
     font-size: 0.7em;
     font-weight: 500;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.docs-btn {
+    background-color: #4a90e2;
+    color: white;
+}
+
+.docs-btn:hover {
+    background-color: #357abd;
+    transform: translateY(-1px);
+}
+
+.layout-reset-btn {
+    background-color: #dc3545;
+    color: white;
 }
 
 .layout-reset-btn:hover {
     background-color: #c82333;
+    transform: translateY(-1px);
 }
 
 .restore-label {

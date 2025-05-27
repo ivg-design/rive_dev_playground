@@ -6,7 +6,12 @@
   "scripts": {
     "test": "node test.js",
     "dev": "npx http-server . -p 8080 -o",
-    "test-deployment": "node scripts/test-deployment.js"
+    "test-deployment": "node scripts/test-deployment.js",
+    "version:patch": "scripts/version.sh patch",
+    "version:minor": "scripts/version.sh minor", 
+    "version:major": "scripts/version.sh major",
+    "version:check": "echo \"Current version: $(node -p 'require(\\\"./package.json\\\").version')\"",
+    "release": "echo \"Use 'npm run version:patch|minor|major \\\"commit message\\\"' to create a release\""
   },
   "dependencies": {
     "@andypf/json-viewer": "^2.1.10",

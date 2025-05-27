@@ -1,0 +1,262 @@
+name: Semantic Release
+
+on:
+    push:
+        branches: [main, master]
+    workflow_dispatch:
+        inputs:
+            version_type:
+                description: 'Version bump type'
+                required: true
+                default: 'patch'
+                type: choice
+                options:
+                    - patch
+                    - minor
+                    - major
+
+permissions:
+    contents: write
+    pages: write
+    id-token: write
+
+jobs:
+    check-version-trigger:
+        runs-on: ubuntu-latest
+        outputs:
+            should_version: ${{ steps.check.outputs.should_version }}
+            version_type: ${{ steps.check.outputs.version_type }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Check for version trigger
+              id: check
+              run: |
+                  # Check if this is a manual workflow dispatch
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    echo "should_version=true" >> $GITHUB_OUTPUT
+                    echo "version_type=${{ github.event.inputs.version_type }}" >> $GITHUB_OUTPUT
+                    echo "Manual workflow dispatch detected with version type: ${{ github.event.inputs.version_type }}"
+                    exit 0
+                  fi
+
+                  # Get the latest commit message
+                  COMMIT_MSG=$(git log -1 --pretty=%B)
+                  echo "Commit message: $COMMIT_MSG"
+
+                  # Check for version keywords in commit message
+                  if echo "$COMMIT_MSG" | grep -qE "\[major\]|\[MAJOR\]|--major"; then
+                    echo "should_version=true" >> $GITHUB_OUTPUT
+                    echo "version_type=major" >> $GITHUB_OUTPUT
+                    echo "Major version bump detected"
+                  elif echo "$COMMIT_MSG" | grep -qE "\[minor\]|\[MINOR\]|--minor"; then
+                    echo "should_version=true" >> $GITHUB_OUTPUT
+                    echo "version_type=minor" >> $GITHUB_OUTPUT
+                    echo "Minor version bump detected"
+                  elif echo "$COMMIT_MSG" | grep -qE "\[patch\]|\[PATCH\]|\[fix\]|\[FIX\]|--patch|--fix"; then
+                    echo "should_version=true" >> $GITHUB_OUTPUT
+                    echo "version_type=patch" >> $GITHUB_OUTPUT
+                    echo "Patch version bump detected"
+                  else
+                    echo "should_version=false" >> $GITHUB_OUTPUT
+                    echo "No version bump keywords found in commit message"
+                  fi
+
+    semantic-release:
+        needs: check-version-trigger
+        if: needs.check-version-trigger.outputs.should_version == 'true'
+        runs-on: ubuntu-latest
+        outputs:
+            new_version: ${{ steps.version.outputs.new_version }}
+            version_changed: ${{ steps.version.outputs.version_changed }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '18'
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Configure Git
+              run: |
+                  git config --local user.email "action@github.com"
+                  git config --local user.name "GitHub Action"
+
+            - name: Bump version
+              id: version
+              run: |
+                  # Get current version
+                  CURRENT_VERSION=$(node -p "require('./package.json').version")
+                  echo "Current version: $CURRENT_VERSION"
+
+                  # Bump version based on type
+                  VERSION_TYPE="${{ needs.check-version-trigger.outputs.version_type }}"
+                  echo "Version bump type: $VERSION_TYPE"
+
+                  # Use npm version to bump
+                  NEW_VERSION=$(npm version $VERSION_TYPE --no-git-tag-version)
+                  NEW_VERSION=${NEW_VERSION#v}  # Remove 'v' prefix if present
+
+                  echo "New version: $NEW_VERSION"
+                  echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+                  echo "version_changed=true" >> $GITHUB_OUTPUT
+
+                  # Update version in other files if they exist
+                  if [ -f "src/version.js" ]; then
+                    echo "export const VERSION = '$NEW_VERSION';" > src/version.js
+                    echo "Updated src/version.js"
+                  fi
+
+            - name: Generate changelog
+              id: changelog
+              run: |
+                  # Create or update CHANGELOG.md
+                  NEW_VERSION="${{ steps.version.outputs.new_version }}"
+                  DATE=$(date +"%Y-%m-%d")
+
+                  # Get commits since last tag
+                  LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+                  if [ -z "$LAST_TAG" ]; then
+                    COMMITS=$(git log --oneline --pretty=format:"- %s" HEAD)
+                  else
+                    COMMITS=$(git log --oneline --pretty=format:"- %s" ${LAST_TAG}..HEAD)
+                  fi
+
+                  # Create changelog entry
+                  cat > temp_changelog_entry.md << EOF
+                  ## [${NEW_VERSION}] - ${DATE}
+
+                  ### Changes
+                  ${COMMITS}
+
+                  EOF
+
+                  # Prepend to existing changelog or create new one
+                  if [ -f "CHANGELOG.md" ]; then
+                    cat temp_changelog_entry.md CHANGELOG.md > temp_changelog.md
+                    mv temp_changelog.md CHANGELOG.md
+                  else
+                    echo "# Changelog" > CHANGELOG.md
+                    echo "" >> CHANGELOG.md
+                    echo "All notable changes to this project will be documented in this file." >> CHANGELOG.md
+                    echo "" >> CHANGELOG.md
+                    cat temp_changelog_entry.md >> CHANGELOG.md
+                  fi
+
+                  rm temp_changelog_entry.md
+                  echo "Generated changelog for version $NEW_VERSION"
+
+            - name: Update version display in app
+              run: |
+                  NEW_VERSION="${{ steps.version.outputs.new_version }}"
+
+                  # Create version.js file
+                  mkdir -p src
+                  cat > src/version.js << EOF
+                  /**
+                   * Application version information
+                   * Auto-generated by semantic release workflow
+                   */
+                  export const VERSION = '$NEW_VERSION';
+                  export const BUILD_DATE = '$(date -u +"%Y-%m-%dT%H:%M:%SZ")';
+                  export const BUILD_COMMIT = '${{ github.sha }}';
+
+                  // Display version in console
+                  console.log(\`🎮 Rive Playground v\${VERSION} - Built \${BUILD_DATE}\`);
+                  EOF
+
+                  # Add version display to index.html if not already present
+                  if ! grep -q "version-info" index.html; then
+                    # Add version info to the status bar
+                    sed -i 's/<p class="log-message" id="statusMessage">/<div class="version-info">v'$NEW_VERSION'<\/div><p class="log-message" id="statusMessage">/' index.html
+                  else
+                    # Update existing version
+                    sed -i 's/<div class="version-info">v[^<]*<\/div>/<div class="version-info">v'$NEW_VERSION'<\/div>/' index.html
+                  fi
+
+            - name: Add version styling
+              run: |
+                  # Add CSS for version display if not already present
+                  if ! grep -q "version-info" src/styles/base.css; then
+                    cat >> src/styles/base.css << 'CSSEOF'
+
+                  /* Version display */
+                  .version-info {
+                      position: fixed;
+                      top: 10px;
+                      right: 10px;
+                      background: rgba(0, 0, 0, 0.7);
+                      color: #888;
+                      padding: 4px 8px;
+                      border-radius: 4px;
+                      font-size: 0.7rem;
+                      font-family: monospace;
+                      z-index: 10000;
+                      pointer-events: none;
+                      backdrop-filter: blur(5px);
+                  }
+                  CSSEOF
+                  fi
+
+            - name: Commit changes
+              run: |
+                  git add .
+                  git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]" || exit 0
+                  git push origin ${{ github.ref_name }}
+
+            - name: Create Git tag
+              run: |
+                  NEW_VERSION="${{ steps.version.outputs.new_version }}"
+                  git tag -a "v$NEW_VERSION" -m "Release version $NEW_VERSION"
+                  git push origin "v$NEW_VERSION"
+
+            - name: Create GitHub Release
+              uses: actions/create-release@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  tag_name: v${{ steps.version.outputs.new_version }}
+                  release_name: Release v${{ steps.version.outputs.new_version }}
+                  body: |
+                      ## 🎮 Rive Playground v${{ steps.version.outputs.new_version }}
+
+                      ### What's Changed
+                      See [CHANGELOG.md](./CHANGELOG.md) for detailed changes.
+
+                      ### 🚀 Try it now
+                      - **Live Demo**: https://ivg-design.github.io/rive_dev_playground/rive-playground/
+                      - **Documentation**: https://ivg-design.github.io/rive_dev_playground/docs/
+
+                      ### 📦 Installation
+                      ```bash
+                      git clone https://github.com/ivg-design/rive_dev_playground.git
+                      cd rive_dev_playground
+                      npm install
+                      npm run dev
+                      ```
+
+                      ---
+                      **Full Changelog**: https://github.com/ivg-design/rive_dev_playground/compare/v${{ steps.version.outputs.new_version }}...HEAD
+                  draft: false
+                  prerelease: false
+
+    deploy-with-version:
+        needs: [check-version-trigger, semantic-release]
+        if: needs.check-version-trigger.outputs.should_version == 'true' && needs.semantic-release.outputs.version_changed == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Trigger deployment
+              run: |
+                  echo "Version ${{ needs.semantic-release.outputs.new_version }} released successfully"
+                  echo "Deployment will be handled by the existing deploy workflow"

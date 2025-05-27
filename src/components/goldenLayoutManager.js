@@ -125,14 +125,20 @@ const componentFactories = {
             
             const content = template.cloneNode(true);
             content.style.display = 'block';
-            content.id = 'controls';
+            content.id = 'fileControls';
             
             // Get the DOM element from jQuery wrapper
             const element = container.getElement();
             if (element && element.length > 0) {
                 element[0].appendChild(content);
+                element[0].id = 'fileControls';
+                logger.info('Controls component created and appended to element[0]');
             } else if (element && element.appendChild) {
                 element.appendChild(content);
+                element.id = 'fileControls';
+                logger.info('Controls component created and appended to element');
+            } else {
+                logger.error('No valid element found to append controls to');
             }
             
             logger.info('Controls component created');
@@ -554,7 +560,14 @@ function addRestoreMenu() {
         bar.innerHTML = `
             <div class="restore-bar-collapsed">
                 <span>All panels open</span>
-                <button class="layout-reset-btn" id="layoutResetBtn">Reset Layout</button>
+                <div class="restore-bar-buttons">
+                    <button class="docs-btn" id="docsBtn" title="View Documentation">
+                        📚 Docs
+                    </button>
+                    <button class="layout-reset-btn" id="layoutResetBtn" title="Reset Layout to Default">
+                        🔄 Reset Layout
+                    </button>
+                </div>
             </div>
         `;
     } else {
@@ -578,6 +591,14 @@ function addRestoreMenu() {
         });
     }
 
+    // Add event listener for documentation button
+    const docsBtn = bar.querySelector('#docsBtn');
+    if (docsBtn) {
+        docsBtn.addEventListener('click', () => {
+            openDocumentation();
+        });
+    }
+
     // Add event listener for layout reset button
     const resetBtn = bar.querySelector('#layoutResetBtn');
     if (resetBtn) {
@@ -586,10 +607,16 @@ function addRestoreMenu() {
         });
     }
 
-    // Insert at the top of the golden layout container
-    const container = document.getElementById('goldenLayoutContainer');
-    if (container) {
-        container.insertBefore(bar, container.firstChild);
+    // Insert into the dedicated restore bar container
+    const restoreBarContainer = document.getElementById('restoreBarContainer');
+    if (restoreBarContainer) {
+        restoreBarContainer.appendChild(bar);
+    } else {
+        // Fallback: insert at the top of the golden layout container
+        const container = document.getElementById('goldenLayoutContainer');
+        if (container) {
+            container.insertBefore(bar, container.firstChild);
+        }
     }
 }
 
@@ -764,6 +791,36 @@ function setupControlsConstraints() {
         
     } catch (error) {
         logger.error('Error setting up controls constraints:', error);
+    }
+}
+
+/**
+ * Open documentation in a new tab
+ */
+function openDocumentation() {
+    try {
+        // Determine the documentation URL based on current location
+        const currentUrl = window.location.href;
+        let docsUrl;
+        
+        if (currentUrl.includes('localhost') || currentUrl.includes('127.0.0.1')) {
+            // Local development - serve MkDocs on different port
+            const baseUrl = currentUrl.split('/').slice(0, 3).join('/');
+            docsUrl = `${baseUrl.replace('8000', '8001')}/`;
+        } else if (currentUrl.includes('github.io')) {
+            // GitHub Pages - MkDocs will be deployed to /docs/ path
+            docsUrl = 'https://ivg-design.github.io/rive_dev_playground/docs/';
+        } else {
+            // Fallback to MkDocs site
+            docsUrl = './site/';
+        }
+        
+        logger.info('Opening documentation:', docsUrl);
+        window.open(docsUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+        logger.error('Error opening documentation:', error);
+        // Fallback: try relative path
+        window.open('./docs/', '_blank', 'noopener,noreferrer');
     }
 }
 

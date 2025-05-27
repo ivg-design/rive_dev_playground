@@ -233,7 +233,7 @@ function createAssetItem(asset, assetName, index) {
                                accept="${getAcceptTypes(assetType)}"
                                data-asset-name="${assetName}"
                                data-asset-index="${index}">
-                        <label for="file-input-${index}" class="file-input-label">
+                        <label for="file-input-${index}" class="asset-file-input-label">
                             📁 Choose Local File
                         </label>
                     </div>

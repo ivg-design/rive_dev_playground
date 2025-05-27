@@ -447,8 +447,8 @@ export function initDynamicControls(parsedDataFromHandler) {
     controlsContainer.innerHTML = '<p>Loading Rive animation and controls...</p>'; // Initial message
 
     if (!parsedDataFromHandler || !parsedDataFromHandler.defaultElements) {
-        logger.error('[controlInterface] No parsed data or defaultElements found. Cannot create Rive instance.');
-        controlsContainer.innerHTML = '<p>Error: Missing critical parsed data to load Rive animation.</p>';
+        logger.info('[controlInterface] No parsed data provided. Showing empty state.');
+        controlsContainer.innerHTML = '<p>Please Load a Rive File</p>';
         return;
     }
 
@@ -746,7 +746,7 @@ function buildControlsUI() {
  */
 function buildStateMachineControls(container, stateMachines) {
     const smSection = document.createElement('details');
-    smSection.className = 'control-section';
+            smSection.className = 'control-section';
     smSection.open = true;
     
     const smSummary = document.createElement('summary');
@@ -1055,3 +1055,664 @@ export function updateDynamicControls() {
 }
 
 // Note: Resize handling has been moved to riveParserHandler.js to avoid conflicts
+
+// Enhanced Rive Control Interface with Dynamic Panel Support
+class RiveControlInterface {
+    constructor() {
+        this.riveInstance = null;
+        this.currentFile = null;
+        this.currentArtboard = null;
+        this.currentTimeline = null;
+        this.currentStateMachine = null;
+        this.isTimelinePlaying = false;
+        this.isStateMachineRunning = false;
+        this.animationSpeed = 1.0;
+        
+        this.init();
+        this.bindEvents();
+        this.loadSavedSettings();
+    }
+
+    init() {
+        // Initialize elements
+        this.fileInput = document.getElementById('riveFilePicker');
+        this.clearBtn = document.getElementById('clearFileBtn');
+        this.artboardSelect = document.getElementById('artboardSelector');
+        this.applyBtn = document.getElementById('applySelectionBtn');
+        this.timelineSelect = document.getElementById('animationSelector');
+        this.playTimelineBtn = document.getElementById('toggleTimelineBtn');
+        this.pauseTimelineBtn = document.getElementById('pauseTimelineBtn');
+        this.stateMachineSelect = document.getElementById('stateMachineSelector');
+        this.playStateMachineBtn = document.getElementById('toggleStateMachineBtn');
+        this.backgroundColorInput = document.getElementById('canvasBackgroundColor');
+        this.fitSelect = document.getElementById('riveFitSelect');
+        this.alignmentSelect = document.getElementById('riveAlignmentSelect');
+        this.scaleInput = document.getElementById('layoutScaleInput');
+
+        // State management
+        this.state = {
+            fileLoaded: false,
+            artboardLoaded: false,
+            timelineRunning: false,
+            stateMachineRunning: false,
+            backgroundColor: '#252525',
+            fitMode: 'contain',
+            alignment: 'center',
+            scale: 1.0
+        };
+
+        // Add file selected indicator
+        this.createFileIndicator();
+    }
+
+    createFileIndicator() {
+        const fileGroup = this.fileInput.closest('.file-group');
+        if (fileGroup && !fileGroup.querySelector('.file-selected-indicator')) {
+            const indicator = document.createElement('div');
+            indicator.className = 'file-selected-indicator';
+            indicator.style.display = 'none';
+            indicator.innerHTML = `
+                <span id="selectedFileName">No file selected</span>
+                <button id="changeFileBtn" class="change-file-btn" title="Change file">Change</button>
+            `;
+            fileGroup.appendChild(indicator);
+            
+            // Bind change file button
+            indicator.querySelector('#changeFileBtn').addEventListener('click', () => {
+                this.fileInput.click();
+            });
+        }
+    }
+
+    bindEvents() {
+        // File input events
+        if (this.fileInput) {
+            this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        }
+        if (this.clearBtn) {
+            this.clearBtn.addEventListener('click', () => this.clearFile());
+        }
+
+        // Artboard events
+        if (this.artboardSelect) {
+            this.artboardSelect.addEventListener('change', (e) => this.handleArtboardChange(e));
+        }
+        if (this.applyBtn) {
+            this.applyBtn.addEventListener('click', () => this.applyArtboardSelection());
+        }
+
+        // Timeline events
+        if (this.timelineSelect) {
+            this.timelineSelect.addEventListener('change', (e) => this.handleTimelineChange(e));
+        }
+        if (this.playTimelineBtn) {
+            this.playTimelineBtn.addEventListener('click', () => this.toggleTimeline());
+        }
+        if (this.pauseTimelineBtn) {
+            this.pauseTimelineBtn.addEventListener('click', () => this.pauseTimeline());
+        }
+
+        // State machine events
+        if (this.stateMachineSelect) {
+            this.stateMachineSelect.addEventListener('change', (e) => this.handleStateMachineChange(e));
+        }
+        if (this.playStateMachineBtn) {
+            this.playStateMachineBtn.addEventListener('click', () => this.toggleStateMachine());
+        }
+
+        // Display control events
+        if (this.backgroundColorInput) {
+            this.backgroundColorInput.addEventListener('input', (e) => this.updateBackgroundColor(e));
+        }
+        if (this.fitSelect) {
+            this.fitSelect.addEventListener('change', (e) => this.updateFitMode(e));
+        }
+        if (this.alignmentSelect) {
+            this.alignmentSelect.addEventListener('change', (e) => this.updateAlignment(e));
+        }
+        if (this.scaleInput) {
+            this.scaleInput.addEventListener('input', (e) => this.updateScale(e));
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
+    }
+
+    // File Management
+    handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file && file.name.endsWith('.riv')) {
+            this.currentFile = file;
+            this.state.fileLoaded = true;
+            
+            // Update UI
+            this.updateFileIndicator(file.name);
+            this.showNotification(`File "${file.name}" loaded successfully`, 'success');
+            
+            // Load file into Rive
+            this.loadRiveFile(file);
+        } else if (file) {
+            this.showNotification('Please select a valid .riv file', 'error');
+            this.fileInput.value = '';
+        }
+    }
+
+    updateFileIndicator(fileName) {
+        const indicator = document.querySelector('.file-selected-indicator');
+        const fileNameSpan = document.getElementById('selectedFileName');
+        
+        if (indicator && fileNameSpan) {
+            fileNameSpan.textContent = fileName;
+            indicator.style.display = 'flex';
+            this.fileInput.closest('div').style.display = 'none';
+        }
+    }
+
+    clearFile() {
+        this.fileInput.value = '';
+        this.currentFile = null;
+        this.state.fileLoaded = false;
+        
+        // Reset UI
+        const indicator = document.querySelector('.file-selected-indicator');
+        if (indicator) {
+            indicator.style.display = 'none';
+            this.fileInput.closest('div').style.display = 'flex';
+        }
+        
+        // Clear Rive instance
+        if (this.riveInstance) {
+            this.riveInstance.cleanup();
+            this.riveInstance = null;
+        }
+        
+        // Reset selects
+        this.clearSelects();
+        this.showNotification('File cleared', 'info');
+    }
+
+    clearSelects() {
+        if (this.artboardSelect) {
+            this.artboardSelect.innerHTML = '<option value="">No file loaded</option>';
+        }
+        if (this.timelineSelect) {
+            this.timelineSelect.innerHTML = '<option value="">No timelines</option>';
+        }
+        if (this.stateMachineSelect) {
+            this.stateMachineSelect.innerHTML = '<option value="">No state machines</option>';
+        }
+    }
+
+    // Rive File Loading
+    async loadRiveFile(file) {
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const canvas = document.getElementById('rive-canvas');
+            
+            if (!canvas) {
+                this.showNotification('Canvas not found', 'error');
+                return;
+            }
+
+            // Create new Rive instance
+            this.riveInstance = new rive.Rive({
+                buffer: arrayBuffer,
+                canvas: canvas,
+                autoplay: false,
+                onLoad: () => {
+                    this.onRiveLoaded();
+                },
+                onError: (error) => {
+                    this.showNotification(`Error loading Rive file: ${error}`, 'error');
+                }
+            });
+
+        } catch (error) {
+            this.showNotification(`Failed to load file: ${error.message}`, 'error');
+        }
+    }
+
+    onRiveLoaded() {
+        this.showNotification('Rive file loaded successfully', 'success');
+        this.populateArtboards();
+        this.applyDisplaySettings();
+    }
+
+    populateArtboards() {
+        if (!this.riveInstance || !this.artboardSelect) return;
+
+        const artboardNames = this.riveInstance.artboardNames;
+        this.artboardSelect.innerHTML = '<option value="">Select artboard</option>';
+        
+        artboardNames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            this.artboardSelect.appendChild(option);
+        });
+    }
+
+    // Artboard Management
+    handleArtboardChange(event) {
+        this.currentArtboard = event.target.value;
+        if (this.currentArtboard) {
+            this.showNotification(`Artboard "${this.currentArtboard}" selected`, 'info');
+        }
+    }
+
+    applyArtboardSelection() {
+        if (!this.currentArtboard) {
+            this.showNotification('Please select an artboard first', 'warning');
+            return;
+        }
+
+        this.showLoadingState(this.applyBtn, 'Loading...');
+        
+        setTimeout(() => {
+            try {
+                // Switch to selected artboard
+                this.riveInstance.artboard = this.currentArtboard;
+                this.state.artboardLoaded = true;
+                
+                // Populate timelines and state machines
+                this.populateTimelines();
+                this.populateStateMachines();
+                
+                this.resetLoadingState(this.applyBtn, 'Apply');
+                this.showNotification(`Artboard "${this.currentArtboard}" loaded`, 'success');
+            } catch (error) {
+                this.resetLoadingState(this.applyBtn, 'Apply');
+                this.showNotification(`Failed to load artboard: ${error.message}`, 'error');
+            }
+        }, 500);
+    }
+
+    populateTimelines() {
+        if (!this.riveInstance || !this.timelineSelect) return;
+
+        const animationNames = this.riveInstance.animationNames;
+        this.timelineSelect.innerHTML = '<option value="">Select timeline</option>';
+        
+        animationNames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            this.timelineSelect.appendChild(option);
+        });
+    }
+
+    populateStateMachines() {
+        if (!this.riveInstance || !this.stateMachineSelect) return;
+
+        const stateMachineNames = this.riveInstance.stateMachineNames;
+        this.stateMachineSelect.innerHTML = '<option value="">Select state machine</option>';
+        
+        stateMachineNames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            this.stateMachineSelect.appendChild(option);
+        });
+    }
+
+    // Timeline Management
+    handleTimelineChange(event) {
+        this.currentTimeline = event.target.value;
+        if (this.currentTimeline) {
+            this.showNotification(`Timeline "${this.currentTimeline}" selected`, 'info');
+        }
+    }
+
+    toggleTimeline() {
+        if (!this.currentTimeline) {
+            this.showNotification('Please select a timeline first', 'warning');
+            return;
+        }
+
+        if (this.isTimelinePlaying) {
+            this.stopTimeline();
+        } else {
+            this.playTimeline();
+        }
+    }
+
+    playTimeline() {
+        try {
+            this.riveInstance.play(this.currentTimeline);
+            this.isTimelinePlaying = true;
+            this.state.timelineRunning = true;
+            
+            this.updateTimelineButtons();
+            this.showNotification(`Timeline "${this.currentTimeline}" started`, 'success');
+        } catch (error) {
+            this.showNotification(`Failed to play timeline: ${error.message}`, 'error');
+        }
+    }
+
+    stopTimeline() {
+        try {
+            this.riveInstance.stop(this.currentTimeline);
+            this.isTimelinePlaying = false;
+            this.state.timelineRunning = false;
+            
+            this.updateTimelineButtons();
+            this.showNotification(`Timeline "${this.currentTimeline}" stopped`, 'info');
+        } catch (error) {
+            this.showNotification(`Failed to stop timeline: ${error.message}`, 'error');
+        }
+    }
+
+    pauseTimeline() {
+        try {
+            this.riveInstance.pause(this.currentTimeline);
+            this.updateTimelineButtons();
+            this.showNotification(`Timeline "${this.currentTimeline}" paused`, 'info');
+        } catch (error) {
+            this.showNotification(`Failed to pause timeline: ${error.message}`, 'error');
+        }
+    }
+
+    updateTimelineButtons() {
+        if (this.playTimelineBtn) {
+            this.playTimelineBtn.textContent = this.isTimelinePlaying ? 'Stop' : 'Play';
+            this.playTimelineBtn.setAttribute('data-state', this.isTimelinePlaying ? 'playing' : 'stopped');
+        }
+    }
+
+    // State Machine Management
+    handleStateMachineChange(event) {
+        this.currentStateMachine = event.target.value;
+        if (this.currentStateMachine) {
+            this.showNotification(`State machine "${this.currentStateMachine}" selected`, 'info');
+        }
+    }
+
+    toggleStateMachine() {
+        if (!this.currentStateMachine) {
+            this.showNotification('Please select a state machine first', 'warning');
+            return;
+        }
+
+        if (this.isStateMachineRunning) {
+            this.stopStateMachine();
+        } else {
+            this.playStateMachine();
+        }
+    }
+
+    playStateMachine() {
+        this.showLoadingState(this.playStateMachineBtn, 'Starting...');
+        
+        setTimeout(() => {
+            try {
+                this.riveInstance.play(this.currentStateMachine);
+                this.isStateMachineRunning = true;
+                this.state.stateMachineRunning = true;
+                
+                this.updateStateMachineButtons();
+                this.resetLoadingState(this.playStateMachineBtn, 'Stop');
+                this.showNotification(`State machine "${this.currentStateMachine}" started`, 'success');
+            } catch (error) {
+                this.resetLoadingState(this.playStateMachineBtn, 'Play');
+                this.showNotification(`Failed to start state machine: ${error.message}`, 'error');
+            }
+        }, 1000);
+    }
+
+    stopStateMachine() {
+        try {
+            this.riveInstance.stop(this.currentStateMachine);
+            this.isStateMachineRunning = false;
+            this.state.stateMachineRunning = false;
+            
+            this.updateStateMachineButtons();
+            this.showNotification(`State machine "${this.currentStateMachine}" stopped`, 'info');
+        } catch (error) {
+            this.showNotification(`Failed to stop state machine: ${error.message}`, 'error');
+        }
+    }
+
+    updateStateMachineButtons() {
+        if (this.playStateMachineBtn) {
+            this.playStateMachineBtn.textContent = this.isStateMachineRunning ? 'Stop' : 'Play';
+            this.playStateMachineBtn.setAttribute('data-state', this.isStateMachineRunning ? 'playing' : 'stopped');
+        }
+    }
+
+    // Display Controls
+    updateBackgroundColor(event) {
+        const color = event.target.value;
+        this.state.backgroundColor = color;
+        
+        const canvas = document.getElementById('rive-canvas');
+        if (canvas) {
+            canvas.style.backgroundColor = color;
+        }
+        
+        this.saveSettings();
+        this.showNotification(`Background color updated`, 'info');
+    }
+
+    updateFitMode(event) {
+        this.state.fitMode = event.target.value;
+        this.applyDisplaySettings();
+        this.saveSettings();
+        this.showNotification(`Fit mode set to ${event.target.value}`, 'info');
+    }
+
+    updateAlignment(event) {
+        this.state.alignment = event.target.value;
+        this.applyDisplaySettings();
+        this.saveSettings();
+        this.showNotification(`Alignment set to ${event.target.value}`, 'info');
+    }
+
+    updateScale(event) {
+        const scale = parseFloat(event.target.value);
+        if (!isNaN(scale) && scale > 0) {
+            this.state.scale = scale;
+            this.applyDisplaySettings();
+            this.saveSettings();
+            this.showNotification(`Scale set to ${scale}`, 'info');
+        }
+    }
+
+    applyDisplaySettings() {
+        if (!this.riveInstance) return;
+
+        try {
+            // Apply fit mode and alignment
+            this.riveInstance.layout = new rive.Layout({
+                fit: rive.Fit[this.state.fitMode] || rive.Fit.contain,
+                alignment: rive.Alignment[this.state.alignment] || rive.Alignment.center
+            });
+
+            // Apply background color
+            const canvas = document.getElementById('rive-canvas');
+            if (canvas) {
+                canvas.style.backgroundColor = this.state.backgroundColor;
+            }
+
+            this.riveInstance.resizeDrawingSurfaceToCanvas();
+        } catch (error) {
+            console.warn('Failed to apply display settings:', error);
+        }
+    }
+
+    // Utility Functions
+    showLoadingState(button, text) {
+        if (button) {
+            button.disabled = true;
+            button.textContent = text;
+            button.style.opacity = '0.7';
+        }
+    }
+
+    resetLoadingState(button, originalText) {
+        if (button) {
+            button.disabled = false;
+            button.textContent = originalText;
+            button.style.opacity = '1';
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <i class="fas fa-${this.getNotificationIcon(type)}"></i>
+            <span>${message}</span>
+        `;
+        
+        // Style the notification
+        Object.assign(notification.style, {
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            padding: '12px 20px',
+            borderRadius: '8px',
+            color: 'white',
+            fontSize: '0.9rem',
+            fontWeight: '500',
+            zIndex: '10000',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            minWidth: '250px',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+            transform: 'translateX(100%)',
+            transition: 'transform 0.3s ease'
+        });
+
+        // Set background color based on type
+        const colors = {
+            success: 'linear-gradient(135deg, #10b981, #059669)',
+            warning: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            error: 'linear-gradient(135deg, #ef4444, #dc2626)',
+            info: 'linear-gradient(135deg, #3b82f6, #1d4ed8)'
+        };
+        notification.style.background = colors[type] || colors.info;
+
+        document.body.appendChild(notification);
+
+        // Animate in
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 100);
+
+        // Remove after delay
+        setTimeout(() => {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    getNotificationIcon(type) {
+        const icons = {
+            success: 'check-circle',
+            warning: 'exclamation-triangle',
+            error: 'times-circle',
+            info: 'info-circle'
+        };
+        return icons[type] || icons.info;
+    }
+
+    handleKeyboardShortcuts(event) {
+        // Ctrl/Cmd + shortcuts
+        if (event.ctrlKey || event.metaKey) {
+            switch (event.key) {
+                case 'o':
+                    event.preventDefault();
+                    if (this.fileInput) this.fileInput.click();
+                    break;
+                case 'r':
+                    event.preventDefault();
+                    this.clearFile();
+                    break;
+                case 'Enter':
+                    event.preventDefault();
+                    if (this.currentArtboard) {
+                        this.applyArtboardSelection();
+                    }
+                    break;
+            }
+        }
+
+        // Space bar for play/pause
+        if (event.code === 'Space' && event.target.tagName !== 'INPUT' && event.target.tagName !== 'SELECT') {
+            event.preventDefault();
+            if (this.currentTimeline) {
+                this.toggleTimeline();
+            }
+        }
+    }
+
+    saveSettings() {
+        const settings = {
+            backgroundColor: this.state.backgroundColor,
+            fitMode: this.state.fitMode,
+            alignment: this.state.alignment,
+            scale: this.state.scale
+        };
+        
+        localStorage.setItem('riveControlSettings', JSON.stringify(settings));
+    }
+
+    loadSavedSettings() {
+        const saved = localStorage.getItem('riveControlSettings');
+        if (saved) {
+            try {
+                const settings = JSON.parse(saved);
+                
+                // Apply saved settings
+                if (settings.backgroundColor && this.backgroundColorInput) {
+                    this.backgroundColorInput.value = settings.backgroundColor;
+                    this.state.backgroundColor = settings.backgroundColor;
+                }
+                
+                if (settings.fitMode && this.fitSelect) {
+                    this.fitSelect.value = settings.fitMode;
+                    this.state.fitMode = settings.fitMode;
+                }
+                
+                if (settings.alignment && this.alignmentSelect) {
+                    this.alignmentSelect.value = settings.alignment;
+                    this.state.alignment = settings.alignment;
+                }
+                
+                if (settings.scale !== undefined && this.scaleInput) {
+                    this.scaleInput.value = settings.scale;
+                    this.state.scale = settings.scale;
+                }
+                
+            } catch (error) {
+                console.warn('Failed to load saved settings:', error);
+            }
+        }
+    }
+
+    // Public API
+    getRiveInstance() {
+        return this.riveInstance;
+    }
+
+    getCurrentState() {
+        return { ...this.state };
+    }
+}
+
+// Initialize the control interface when DOM is loaded
+let riveControlInterface;
+document.addEventListener('DOMContentLoaded', () => {
+    riveControlInterface = new RiveControlInterface();
+    
+    // Make it globally accessible for debugging
+    window.riveControlInterface = riveControlInterface;
+});
+
+export default RiveControlInterface;

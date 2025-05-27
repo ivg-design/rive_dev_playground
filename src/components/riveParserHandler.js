@@ -252,13 +252,13 @@ function resetApplicationState() {
 	
 	// Clear selectors
 	if (artboardSelector) {
-		artboardSelector.innerHTML = '<option value="">Loading...</option>';
+		artboardSelector.innerHTML = '<option value="">No file loaded</option>';
 	}
 	if (animationSelector) {
-		animationSelector.innerHTML = '<option value="">No Timelines</option>';
+		animationSelector.innerHTML = '<option value="">No timelines</option>';
 	}
 	if (stateMachineSelector) {
-		stateMachineSelector.innerHTML = '<option value="">No State Machines</option>';
+		stateMachineSelector.innerHTML = '<option value="">No state machines</option>';
 	}
 	
 	// Controls are now always visible in the new layout
@@ -280,7 +280,14 @@ function resetApplicationState() {
 	// Clear dynamic controls container
 	const controlsContainer = document.getElementById('dynamicControlsContainer');
 	if (controlsContainer) {
-		controlsContainer.innerHTML = '<p>Loading new animation...</p>';
+		controlsContainer.innerHTML = '<p>Please Load a Rive File</p>';
+	}
+	
+	// Reset dynamic controls
+	try {
+		initDynamicControls(null);
+	} catch (e) {
+		logger.warn('Error resetting dynamic controls:', e);
 	}
 	
 	// Clear Asset Manager
@@ -294,6 +301,11 @@ function resetApplicationState() {
 	// Clear any global Rive instance references
 	if (window.riveInstanceGlobal) {
 		try {
+			// Stop any playing animations/state machines
+			if (typeof window.riveInstanceGlobal.stop === 'function') {
+				window.riveInstanceGlobal.stop();
+			}
+			// Cleanup the instance
 			if (typeof window.riveInstanceGlobal.cleanup === 'function') {
 				window.riveInstanceGlobal.cleanup();
 			}
@@ -419,12 +431,17 @@ function setupEventListeners() {
 	const clearFileBtn = document.getElementById('clearFileBtn');
 	if (clearFileBtn) {
 		clearFileBtn.addEventListener('click', handleClearFile);
+		clearFileBtn.disabled = true; // Start disabled since no file is loaded
 	}
 
-	// Event listener for change file button
-	const changeFileBtn = document.getElementById('changeFileBtn');
-	if (changeFileBtn) {
-		changeFileBtn.addEventListener('click', handleChangeFile);
+	// Event listener for file selected indicator (click to change file)
+	const fileSelectedIndicator = document.getElementById('fileSelectedIndicator');
+	if (fileSelectedIndicator) {
+		fileSelectedIndicator.addEventListener('click', () => {
+			if (riveFilePicker) {
+				riveFilePicker.click();
+			}
+		});
 	}
 
 	// Event listeners for Rive layout controls
@@ -1030,6 +1047,77 @@ function updateBackgroundColorLabelContrast(color) {
 }
 
 /**
+ * Clears the canvas by removing any Rive content
+ */
+function clearCanvas() {
+	const canvas = document.getElementById('rive-canvas');
+	const bgColorInput = document.getElementById('canvasBackgroundColor');
+	
+	// First, stop and cleanup any active Rive instances
+	const riveInstance = getLiveRiveInstance();
+	if (riveInstance) {
+		try {
+			// Stop all animations and state machines
+			if (typeof riveInstance.stop === 'function') {
+				riveInstance.stop();
+			}
+			
+			// Cleanup the instance
+			if (typeof riveInstance.cleanup === 'function') {
+				riveInstance.cleanup();
+			}
+			
+			logger.debug('Rive instance stopped and cleaned up');
+		} catch (error) {
+			logger.warn('Error cleaning up Rive instance:', error);
+		}
+	}
+	
+	// Clear global Rive references
+	if (window.riveInstanceGlobal) {
+		try {
+			if (typeof window.riveInstanceGlobal.stop === 'function') {
+				window.riveInstanceGlobal.stop();
+			}
+			if (typeof window.riveInstanceGlobal.cleanup === 'function') {
+				window.riveInstanceGlobal.cleanup();
+			}
+		} catch (error) {
+			logger.warn('Error cleaning up global Rive instance:', error);
+		}
+		window.riveInstanceGlobal = null;
+	}
+	
+	if (window.vm) {
+		window.vm = null;
+	}
+	
+	// Clear the canvas context
+	if (canvas) {
+		const ctx = canvas.getContext('2d');
+		if (ctx) {
+			// Clear the entire canvas
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			
+			// Reset canvas background to default
+			canvas.style.backgroundColor = '#252525';
+			
+			logger.debug('Canvas cleared');
+		}
+		
+		// Reset canvas size to default
+		canvas.width = canvas.offsetWidth;
+		canvas.height = canvas.offsetHeight;
+	}
+	
+	// Reset background color input to default
+	if (bgColorInput) {
+		bgColorInput.value = '#252525';
+		updateBackgroundColorLabelContrast('#252525');
+	}
+}
+
+/**
  * Handles clearing the current file
  */
 function handleClearFile() {
@@ -1042,6 +1130,9 @@ function handleClearFile() {
 	
 	// Show file picker, hide file selected indicator
 	updateFileSelectionUI(false);
+	
+	// Clear the canvas
+	clearCanvas();
 	
 	// Reset all application state
 	resetApplicationState();
@@ -1057,28 +1148,16 @@ function handleClearFile() {
 	logger.info('File cleared successfully');
 }
 
-/**
- * Handles changing the current file
- */
-function handleChangeFile() {
-	logger.info('Changing current file');
-	
-	// Show file picker, hide file selected indicator
-	updateFileSelectionUI(false);
-	
-	// Trigger file picker
-	if (riveFilePicker) {
-		riveFilePicker.click();
-	}
-}
+
 
 /**
  * Updates the file selection UI state
  */
 function updateFileSelectionUI(fileSelected, fileName = '') {
-	const filePickerContainer = document.querySelector('.file-section .file-group > div:first-child');
+	const filePickerContainer = document.querySelector('.file-picker-container');
 	const fileSelectedIndicator = document.getElementById('fileSelectedIndicator');
 	const selectedFileNameSpan = document.getElementById('selectedFileName');
+	const clearFileBtn = document.getElementById('clearFileBtn');
 	
 	if (fileSelected) {
 		// Hide file picker, show selected indicator
@@ -1091,6 +1170,10 @@ function updateFileSelectionUI(fileSelected, fileName = '') {
 		if (selectedFileNameSpan) {
 			selectedFileNameSpan.textContent = fileName;
 		}
+		// Enable clear button (red state)
+		if (clearFileBtn) {
+			clearFileBtn.disabled = false;
+		}
 	} else {
 		// Show file picker, hide selected indicator
 		if (filePickerContainer) {
@@ -1098,6 +1181,10 @@ function updateFileSelectionUI(fileSelected, fileName = '') {
 		}
 		if (fileSelectedIndicator) {
 			fileSelectedIndicator.style.display = 'none';
+		}
+		// Disable clear button (grayed out state)
+		if (clearFileBtn) {
+			clearFileBtn.disabled = true;
 		}
 	}
 }

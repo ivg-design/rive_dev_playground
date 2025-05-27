@@ -296,7 +296,7 @@
     display: none;
 }
 
-.file-input-label {
+.asset-file-input-label {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -311,7 +311,7 @@
     white-space: nowrap;
 }
 
-.file-input-label:hover {
+.asset-file-input-label:hover {
     background: #404040;
     border-color: #555;
 }
