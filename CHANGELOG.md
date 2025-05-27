@@ -1,3 +1,6 @@
+## [1.2.4] - 2025-05-27
+### Changes
+- fix: update documentation links and paths to reflect the new Rive Tester application structure and improve emoji rendering configuration[fix]
 ## [1.2.3] - 2025-05-27
 ### Changes
 - fix: update documentation link in release-and-deploy workflow to point to the correct /docs/ directory [fix]
