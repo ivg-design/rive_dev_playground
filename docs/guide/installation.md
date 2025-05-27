@@ -209,4 +209,4 @@ Currently, the project uses manual testing. Automated tests can be added using:
 
 ---
 
-**Next Steps**: [Quick Start](quick-start.md) | [First Steps](first-steps.md) 
+**Next Steps**: [Quick Start](quick-start.md) | [User Guide](user-guide.md) 

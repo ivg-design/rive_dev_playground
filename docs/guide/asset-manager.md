@@ -177,4 +177,4 @@ LoggerAPI.setModuleLevel('assetManager', LogLevel.DEBUG);
 
 ---
 
-**Related**: [Dynamic Controls](dynamic-controls.md) | [Debugging](../advanced/debugging.md) | [API Reference](../development/api-reference.md) 
+**Related**: [User Guide](user-guide.md) | [Debugging](../advanced/debugging.md) | [Versioning](../development/versioning.md) 

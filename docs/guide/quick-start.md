@@ -8,7 +8,7 @@ Get up and running with Rive Tester in just a few minutes!
 
     The easiest way to get started is to use the online version:
 
-    [:octicons-rocket-24: Launch Rive Tester](../../index.html){ .md-button .md-button--primary }
+    [:octicons-rocket-24: Launch Rive Tester](https://ivg-design.github.io/rive_dev_playground/){ .md-button .md-button--primary }
 
 === "Local Development"
 
@@ -87,11 +87,10 @@ The Rive Tester interface consists of five main panels:
 
 ## :question: Need Help?
 
-- :books: [User Guide](interface.md) - Complete interface documentation
+- :books: [User Guide](user-guide.md) - Complete interface documentation
 - :bug: [Debugging Guide](../advanced/debugging.md) - Troubleshooting and debug tools
-- :keyboard: [Keyboard Shortcuts](../advanced/keyboard-shortcuts.md) - Speed up your workflow
 - :octicons-mark-github-24: [GitHub Issues](https://github.com/ivg-design/rive_dev_playground/issues) - Report bugs or request features
 
 ---
 
-**Next Steps**: [Interface Overview](interface.md) | [Loading Files](loading-files.md) 
+**Next Steps**: [User Guide](user-guide.md) | [Asset Manager](asset-manager.md) 
