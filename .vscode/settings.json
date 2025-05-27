@@ -4,5 +4,8 @@
 	"files.associations": {
 		"*.md": "markdown"
 	},
-	"markdown.preview.theme": "dark"
+	"markdown.preview.theme": "dark",
+	"github-actions.workflows.pinned.workflows": [
+		".github/workflows/release-and-deploy.yml"
+	]
 }

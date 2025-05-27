@@ -56,9 +56,7 @@ markdown_extensions:
       alternate_style: true
   - pymdownx.tasklist:
       custom_checkbox: true
-  - pymdownx.emoji:
-      emoji_index: tag:yaml.org,2002:python/name:materialx.emoji.twemoji
-      emoji_generator: tag:yaml.org,2002:python/name:materialx.emoji.to_svg
+  - pymdownx.emoji
   - admonition
   - pymdownx.details
   - attr_list
