@@ -1,3 +1,8 @@
+## [1.2.3] - 2025-05-27
+### Changes
+- fix: update documentation link in release-and-deploy workflow to point to the correct /docs/ directory [fix]
+- chore: housekeeping [fix] remove outdated documentation and assets\n\n- Deleted various HTML, CSS, and JavaScript files related to documentation, including README, 404 pages, and guides for user management, installation, and debugging.\n- Cleaned up the repository to streamline the documentation structure and focus on essential content.
+- [fix] update Rive app docs link to point to /docs/ for correct documentation location
 ## [1.2.2] - 2025-05-27
 ### Changes
 - [fix] configure pymdownx.emoji for proper Material icon rendering in docs
