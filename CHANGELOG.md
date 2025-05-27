@@ -1,3 +1,6 @@
+## [1.2.6] - 2025-05-27
+### Changes
+- [fix]: enhance pymdownx.emoji configuration for improved emoji rendering with custom icons
 ## [1.2.5] - 2025-05-27
 ### Changes
 - fix: simplify pymdownx.emoji configuration and update VSCode settings for GitHub Actions workflow [fix]
