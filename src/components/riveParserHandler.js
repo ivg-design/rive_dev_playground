@@ -5,23 +5,37 @@
  * It orchestrates calls to the Rive parser and updates the UI accordingly.
  */
 
-import { initDynamicControls } from './riveControlInterface.js';
-import { processDataForControls } from './dataToControlConnector.js';
-import { createLogger } from '../utils/debugger/debugLogger.js';
-import { initializeGoldenLayout, updateJSONEditor, getGoldenLayout } from './goldenLayoutManager.js';
-import { initializeAssetManager, clearAssetManager } from './assetManager.js';
+import { initDynamicControls } from "./riveControlInterface.js";
+import { processDataForControls } from "./dataToControlConnector.js";
+import { createLogger } from "../utils/debugger/debugLogger.js";
+import {
+	initializeGoldenLayout,
+	updateJSONEditor,
+	getGoldenLayout,
+} from "./goldenLayoutManager.js";
+import { initializeAssetManager, clearAssetManager } from "./assetManager.js";
 
 // Create a logger for this module
-const logger = createLogger('parserHandler');
+const logger = createLogger("parserHandler");
 
 // Log Rive globals on script load for debugging
-logger.debug("Pre-Init typeof window.rive:", typeof window.rive, "Value:", window.rive);
-logger.debug("Pre-Init typeof window.Rive:", typeof window.Rive, "Value:", window.Rive); // Note uppercase R
+logger.debug(
+	"Pre-Init typeof window.rive:",
+	typeof window.rive,
+	"Value:",
+	window.rive,
+);
+logger.debug(
+	"Pre-Init typeof window.Rive:",
+	typeof window.Rive,
+	"Value:",
+	window.Rive,
+); // Note uppercase R
 
 // DOM element references
 let riveFilePicker = null;
-let outputDiv = null; 
-const statusMessageDiv = document.getElementById('statusMessage');
+let outputDiv = null;
+const statusMessageDiv = document.getElementById("statusMessage");
 
 // Artboard and State Machine selection controls (will be found after Golden Layout init)
 let artboardSelector = null;
@@ -33,8 +47,6 @@ let applySelectionBtn = null;
 let toggleTimelineBtn = null;
 let pauseTimelineBtn = null;
 let toggleStateMachineBtn = null;
-
-
 
 /**
  * Holds the current instance of the JSONEditor.
@@ -49,9 +61,9 @@ let selectedStateMachine = null;
 let liveRiveInstance = null; // Reference to the live Rive instance for playback control
 
 // Playback state tracking
-let timelineState = 'stopped'; // 'stopped', 'playing', 'paused'
-let stateMachineState = 'stopped'; // 'stopped', 'playing'
-let currentPlaybackMode = 'none'; // 'timeline', 'stateMachine', 'none'
+let timelineState = "stopped"; // 'stopped', 'playing', 'paused'
+let stateMachineState = "stopped"; // 'stopped', 'playing'
+let currentPlaybackMode = "none"; // 'timeline', 'stateMachine', 'none'
 
 // Window resize handler
 let resizeHandler = null;
@@ -68,18 +80,18 @@ function setupJsonEditor(jsonData) {
  * Finds and caches DOM elements after Golden Layout initialization
  */
 function findDOMElements() {
-	riveFilePicker = document.getElementById('riveFilePicker');
-	outputDiv = document.getElementById('output');
-	artboardSelector = document.getElementById('artboardSelector');
-	animationSelector = document.getElementById('animationSelector');
-	stateMachineSelector = document.getElementById('stateMachineSelector');
-	applySelectionBtn = document.getElementById('applySelectionBtn');
-	toggleTimelineBtn = document.getElementById('toggleTimelineBtn');
-	pauseTimelineBtn = document.getElementById('pauseTimelineBtn');
-	toggleStateMachineBtn = document.getElementById('toggleStateMachineBtn');
-	
+	riveFilePicker = document.getElementById("riveFilePicker");
+	outputDiv = document.getElementById("output");
+	artboardSelector = document.getElementById("artboardSelector");
+	animationSelector = document.getElementById("animationSelector");
+	stateMachineSelector = document.getElementById("stateMachineSelector");
+	applySelectionBtn = document.getElementById("applySelectionBtn");
+	toggleTimelineBtn = document.getElementById("toggleTimelineBtn");
+	pauseTimelineBtn = document.getElementById("pauseTimelineBtn");
+	toggleStateMachineBtn = document.getElementById("toggleStateMachineBtn");
+
 	// Debug logging for each element
-	logger.debug('DOM element search results:', {
+	logger.debug("DOM element search results:", {
 		riveFilePicker: !!riveFilePicker,
 		outputDiv: !!outputDiv,
 		artboardSelector: !!artboardSelector,
@@ -88,18 +100,18 @@ function findDOMElements() {
 		applySelectionBtn: !!applySelectionBtn,
 		toggleTimelineBtn: !!toggleTimelineBtn,
 		pauseTimelineBtn: !!pauseTimelineBtn,
-		toggleStateMachineBtn: !!toggleStateMachineBtn
+		toggleStateMachineBtn: !!toggleStateMachineBtn,
 	});
-	
+
 	// Check if controls template exists
-	const controlsTemplate = document.getElementById('controlsTemplate');
-	const controlsComponent = document.getElementById('controls');
-	logger.debug('Template and component check:', {
+	const controlsTemplate = document.getElementById("controlsTemplate");
+	const controlsComponent = document.getElementById("controls");
+	logger.debug("Template and component check:", {
 		controlsTemplate: !!controlsTemplate,
-		controlsComponent: !!controlsComponent
+		controlsComponent: !!controlsComponent,
 	});
-	
-	logger.debug('DOM elements found and cached');
+
+	logger.debug("DOM elements found and cached");
 }
 
 /**
@@ -114,9 +126,9 @@ function handleWindowResize() {
  */
 function resizeCanvasToAnimationAspectRatio() {
 	const riveInstance = getLiveRiveInstance();
-	const canvas = document.getElementById('rive-canvas');
-	const container = document.getElementById('canvasContainer');
-	
+	const canvas = document.getElementById("rive-canvas");
+	const container = document.getElementById("canvasContainer");
+
 	if (!riveInstance || !canvas || !container) {
 		return;
 	}
@@ -125,7 +137,7 @@ function resizeCanvasToAnimationAspectRatio() {
 		// Get artboard dimensions
 		let artboardWidth = riveInstance._artboardWidth;
 		let artboardHeight = riveInstance._artboardHeight;
-		
+
 		// Fallback methods if _artboardWidth/Height not available
 		if (!artboardWidth || !artboardHeight) {
 			const artboard = riveInstance.artboard;
@@ -134,7 +146,7 @@ function resizeCanvasToAnimationAspectRatio() {
 				artboardHeight = artboard.bounds?.maxY - artboard.bounds?.minY;
 			}
 		}
-		
+
 		// Another fallback - try to get from layout
 		if (!artboardWidth || !artboardHeight) {
 			const layout = riveInstance.layout;
@@ -143,12 +155,14 @@ function resizeCanvasToAnimationAspectRatio() {
 				artboardHeight = layout.runtimeArtboard.height;
 			}
 		}
-		
+
 		// Final fallback - use default dimensions
 		if (!artboardWidth || !artboardHeight) {
 			artboardWidth = 500;
 			artboardHeight = 500;
-			logger.warn('Could not determine artboard dimensions, using defaults');
+			logger.warn(
+				"Could not determine artboard dimensions, using defaults",
+			);
 		}
 
 		const aspectRatio = artboardWidth / artboardHeight;
@@ -176,16 +190,20 @@ function resizeCanvasToAnimationAspectRatio() {
 		canvas.height = canvasHeight;
 
 		// Trigger Rive resize
-		if (typeof riveInstance.resizeDrawingSurfaceToCanvas === 'function') {
+		if (typeof riveInstance.resizeDrawingSurfaceToCanvas === "function") {
 			riveInstance.resizeDrawingSurfaceToCanvas();
 		}
 
-		logger.debug(`Canvas resized to animation aspect ratio: ${canvasWidth}x${canvasHeight} (artboard: ${artboardWidth}x${artboardHeight})`);
-
+		logger.debug(
+			`Canvas resized to animation aspect ratio: ${canvasWidth}x${canvasHeight} (artboard: ${artboardWidth}x${artboardHeight})`,
+		);
 	} catch (error) {
-		logger.error('Error resizing canvas to animation aspect ratio:', error);
+		logger.error("Error resizing canvas to animation aspect ratio:", error);
 		// Fallback to standard resize
-		if (riveInstance && typeof riveInstance.resizeDrawingSurfaceToCanvas === 'function') {
+		if (
+			riveInstance &&
+			typeof riveInstance.resizeDrawingSurfaceToCanvas === "function"
+		) {
 			riveInstance.resizeDrawingSurfaceToCanvas();
 		}
 	}
@@ -205,9 +223,9 @@ function resizeCanvasToContainer() {
 function setupWindowResizeListener() {
 	// Remove existing listener if any
 	if (resizeHandler) {
-		window.removeEventListener('resize', resizeHandler);
+		window.removeEventListener("resize", resizeHandler);
 	}
-	
+
 	// Create debounced resize handler to avoid excessive calls
 	let resizeTimeout;
 	resizeHandler = () => {
@@ -217,9 +235,9 @@ function setupWindowResizeListener() {
 			handleWindowResize();
 		}, 100); // 100ms debounce
 	};
-	
-	window.addEventListener('resize', resizeHandler);
-	logger.debug('Window resize listener set up');
+
+	window.addEventListener("resize", resizeHandler);
+	logger.debug("Window resize listener set up");
 }
 
 /**
@@ -227,9 +245,9 @@ function setupWindowResizeListener() {
  */
 function removeWindowResizeListener() {
 	if (resizeHandler) {
-		window.removeEventListener('resize', resizeHandler);
+		window.removeEventListener("resize", resizeHandler);
 		resizeHandler = null;
-		logger.debug('Window resize listener removed');
+		logger.debug("Window resize listener removed");
 	}
 }
 
@@ -237,8 +255,8 @@ function removeWindowResizeListener() {
  * Resets all application state when a new file is selected
  */
 function resetApplicationState() {
-	logger.info('Resetting application state for new file selection');
-	
+	logger.info("Resetting application state for new file selection");
+
 	// Reset global state variables
 	currentRiveInstance = null;
 	currentParsedData = null;
@@ -246,10 +264,10 @@ function resetApplicationState() {
 	selectedAnimation = null;
 	selectedStateMachine = null;
 	liveRiveInstance = null;
-	
+
 	// Reset playback states
 	resetPlaybackStates();
-	
+
 	// Clear selectors
 	if (artboardSelector) {
 		artboardSelector.innerHTML = '<option value="">No file loaded</option>';
@@ -258,155 +276,175 @@ function resetApplicationState() {
 		animationSelector.innerHTML = '<option value="">No timelines</option>';
 	}
 	if (stateMachineSelector) {
-		stateMachineSelector.innerHTML = '<option value="">No state machines</option>';
+		stateMachineSelector.innerHTML =
+			'<option value="">No state machines</option>';
 	}
-	
+
 	// Controls are now always visible in the new layout
-	
+
 	// Clear status message
 	if (statusMessageDiv) {
-		statusMessageDiv.textContent = 'Loading new file...';
+		statusMessageDiv.textContent = "Loading new file...";
 	}
-	
+
 	// Clear JSON editor
 	if (jsonEditorInstance) {
 		try {
 			jsonEditorInstance.set({ message: "Loading new file..." });
 		} catch (e) {
-			logger.warn('Error clearing JSON editor:', e);
+			logger.warn("Error clearing JSON editor:", e);
 		}
 	}
-	
+
 	// Clear dynamic controls container
-	const controlsContainer = document.getElementById('dynamicControlsContainer');
+	const controlsContainer = document.getElementById(
+		"dynamicControlsContainer",
+	);
 	if (controlsContainer) {
-		controlsContainer.innerHTML = '<p>Please Load a Rive File</p>';
+		controlsContainer.innerHTML = "<p>Please Load a Rive File</p>";
 	}
-	
+
 	// Reset dynamic controls
 	try {
 		initDynamicControls(null);
 	} catch (e) {
-		logger.warn('Error resetting dynamic controls:', e);
+		logger.warn("Error resetting dynamic controls:", e);
 	}
-	
+
 	// Clear Asset Manager
 	try {
 		clearAssetManager();
-		logger.debug('Asset Manager cleared');
+		logger.debug("Asset Manager cleared");
 	} catch (e) {
-		logger.warn('Error clearing Asset Manager:', e);
+		logger.warn("Error clearing Asset Manager:", e);
 	}
-	
+
 	// Clear any global Rive instance references
 	if (window.riveInstanceGlobal) {
 		try {
 			// Stop any playing animations/state machines
-			if (typeof window.riveInstanceGlobal.stop === 'function') {
+			if (typeof window.riveInstanceGlobal.stop === "function") {
 				window.riveInstanceGlobal.stop();
 			}
 			// Cleanup the instance
-			if (typeof window.riveInstanceGlobal.cleanup === 'function') {
+			if (typeof window.riveInstanceGlobal.cleanup === "function") {
 				window.riveInstanceGlobal.cleanup();
 			}
 		} catch (e) {
-			logger.warn('Error cleaning up global Rive instance:', e);
+			logger.warn("Error cleaning up global Rive instance:", e);
 		}
 		window.riveInstanceGlobal = null;
 	}
-	
+
 	// Clear VM reference
 	if (window.vm) {
 		window.vm = null;
 	}
-	
-	logger.debug('Application state reset complete');
+
+	logger.debug("Application state reset complete");
 }
 
 // Initialize Golden Layout and set up the application on DOMContentLoaded.
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
 	// Initialize Golden Layout
 	const layout = initializeGoldenLayout();
-	
+
 	if (layout) {
 		// Wait for layout to be ready, then find DOM elements and set up event listeners
 		setTimeout(() => {
 			findDOMElements();
-			
+
 			// Debug: Check if file picker was found
 			if (!riveFilePicker) {
-				logger.error('riveFilePicker not found after Golden Layout initialization');
+				logger.error(
+					"riveFilePicker not found after Golden Layout initialization",
+				);
 				// Try to find it again after a longer delay
 				setTimeout(() => {
 					findDOMElements();
 					if (riveFilePicker) {
-						logger.info('riveFilePicker found on second attempt');
+						logger.info("riveFilePicker found on second attempt");
 						setupEventListeners();
 					} else {
-						logger.error('riveFilePicker still not found after second attempt');
+						logger.error(
+							"riveFilePicker still not found after second attempt",
+						);
 					}
 				}, 500);
 			} else {
-				logger.info('riveFilePicker found successfully');
+				logger.info("riveFilePicker found successfully");
 				setupEventListeners();
 			}
-			
+
 			setupWindowResizeListener();
-			
+
 			// Expose resize function globally for Golden Layout
-			window.resizeCanvasToAnimationAspectRatio = resizeCanvasToAnimationAspectRatio;
-			
+			window.resizeCanvasToAnimationAspectRatio =
+				resizeCanvasToAnimationAspectRatio;
+
 			// Initialize background color label contrast
-			const bgColorInput = document.getElementById('canvasBackgroundColor');
+			const bgColorInput = document.getElementById(
+				"canvasBackgroundColor",
+			);
 			if (bgColorInput) {
 				updateBackgroundColorLabelContrast(bgColorInput.value);
 			}
-			
+
 			// Initialize layout scale state
-			const riveFitSelect = document.getElementById('riveFitSelect');
-			const layoutScaleInput = document.getElementById('layoutScaleInput');
-			const scaleUpBtn = document.getElementById('scaleUpBtn');
-			const scaleDownBtn = document.getElementById('scaleDownBtn');
-			
+			const riveFitSelect = document.getElementById("riveFitSelect");
+			const layoutScaleInput =
+				document.getElementById("layoutScaleInput");
+			const scaleUpBtn = document.getElementById("scaleUpBtn");
+			const scaleDownBtn = document.getElementById("scaleDownBtn");
+
 			if (riveFitSelect && layoutScaleInput) {
 				const fitValue = riveFitSelect.value;
-							logger.debug(`[Init] Fit mode: ${fitValue}, Scale input value: "${layoutScaleInput.value}", Input element:`, layoutScaleInput);
-			
-			// Force set the value to ensure it's visible
-			if (!layoutScaleInput.value || layoutScaleInput.value === '') {
-				layoutScaleInput.value = '1.0';
-				logger.debug('[Init] Forced scale input value to 1.0');
-			}
-			
-			layoutScaleInput.disabled = fitValue !== 'layout';
-				if (fitValue === 'layout') {
-					layoutScaleInput.style.opacity = '1';
-					layoutScaleInput.style.cursor = 'text';
-				} else {
-					layoutScaleInput.style.opacity = '0.5';
-					layoutScaleInput.style.cursor = 'not-allowed';
+				logger.debug(
+					`[Init] Fit mode: ${fitValue}, Scale input value: "${layoutScaleInput.value}", Input element:`,
+					layoutScaleInput,
+				);
+
+				// Force set the value to ensure it's visible
+				if (!layoutScaleInput.value || layoutScaleInput.value === "") {
+					layoutScaleInput.value = "1.0";
+					logger.debug("[Init] Forced scale input value to 1.0");
 				}
-				
+
+				layoutScaleInput.disabled = fitValue !== "layout";
+				if (fitValue === "layout") {
+					layoutScaleInput.style.opacity = "1";
+					layoutScaleInput.style.cursor = "text";
+				} else {
+					layoutScaleInput.style.opacity = "0.5";
+					layoutScaleInput.style.cursor = "not-allowed";
+				}
+
 				// Initialize scale buttons
 				if (scaleUpBtn && scaleDownBtn) {
-					const isLayoutMode = fitValue === 'layout';
+					const isLayoutMode = fitValue === "layout";
 					scaleUpBtn.disabled = !isLayoutMode;
 					scaleDownBtn.disabled = !isLayoutMode;
-					scaleUpBtn.style.opacity = isLayoutMode ? '1' : '0.5';
-					scaleDownBtn.style.opacity = isLayoutMode ? '1' : '0.5';
-					scaleUpBtn.style.cursor = isLayoutMode ? 'pointer' : 'not-allowed';
-					scaleDownBtn.style.cursor = isLayoutMode ? 'pointer' : 'not-allowed';
-					logger.debug(`[Init] Scale buttons initialized, layout mode: ${isLayoutMode}`);
+					scaleUpBtn.style.opacity = isLayoutMode ? "1" : "0.5";
+					scaleDownBtn.style.opacity = isLayoutMode ? "1" : "0.5";
+					scaleUpBtn.style.cursor = isLayoutMode
+						? "pointer"
+						: "not-allowed";
+					scaleDownBtn.style.cursor = isLayoutMode
+						? "pointer"
+						: "not-allowed";
+					logger.debug(
+						`[Init] Scale buttons initialized, layout mode: ${isLayoutMode}`,
+					);
 				}
 			}
-			
+
 			// Initialize with default message
 			setupJsonEditor({ message: "Please select a Rive file to parse." });
-			
-			logger.info('Application initialized with Golden Layout');
+
+			logger.info("Application initialized with Golden Layout");
 		}, 100);
 	} else {
-		logger.error('Failed to initialize Golden Layout');
+		logger.error("Failed to initialize Golden Layout");
 	}
 });
 
@@ -416,51 +454,64 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
 	// Event listener for the Rive file picker
 	if (riveFilePicker) {
-		riveFilePicker.addEventListener('change', handleFileSelect);
+		riveFilePicker.addEventListener("change", handleFileSelect);
 	}
 
 	// Event listeners for artboard and state machine selection
 	if (artboardSelector) {
-		artboardSelector.addEventListener('change', handleArtboardChange);
+		artboardSelector.addEventListener("change", handleArtboardChange);
 	}
 	if (animationSelector) {
-		animationSelector.addEventListener('change', handleAnimationChange);
+		animationSelector.addEventListener("change", handleAnimationChange);
 	}
 	if (stateMachineSelector) {
-		stateMachineSelector.addEventListener('change', handleStateMachineChange);
+		stateMachineSelector.addEventListener(
+			"change",
+			handleStateMachineChange,
+		);
 	}
 	if (applySelectionBtn) {
-		applySelectionBtn.addEventListener('click', handleApplySelection);
+		applySelectionBtn.addEventListener("click", handleApplySelection);
 	}
 
 	// Event listeners for playback controls
 	if (toggleTimelineBtn) {
-		toggleTimelineBtn.addEventListener('click', handleToggleTimeline);
+		toggleTimelineBtn.addEventListener("click", handleToggleTimeline);
 	}
 	if (pauseTimelineBtn) {
-		pauseTimelineBtn.addEventListener('click', handlePauseTimeline);
+		pauseTimelineBtn.addEventListener("click", handlePauseTimeline);
 	}
 	if (toggleStateMachineBtn) {
-		toggleStateMachineBtn.addEventListener('click', handleToggleStateMachine);
+		toggleStateMachineBtn.addEventListener(
+			"click",
+			handleToggleStateMachine,
+		);
 	}
 
-		// Event listener for canvas background color
-	const canvasBackgroundColor = document.getElementById('canvasBackgroundColor');
+	// Event listener for canvas background color
+	const canvasBackgroundColor = document.getElementById(
+		"canvasBackgroundColor",
+	);
 	if (canvasBackgroundColor) {
-		canvasBackgroundColor.addEventListener('change', handleCanvasBackgroundChange);
+		canvasBackgroundColor.addEventListener(
+			"change",
+			handleCanvasBackgroundChange,
+		);
 	}
 
 	// Event listener for clear file button
-	const clearFileBtn = document.getElementById('clearFileBtn');
+	const clearFileBtn = document.getElementById("clearFileBtn");
 	if (clearFileBtn) {
-		clearFileBtn.addEventListener('click', handleClearFile);
+		clearFileBtn.addEventListener("click", handleClearFile);
 		clearFileBtn.disabled = true; // Start disabled since no file is loaded
 	}
 
 	// Event listener for file selected indicator (click to change file)
-	const fileSelectedIndicator = document.getElementById('fileSelectedIndicator');
+	const fileSelectedIndicator = document.getElementById(
+		"fileSelectedIndicator",
+	);
 	if (fileSelectedIndicator) {
-		fileSelectedIndicator.addEventListener('click', () => {
+		fileSelectedIndicator.addEventListener("click", () => {
 			if (riveFilePicker) {
 				riveFilePicker.click();
 			}
@@ -468,29 +519,29 @@ function setupEventListeners() {
 	}
 
 	// Event listeners for Rive layout controls
-	const riveFitSelect = document.getElementById('riveFitSelect');
-	const riveAlignmentSelect = document.getElementById('riveAlignmentSelect');
-	const layoutScaleInput = document.getElementById('layoutScaleInput');
-	const scaleUpBtn = document.getElementById('scaleUpBtn');
-	const scaleDownBtn = document.getElementById('scaleDownBtn');
+	const riveFitSelect = document.getElementById("riveFitSelect");
+	const riveAlignmentSelect = document.getElementById("riveAlignmentSelect");
+	const layoutScaleInput = document.getElementById("layoutScaleInput");
+	const scaleUpBtn = document.getElementById("scaleUpBtn");
+	const scaleDownBtn = document.getElementById("scaleDownBtn");
 
 	if (riveFitSelect) {
-		riveFitSelect.addEventListener('change', handleRiveLayoutChange);
+		riveFitSelect.addEventListener("change", handleRiveLayoutChange);
 	}
 	if (riveAlignmentSelect) {
-		riveAlignmentSelect.addEventListener('change', handleRiveLayoutChange);
+		riveAlignmentSelect.addEventListener("change", handleRiveLayoutChange);
 	}
 	if (layoutScaleInput) {
-		layoutScaleInput.addEventListener('input', handleRiveLayoutChange);
+		layoutScaleInput.addEventListener("input", handleRiveLayoutChange);
 	}
 	if (scaleUpBtn) {
-		scaleUpBtn.addEventListener('click', handleScaleUp);
+		scaleUpBtn.addEventListener("click", handleScaleUp);
 	}
 	if (scaleDownBtn) {
-		scaleDownBtn.addEventListener('click', handleScaleDown);
+		scaleDownBtn.addEventListener("click", handleScaleDown);
 	}
-	
-	logger.debug('Event listeners set up');
+
+	logger.debug("Event listeners set up");
 }
 
 /**
@@ -503,15 +554,17 @@ function populateArtboardSelector(parsedData) {
 	}
 
 	// Clear existing options
-	artboardSelector.innerHTML = '';
+	artboardSelector.innerHTML = "";
 
 	// Add artboard options
 	parsedData.artboards.forEach((artboard, index) => {
-		const option = document.createElement('option');
+		const option = document.createElement("option");
 		option.value = artboard.name;
-		
+
 		// Emphasize default artboard
-		const isDefault = parsedData.defaultElements && parsedData.defaultElements.artboardName === artboard.name;
+		const isDefault =
+			parsedData.defaultElements &&
+			parsedData.defaultElements.artboardName === artboard.name;
 		if (isDefault) {
 			option.textContent = `${artboard.name} (Default)`;
 			option.selected = true;
@@ -519,7 +572,7 @@ function populateArtboardSelector(parsedData) {
 		} else {
 			option.textContent = artboard.name;
 		}
-		
+
 		artboardSelector.appendChild(option);
 	});
 
@@ -529,7 +582,9 @@ function populateArtboardSelector(parsedData) {
 		artboardSelector.value = selectedArtboard;
 	}
 
-	logger.info(`Populated artboard selector with ${parsedData.artboards.length} artboards. Selected: ${selectedArtboard}`);
+	logger.info(
+		`Populated artboard selector with ${parsedData.artboards.length} artboards. Selected: ${selectedArtboard}`,
+	);
 }
 
 /**
@@ -537,20 +592,30 @@ function populateArtboardSelector(parsedData) {
  * @param {string} artboardName - The name of the selected artboard
  */
 function populateAnimationSelector(artboardName) {
-	if (!animationSelector || !currentParsedData || !currentParsedData.artboards) {
+	if (
+		!animationSelector ||
+		!currentParsedData ||
+		!currentParsedData.artboards
+	) {
 		return;
 	}
 
 	// Clear existing options
-	animationSelector.innerHTML = '';
+	animationSelector.innerHTML = "";
 
 	// Find the selected artboard
-	const selectedArtboardData = currentParsedData.artboards.find(ab => ab.name === artboardName);
-	
-	if (!selectedArtboardData || !selectedArtboardData.animations || selectedArtboardData.animations.length === 0) {
-		const option = document.createElement('option');
-		option.value = '';
-		option.textContent = 'No Timelines';
+	const selectedArtboardData = currentParsedData.artboards.find(
+		(ab) => ab.name === artboardName,
+	);
+
+	if (
+		!selectedArtboardData ||
+		!selectedArtboardData.animations ||
+		selectedArtboardData.animations.length === 0
+	) {
+		const option = document.createElement("option");
+		option.value = "";
+		option.textContent = "No Timelines";
 		animationSelector.appendChild(option);
 		selectedAnimation = null;
 		logger.info(`No timelines found for artboard: ${artboardName}`);
@@ -559,20 +624,22 @@ function populateAnimationSelector(artboardName) {
 
 	// Add timeline options
 	selectedArtboardData.animations.forEach((animation, index) => {
-		const option = document.createElement('option');
+		const option = document.createElement("option");
 		option.value = animation.name;
 		option.textContent = `${animation.name} (${animation.duration.toFixed(2)}s)`;
-		
+
 		// Select the first timeline by default
 		if (index === 0) {
 			option.selected = true;
 			selectedAnimation = animation.name;
 		}
-		
+
 		animationSelector.appendChild(option);
 	});
 
-	logger.info(`Populated timeline selector with ${selectedArtboardData.animations.length} timelines for artboard ${artboardName}. Selected: ${selectedAnimation}`);
+	logger.info(
+		`Populated timeline selector with ${selectedArtboardData.animations.length} timelines for artboard ${artboardName}. Selected: ${selectedAnimation}`,
+	);
 }
 
 /**
@@ -580,20 +647,30 @@ function populateAnimationSelector(artboardName) {
  * @param {string} artboardName - The name of the selected artboard
  */
 function populateStateMachineSelector(artboardName) {
-	if (!stateMachineSelector || !currentParsedData || !currentParsedData.artboards) {
+	if (
+		!stateMachineSelector ||
+		!currentParsedData ||
+		!currentParsedData.artboards
+	) {
 		return;
 	}
 
 	// Clear existing options
-	stateMachineSelector.innerHTML = '';
+	stateMachineSelector.innerHTML = "";
 
 	// Find the selected artboard
-	const selectedArtboardData = currentParsedData.artboards.find(ab => ab.name === artboardName);
-	
-	if (!selectedArtboardData || !selectedArtboardData.stateMachines || selectedArtboardData.stateMachines.length === 0) {
-		const option = document.createElement('option');
-		option.value = '';
-		option.textContent = 'No State Machines';
+	const selectedArtboardData = currentParsedData.artboards.find(
+		(ab) => ab.name === artboardName,
+	);
+
+	if (
+		!selectedArtboardData ||
+		!selectedArtboardData.stateMachines ||
+		selectedArtboardData.stateMachines.length === 0
+	) {
+		const option = document.createElement("option");
+		option.value = "";
+		option.textContent = "No State Machines";
 		stateMachineSelector.appendChild(option);
 		selectedStateMachine = null;
 		logger.info(`No state machines found for artboard: ${artboardName}`);
@@ -602,40 +679,53 @@ function populateStateMachineSelector(artboardName) {
 
 	// Add state machine options
 	selectedArtboardData.stateMachines.forEach((stateMachine, index) => {
-		const option = document.createElement('option');
+		const option = document.createElement("option");
 		option.value = stateMachine.name;
-		
+
 		// Check if this is the default state machine
-		const isDefault = currentParsedData.defaultElements && 
-			currentParsedData.defaultElements.stateMachineNames && 
-			currentParsedData.defaultElements.stateMachineNames.includes(stateMachine.name);
-		
+		const isDefault =
+			currentParsedData.defaultElements &&
+			currentParsedData.defaultElements.stateMachineNames &&
+			currentParsedData.defaultElements.stateMachineNames.includes(
+				stateMachine.name,
+			);
+
 		// Select "State Machine 1" by default if it exists, otherwise select the first one, or use default from parsed data
-		const shouldSelect = isDefault || 
-			stateMachine.name === "State Machine 1" || 
-			(index === 0 && !selectedArtboardData.stateMachines.find(sm => sm.name === "State Machine 1") && !isDefault);
-		
+		const shouldSelect =
+			isDefault ||
+			stateMachine.name === "State Machine 1" ||
+			(index === 0 &&
+				!selectedArtboardData.stateMachines.find(
+					(sm) => sm.name === "State Machine 1",
+				) &&
+				!isDefault);
+
 		if (isDefault) {
 			option.textContent = `${stateMachine.name} (Default)`;
 		} else {
 			option.textContent = stateMachine.name;
 		}
-		
+
 		if (shouldSelect) {
 			option.selected = true;
 			selectedStateMachine = stateMachine.name;
 		}
-		
+
 		stateMachineSelector.appendChild(option);
 	});
 
 	// If no selection was made, select the first state machine
-	if (!selectedStateMachine && selectedArtboardData.stateMachines.length > 0) {
+	if (
+		!selectedStateMachine &&
+		selectedArtboardData.stateMachines.length > 0
+	) {
 		selectedStateMachine = selectedArtboardData.stateMachines[0].name;
 		stateMachineSelector.value = selectedStateMachine;
 	}
 
-	logger.info(`Populated state machine selector with ${selectedArtboardData.stateMachines.length} state machines for artboard ${artboardName}. Selected: ${selectedStateMachine}`);
+	logger.info(
+		`Populated state machine selector with ${selectedArtboardData.stateMachines.length} state machines for artboard ${artboardName}. Selected: ${selectedStateMachine}`,
+	);
 }
 
 /**
@@ -644,7 +734,7 @@ function populateStateMachineSelector(artboardName) {
 function handleArtboardChange() {
 	selectedArtboard = artboardSelector.value;
 	logger.info(`Artboard selection changed to: ${selectedArtboard}`);
-	
+
 	// Update animation and state machine selectors based on new artboard
 	populateAnimationSelector(selectedArtboard);
 	populateStateMachineSelector(selectedArtboard);
@@ -656,7 +746,7 @@ function handleArtboardChange() {
 function handleAnimationChange() {
 	selectedAnimation = animationSelector.value;
 	logger.info(`Timeline selection changed to: ${selectedAnimation}`);
-	
+
 	// Reset playback states when timeline changes
 	resetPlaybackStates();
 }
@@ -674,16 +764,19 @@ function handleStateMachineChange() {
  */
 function handleApplySelection() {
 	if (!selectedArtboard) {
-		logger.warn('No artboard selected');
+		logger.warn("No artboard selected");
 		return;
 	}
 
-	logger.info(`Applying selection - Artboard: ${selectedArtboard}, Timeline: ${selectedAnimation || 'None'}, State Machine: ${selectedStateMachine || 'None'}`);
+	logger.info(
+		`Applying selection - Artboard: ${selectedArtboard}, Timeline: ${selectedAnimation || "None"}, State Machine: ${selectedStateMachine || "None"}`,
+	);
 
 	// Update the parsed data with the new selection
 	if (currentParsedData && currentParsedData.defaultElements) {
 		currentParsedData.defaultElements.artboardName = selectedArtboard;
-		currentParsedData.defaultElements.stateMachineNames = selectedStateMachine ? [selectedStateMachine] : [];
+		currentParsedData.defaultElements.stateMachineNames =
+			selectedStateMachine ? [selectedStateMachine] : [];
 	}
 
 	// Reset playback states when applying new selection
@@ -691,9 +784,9 @@ function handleApplySelection() {
 
 	// Reinitialize the dynamic controls with the updated selection
 	initDynamicControls(currentParsedData);
-	
+
 	if (statusMessageDiv) {
-		statusMessageDiv.textContent = `Applied selection - Artboard: ${selectedArtboard}${selectedAnimation ? `, Timeline: ${selectedAnimation}` : ''}${selectedStateMachine ? `, State Machine: ${selectedStateMachine}` : ''}`;
+		statusMessageDiv.textContent = `Applied selection - Artboard: ${selectedArtboard}${selectedAnimation ? `, Timeline: ${selectedAnimation}` : ""}${selectedStateMachine ? `, State Machine: ${selectedStateMachine}` : ""}`;
 	}
 }
 
@@ -705,7 +798,7 @@ function getLiveRiveInstance() {
 	if (window.riveInstanceGlobal) {
 		return window.riveInstanceGlobal;
 	}
-	
+
 	// Fallback to stored reference
 	return liveRiveInstance;
 }
@@ -714,9 +807,9 @@ function getLiveRiveInstance() {
  * Resets all playback states and updates UI
  */
 function resetPlaybackStates() {
-	timelineState = 'stopped';
-	stateMachineState = 'stopped';
-	currentPlaybackMode = 'none';
+	timelineState = "stopped";
+	stateMachineState = "stopped";
+	currentPlaybackMode = "none";
 	updateButtonStates();
 }
 
@@ -725,21 +818,23 @@ function resetPlaybackStates() {
  */
 function initializePlaybackStates(parsedData) {
 	// Check if a state machine is set to auto-play
-	if (parsedData && parsedData.defaultElements && 
-		parsedData.defaultElements.stateMachineNames && 
-		parsedData.defaultElements.stateMachineNames.length > 0) {
-		
+	if (
+		parsedData &&
+		parsedData.defaultElements &&
+		parsedData.defaultElements.stateMachineNames &&
+		parsedData.defaultElements.stateMachineNames.length > 0
+	) {
 		// State machine is auto-playing
-		stateMachineState = 'playing';
-		timelineState = 'stopped';
-		currentPlaybackMode = 'stateMachine';
-		
-		logger.info('Initialized with auto-playing state machine');
+		stateMachineState = "playing";
+		timelineState = "stopped";
+		currentPlaybackMode = "stateMachine";
+
+		logger.info("Initialized with auto-playing state machine");
 	} else {
 		// No auto-play, reset to stopped
 		resetPlaybackStates();
 	}
-	
+
 	updateButtonStates();
 }
 
@@ -749,20 +844,31 @@ function initializePlaybackStates(parsedData) {
 function updateButtonStates() {
 	// Update timeline toggle button
 	if (toggleTimelineBtn) {
-		toggleTimelineBtn.setAttribute('data-state', timelineState === 'playing' ? 'playing' : 'stopped');
-		toggleTimelineBtn.textContent = timelineState === 'playing' ? 'Stop' : 'Play';
+		toggleTimelineBtn.setAttribute(
+			"data-state",
+			timelineState === "playing" ? "playing" : "stopped",
+		);
+		toggleTimelineBtn.textContent =
+			timelineState === "playing" ? "Stop" : "Play";
 	}
-	
+
 	// Update pause button
 	if (pauseTimelineBtn) {
-		pauseTimelineBtn.setAttribute('data-state', timelineState === 'paused' ? 'paused' : 'unpaused');
-		pauseTimelineBtn.disabled = timelineState === 'stopped';
+		pauseTimelineBtn.setAttribute(
+			"data-state",
+			timelineState === "paused" ? "paused" : "unpaused",
+		);
+		pauseTimelineBtn.disabled = timelineState === "stopped";
 	}
-	
+
 	// Update state machine toggle button
 	if (toggleStateMachineBtn) {
-		toggleStateMachineBtn.setAttribute('data-state', stateMachineState === 'playing' ? 'playing' : 'stopped');
-		toggleStateMachineBtn.textContent = stateMachineState === 'playing' ? 'Stop' : 'Play';
+		toggleStateMachineBtn.setAttribute(
+			"data-state",
+			stateMachineState === "playing" ? "playing" : "stopped",
+		);
+		toggleStateMachineBtn.textContent =
+			stateMachineState === "playing" ? "Stop" : "Play";
 	}
 }
 
@@ -772,45 +878,45 @@ function updateButtonStates() {
 function handleToggleTimeline() {
 	const riveInstance = getLiveRiveInstance();
 	if (!riveInstance) {
-		logger.warn('No live Rive instance available for timeline playback');
+		logger.warn("No live Rive instance available for timeline playback");
 		return;
 	}
 
 	if (!selectedAnimation) {
-		logger.warn('No timeline selected');
+		logger.warn("No timeline selected");
 		return;
 	}
 
 	try {
-		if (timelineState === 'stopped' || timelineState === 'paused') {
+		if (timelineState === "stopped" || timelineState === "paused") {
 			// Stop state machine if it's playing (override behavior)
-			if (stateMachineState === 'playing' && selectedStateMachine) {
+			if (stateMachineState === "playing" && selectedStateMachine) {
 				riveInstance.stop(selectedStateMachine);
-				stateMachineState = 'stopped';
+				stateMachineState = "stopped";
 			}
-			
+
 			logger.info(`Playing timeline: ${selectedAnimation}`);
 			riveInstance.play(selectedAnimation);
-			timelineState = 'playing';
-			currentPlaybackMode = 'timeline';
-			
+			timelineState = "playing";
+			currentPlaybackMode = "timeline";
+
 			if (statusMessageDiv) {
 				statusMessageDiv.textContent = `Playing timeline: ${selectedAnimation}`;
 			}
 		} else {
 			logger.info(`Stopping timeline: ${selectedAnimation}`);
 			riveInstance.stop(selectedAnimation);
-			timelineState = 'stopped';
-			currentPlaybackMode = 'none';
-			
+			timelineState = "stopped";
+			currentPlaybackMode = "none";
+
 			if (statusMessageDiv) {
 				statusMessageDiv.textContent = `Stopped timeline: ${selectedAnimation}`;
 			}
 		}
-		
+
 		updateButtonStates();
 	} catch (error) {
-		logger.error('Error toggling timeline:', error);
+		logger.error("Error toggling timeline:", error);
 		if (statusMessageDiv) {
 			statusMessageDiv.textContent = `Error controlling timeline: ${error.message}`;
 		}
@@ -823,37 +929,37 @@ function handleToggleTimeline() {
 function handlePauseTimeline() {
 	const riveInstance = getLiveRiveInstance();
 	if (!riveInstance) {
-		logger.warn('No live Rive instance available for timeline control');
+		logger.warn("No live Rive instance available for timeline control");
 		return;
 	}
 
-	if (!selectedAnimation || timelineState === 'stopped') {
-		logger.warn('No timeline playing to pause');
+	if (!selectedAnimation || timelineState === "stopped") {
+		logger.warn("No timeline playing to pause");
 		return;
 	}
 
 	try {
-		if (timelineState === 'paused') {
+		if (timelineState === "paused") {
 			logger.info(`Resuming timeline: ${selectedAnimation}`);
 			riveInstance.play(selectedAnimation);
-			timelineState = 'playing';
-			
+			timelineState = "playing";
+
 			if (statusMessageDiv) {
 				statusMessageDiv.textContent = `Resumed timeline: ${selectedAnimation}`;
 			}
-	} else {
+		} else {
 			logger.info(`Pausing timeline: ${selectedAnimation}`);
 			riveInstance.pause(selectedAnimation);
-			timelineState = 'paused';
-			
+			timelineState = "paused";
+
 			if (statusMessageDiv) {
 				statusMessageDiv.textContent = `Paused timeline: ${selectedAnimation}`;
 			}
 		}
-		
+
 		updateButtonStates();
 	} catch (error) {
-		logger.error('Error pausing timeline:', error);
+		logger.error("Error pausing timeline:", error);
 		if (statusMessageDiv) {
 			statusMessageDiv.textContent = `Error pausing timeline: ${error.message}`;
 		}
@@ -866,59 +972,63 @@ function handlePauseTimeline() {
 function handleToggleStateMachine() {
 	const riveInstance = getLiveRiveInstance();
 	if (!riveInstance) {
-		logger.warn('No live Rive instance available for state machine control');
+		logger.warn(
+			"No live Rive instance available for state machine control",
+		);
 		return;
 	}
 
 	if (!selectedStateMachine) {
-		logger.warn('No state machine selected');
+		logger.warn("No state machine selected");
 		return;
 	}
 
 	try {
-		if (stateMachineState === 'stopped') {
+		if (stateMachineState === "stopped") {
 			// Stop timeline if it's playing (override behavior)
-			if (timelineState !== 'stopped' && selectedAnimation) {
+			if (timelineState !== "stopped" && selectedAnimation) {
 				riveInstance.stop(selectedAnimation);
-				timelineState = 'stopped';
+				timelineState = "stopped";
 			}
-			
+
 			logger.info(`Starting state machine: ${selectedStateMachine}`);
-			
+
 			// For state machines, we need to ensure they're properly started and interactive
 			// The key is to use play() which maintains interactivity, not just start the state machine
 			riveInstance.play(selectedStateMachine);
-			stateMachineState = 'playing';
-			currentPlaybackMode = 'stateMachine';
-			
+			stateMachineState = "playing";
+			currentPlaybackMode = "stateMachine";
+
 			if (statusMessageDiv) {
 				statusMessageDiv.textContent = `Started state machine: ${selectedStateMachine} (interactive)`;
 			}
 		} else {
 			logger.info(`Stopping state machine: ${selectedStateMachine}`);
-			
+
 			// For state machines, we need to properly stop them and clear their state
 			riveInstance.stop(selectedStateMachine);
-			
+
 			// Also pause to ensure it's completely stopped
 			try {
 				riveInstance.pause(selectedStateMachine);
 			} catch (e) {
 				// Pause might not be available for state machines, that's ok
-				logger.debug('Pause not available for state machine, using stop only');
+				logger.debug(
+					"Pause not available for state machine, using stop only",
+				);
 			}
-			
-			stateMachineState = 'stopped';
-			currentPlaybackMode = 'none';
-			
+
+			stateMachineState = "stopped";
+			currentPlaybackMode = "none";
+
 			if (statusMessageDiv) {
 				statusMessageDiv.textContent = `Stopped state machine: ${selectedStateMachine} (no longer interactive)`;
 			}
 		}
-		
+
 		updateButtonStates();
 	} catch (error) {
-		logger.error('Error toggling state machine:', error);
+		logger.error("Error toggling state machine:", error);
 		if (statusMessageDiv) {
 			statusMessageDiv.textContent = `Error controlling state machine: ${error.message}`;
 		}
@@ -933,10 +1043,10 @@ function handleToggleStateMachine() {
  */
 function handleFileSelect(event) {
 	const file = event.target.files[0];
-	
+
 	// Reset all state when a new file is selected
 	resetApplicationState();
-	
+
 	// Update file selection UI
 	if (file) {
 		updateFileSelectionUI(true, file.name);
@@ -944,7 +1054,9 @@ function handleFileSelect(event) {
 
 	if (!window.rive) {
 		logger.error("Rive engine (window.rive) not found!");
-		if(statusMessageDiv) statusMessageDiv.textContent = "Error: Rive engine (window.rive) not found!";
+		if (statusMessageDiv)
+			statusMessageDiv.textContent =
+				"Error: Rive engine (window.rive) not found!";
 		setupJsonEditor({ error: "Rive engine (window.rive) not found!" });
 		return;
 	}
@@ -961,73 +1073,90 @@ function handleFileSelect(event) {
 	} else {
 		riveSrcForOriginal = null; // Parser.js handles its default
 	}
-	if(statusMessageDiv) statusMessageDiv.textContent = `Running Rive parser (${messageForOriginal})...`;
+	if (statusMessageDiv)
+		statusMessageDiv.textContent = `Running Rive parser (${messageForOriginal})...`;
 
-	const riveCanvas = document.getElementById('rive-canvas');
+	const riveCanvas = document.getElementById("rive-canvas");
 	logger.debug("riveCanvas element fetched in handleFileSelect:", riveCanvas);
 	if (!riveCanvas) {
 		logger.error("Canvas element with ID 'rive-canvas' not found in DOM!");
 		// Optionally, update UI to reflect this critical error
 		// return; // Might be too early to return, let parser.js handle its internal fallback for now
-	} 
+	}
 
-	if (typeof runOriginalClientParser === 'function') {
+	if (typeof runOriginalClientParser === "function") {
 		try {
-			runOriginalClientParser(riveEngine, riveCanvas, riveSrcForOriginal, function(error, parsedData) {
-				if (error) {
-					logger.error("Parser reported error:", error);
-					if(statusMessageDiv) statusMessageDiv.textContent = `Error from parser: ${error.error || 'Unknown error'}`;
-					setupJsonEditor({ error: `Parser error: ${error.error || 'Unknown error'}`, details: error.details });
-					initDynamicControls(null); // Pass null as riveControlInterface will create its own instance
-					
-					// Hide artboard/state machine controls on error
-					if (artboardStateMachineControls) {
-						artboardStateMachineControls.style.display = 'none';
+			runOriginalClientParser(
+				riveEngine,
+				riveCanvas,
+				riveSrcForOriginal,
+				function (error, parsedData) {
+					if (error) {
+						logger.error("Parser reported error:", error);
+						if (statusMessageDiv)
+							statusMessageDiv.textContent = `Error from parser: ${error.error || "Unknown error"}`;
+						setupJsonEditor({
+							error: `Parser error: ${error.error || "Unknown error"}`,
+							details: error.details,
+						});
+						initDynamicControls(null); // Pass null as riveControlInterface will create its own instance
+
+						// Hide artboard/state machine controls on error
+						if (artboardStateMachineControls) {
+							artboardStateMachineControls.style.display = "none";
+						}
+					} else if (parsedData) {
+						if (statusMessageDiv)
+							statusMessageDiv.textContent = `Successfully parsed. Displaying data.`;
+						setupJsonEditor(parsedData);
+
+						// Store the parsed data for artboard/state machine selection
+						currentParsedData = parsedData;
+
+						// Populate and show artboard/timeline/state machine selectors
+						populateArtboardSelector(parsedData);
+						if (selectedArtboard) {
+							populateAnimationSelector(selectedArtboard);
+							populateStateMachineSelector(selectedArtboard);
+						}
+
+						// Set initial playback states based on what's auto-playing
+						initializePlaybackStates(parsedData);
+
+						// Controls are now always visible in the new layout
+
+						// MODIFIED: Call initDynamicControls with only parsedData
+						// riveControlInterface will be responsible for creating the Rive instance.
+						initDynamicControls(parsedData);
+
+						// Trigger canvas resize to match animation aspect ratio after load
+						setTimeout(() => {
+							resizeCanvasToAnimationAspectRatio();
+						}, 500);
+					} else {
+						if (statusMessageDiv)
+							statusMessageDiv.textContent =
+								"Parser finished with no data.";
+						setupJsonEditor({
+							message: "Parser returned no data.",
+						});
+						initDynamicControls(null);
+
+						// Controls are now always visible in the new layout
 					}
-				} else if (parsedData) {
-					if(statusMessageDiv) statusMessageDiv.textContent = `Successfully parsed. Displaying data.`;
-					setupJsonEditor(parsedData); 
-					
-					// Store the parsed data for artboard/state machine selection
-					currentParsedData = parsedData;
-					
-					// Populate and show artboard/timeline/state machine selectors
-					populateArtboardSelector(parsedData);
-					if (selectedArtboard) {
-						populateAnimationSelector(selectedArtboard);
-						populateStateMachineSelector(selectedArtboard);
-					}
-					
-					// Set initial playback states based on what's auto-playing
-					initializePlaybackStates(parsedData);
-					
-					// Controls are now always visible in the new layout
-					
-					// MODIFIED: Call initDynamicControls with only parsedData
-					// riveControlInterface will be responsible for creating the Rive instance.
-					initDynamicControls(parsedData);
-					
-					// Trigger canvas resize to match animation aspect ratio after load
-					setTimeout(() => {
-						resizeCanvasToAnimationAspectRatio();
-					}, 500);
-					
-				} else {
-					if(statusMessageDiv) statusMessageDiv.textContent = "Parser finished with no data.";
-					setupJsonEditor({ message: "Parser returned no data." });
-					initDynamicControls(null);
-					
-					// Controls are now always visible in the new layout
-				}
-			}); 
+				},
+			);
 		} catch (e) {
 			logger.error("Error calling runOriginalClientParser:", e);
-			if(statusMessageDiv) statusMessageDiv.textContent = "Error running parser. Check console.";
+			if (statusMessageDiv)
+				statusMessageDiv.textContent =
+					"Error running parser. Check console.";
 			setupJsonEditor({ error: `Error calling parser: ${e.message}` });
 		}
 	} else {
 		logger.error("runOriginalClientParser function not found.");
-		if(statusMessageDiv) statusMessageDiv.textContent = "Error: Parser function not found.";
+		if (statusMessageDiv)
+			statusMessageDiv.textContent = "Error: Parser function not found.";
 		setupJsonEditor({ error: "Parser function not found." });
 	}
 }
@@ -1036,17 +1165,17 @@ function handleFileSelect(event) {
  * Handles canvas background color change
  */
 function handleCanvasBackgroundChange(event) {
-	const canvas = document.getElementById('rive-canvas');
+	const canvas = document.getElementById("rive-canvas");
 	const color = event.target.value;
-	
+
 	// Apply background directly to the canvas element
 	if (canvas) {
 		canvas.style.backgroundColor = color;
 		logger.info(`Canvas background color changed to: ${color}`);
 	} else {
-		logger.warn('Canvas element not found for background color change');
+		logger.warn("Canvas element not found for background color change");
 	}
-	
+
 	// Update label contrast
 	updateBackgroundColorLabelContrast(color);
 }
@@ -1055,25 +1184,27 @@ function handleCanvasBackgroundChange(event) {
  * Updates the background color label contrast based on the selected color
  */
 function updateBackgroundColorLabelContrast(color) {
-	const label = document.querySelector('.bg-color-label');
+	const label = document.querySelector(".bg-color-label");
 	if (!label) return;
-	
+
 	// Convert hex to RGB
-	const hex = color.replace('#', '');
+	const hex = color.replace("#", "");
 	const r = parseInt(hex.substr(0, 2), 16);
 	const g = parseInt(hex.substr(2, 2), 16);
 	const b = parseInt(hex.substr(4, 2), 16);
-	
+
 	// Calculate luminance
 	const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-	
+
 	// Set text color based on luminance
 	if (luminance > 0.5) {
-		label.style.color = '#000000';
-		label.style.textShadow = '1px 1px 2px rgba(255, 255, 255, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.3)';
+		label.style.color = "#000000";
+		label.style.textShadow =
+			"1px 1px 2px rgba(255, 255, 255, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.3)";
 	} else {
-		label.style.color = '#ffffff';
-		label.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(255, 255, 255, 0.3)';
+		label.style.color = "#ffffff";
+		label.style.textShadow =
+			"1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(255, 255, 255, 0.3)";
 	}
 }
 
@@ -1081,70 +1212,70 @@ function updateBackgroundColorLabelContrast(color) {
  * Clears the canvas by removing any Rive content
  */
 function clearCanvas() {
-	const canvas = document.getElementById('rive-canvas');
-	const bgColorInput = document.getElementById('canvasBackgroundColor');
-	
+	const canvas = document.getElementById("rive-canvas");
+	const bgColorInput = document.getElementById("canvasBackgroundColor");
+
 	// First, stop and cleanup any active Rive instances
 	const riveInstance = getLiveRiveInstance();
 	if (riveInstance) {
 		try {
 			// Stop all animations and state machines
-			if (typeof riveInstance.stop === 'function') {
+			if (typeof riveInstance.stop === "function") {
 				riveInstance.stop();
 			}
-			
+
 			// Cleanup the instance
-			if (typeof riveInstance.cleanup === 'function') {
+			if (typeof riveInstance.cleanup === "function") {
 				riveInstance.cleanup();
 			}
-			
-			logger.debug('Rive instance stopped and cleaned up');
+
+			logger.debug("Rive instance stopped and cleaned up");
 		} catch (error) {
-			logger.warn('Error cleaning up Rive instance:', error);
+			logger.warn("Error cleaning up Rive instance:", error);
 		}
 	}
-	
+
 	// Clear global Rive references
 	if (window.riveInstanceGlobal) {
 		try {
-			if (typeof window.riveInstanceGlobal.stop === 'function') {
+			if (typeof window.riveInstanceGlobal.stop === "function") {
 				window.riveInstanceGlobal.stop();
 			}
-			if (typeof window.riveInstanceGlobal.cleanup === 'function') {
+			if (typeof window.riveInstanceGlobal.cleanup === "function") {
 				window.riveInstanceGlobal.cleanup();
 			}
 		} catch (error) {
-			logger.warn('Error cleaning up global Rive instance:', error);
+			logger.warn("Error cleaning up global Rive instance:", error);
 		}
 		window.riveInstanceGlobal = null;
 	}
-	
+
 	if (window.vm) {
 		window.vm = null;
 	}
-	
+
 	// Clear the canvas context
 	if (canvas) {
-		const ctx = canvas.getContext('2d');
+		const ctx = canvas.getContext("2d");
 		if (ctx) {
 			// Clear the entire canvas
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
-			
+
 			// Reset canvas background to default
-			canvas.style.backgroundColor = '#252525';
-			
-			logger.debug('Canvas cleared');
+			canvas.style.backgroundColor = "#252525";
+
+			logger.debug("Canvas cleared");
 		}
-		
+
 		// Reset canvas size to default
 		canvas.width = canvas.offsetWidth;
 		canvas.height = canvas.offsetHeight;
 	}
-	
+
 	// Reset background color input to default
 	if (bgColorInput) {
-		bgColorInput.value = '#252525';
-		updateBackgroundColorLabelContrast('#252525');
+		bgColorInput.value = "#252525";
+		updateBackgroundColorLabelContrast("#252525");
 	}
 }
 
@@ -1152,51 +1283,54 @@ function clearCanvas() {
  * Handles clearing the current file
  */
 function handleClearFile() {
-	logger.info('Clearing current file');
-	
+	logger.info("Clearing current file");
+
 	// Clear the file input
 	if (riveFilePicker) {
-		riveFilePicker.value = '';
+		riveFilePicker.value = "";
 	}
-	
+
 	// Show file picker, hide file selected indicator
 	updateFileSelectionUI(false);
-	
+
 	// Clear the canvas
 	clearCanvas();
-	
+
 	// Reset all application state
 	resetApplicationState();
-	
+
 	// Clear the JSON editor
 	setupJsonEditor({ message: "Please select a Rive file to begin parsing." });
-	
+
 	// Update status message
 	if (statusMessageDiv) {
-		statusMessageDiv.textContent = 'File cleared. Please select a new Rive file to begin parsing.';
+		statusMessageDiv.textContent =
+			"File cleared. Please select a new Rive file to begin parsing.";
 	}
-	
-	logger.info('File cleared successfully');
+
+	logger.info("File cleared successfully");
 }
-
-
 
 /**
  * Updates the file selection UI state
  */
-function updateFileSelectionUI(fileSelected, fileName = '') {
-	const filePickerContainer = document.querySelector('.file-picker-container');
-	const fileSelectedIndicator = document.getElementById('fileSelectedIndicator');
-	const selectedFileNameSpan = document.getElementById('selectedFileName');
-	const clearFileBtn = document.getElementById('clearFileBtn');
-	
+function updateFileSelectionUI(fileSelected, fileName = "") {
+	const filePickerContainer = document.querySelector(
+		".file-picker-container",
+	);
+	const fileSelectedIndicator = document.getElementById(
+		"fileSelectedIndicator",
+	);
+	const selectedFileNameSpan = document.getElementById("selectedFileName");
+	const clearFileBtn = document.getElementById("clearFileBtn");
+
 	if (fileSelected) {
 		// Hide file picker, show selected indicator
 		if (filePickerContainer) {
-			filePickerContainer.style.display = 'none';
+			filePickerContainer.style.display = "none";
 		}
 		if (fileSelectedIndicator) {
-			fileSelectedIndicator.style.display = 'flex';
+			fileSelectedIndicator.style.display = "flex";
 		}
 		if (selectedFileNameSpan) {
 			selectedFileNameSpan.textContent = fileName;
@@ -1208,10 +1342,10 @@ function updateFileSelectionUI(fileSelected, fileName = '') {
 	} else {
 		// Show file picker, hide selected indicator
 		if (filePickerContainer) {
-			filePickerContainer.style.display = 'flex';
+			filePickerContainer.style.display = "flex";
 		}
 		if (fileSelectedIndicator) {
-			fileSelectedIndicator.style.display = 'none';
+			fileSelectedIndicator.style.display = "none";
 		}
 		// Disable clear button (grayed out state)
 		if (clearFileBtn) {
@@ -1226,105 +1360,109 @@ function updateFileSelectionUI(fileSelected, fileName = '') {
 function handleRiveLayoutChange() {
 	const riveInstance = getLiveRiveInstance();
 	if (!riveInstance) {
-		logger.debug('No Rive instance available for layout change');
+		logger.debug("No Rive instance available for layout change");
 		return;
 	}
 
-	const riveFitSelect = document.getElementById('riveFitSelect');
-	const riveAlignmentSelect = document.getElementById('riveAlignmentSelect');
-	const layoutScaleInput = document.getElementById('layoutScaleInput');
+	const riveFitSelect = document.getElementById("riveFitSelect");
+	const riveAlignmentSelect = document.getElementById("riveAlignmentSelect");
+	const layoutScaleInput = document.getElementById("layoutScaleInput");
 
 	if (!riveFitSelect || !riveAlignmentSelect || !layoutScaleInput) {
-		logger.warn('Layout control elements not found');
+		logger.warn("Layout control elements not found");
 		return;
 	}
 
 	const fitValue = riveFitSelect.value;
 	const alignmentValue = riveAlignmentSelect.value;
 	const scaleValue = parseFloat(layoutScaleInput.value) || 1;
-	
-	logger.debug(`[LayoutChange] Fit: ${fitValue}, Alignment: ${alignmentValue}, Scale input value: "${layoutScaleInput.value}", Parsed scale: ${scaleValue}`);
+
+	logger.debug(
+		`[LayoutChange] Fit: ${fitValue}, Alignment: ${alignmentValue}, Scale input value: "${layoutScaleInput.value}", Parsed scale: ${scaleValue}`,
+	);
 
 	// Enable/disable layout scale input based on fit type
-	layoutScaleInput.disabled = fitValue !== 'layout';
-	
+	layoutScaleInput.disabled = fitValue !== "layout";
+
 	// Update visual state for scale input
-	if (fitValue === 'layout') {
-		layoutScaleInput.style.opacity = '1';
-		layoutScaleInput.style.cursor = 'text';
+	if (fitValue === "layout") {
+		layoutScaleInput.style.opacity = "1";
+		layoutScaleInput.style.cursor = "text";
 	} else {
-		layoutScaleInput.style.opacity = '0.5';
-		layoutScaleInput.style.cursor = 'not-allowed';
+		layoutScaleInput.style.opacity = "0.5";
+		layoutScaleInput.style.cursor = "not-allowed";
 	}
-	
+
 	// Update scale button states
-	const scaleUpBtn = document.getElementById('scaleUpBtn');
-	const scaleDownBtn = document.getElementById('scaleDownBtn');
+	const scaleUpBtn = document.getElementById("scaleUpBtn");
+	const scaleDownBtn = document.getElementById("scaleDownBtn");
 	if (scaleUpBtn && scaleDownBtn) {
-		const isLayoutMode = fitValue === 'layout';
+		const isLayoutMode = fitValue === "layout";
 		scaleUpBtn.disabled = !isLayoutMode;
 		scaleDownBtn.disabled = !isLayoutMode;
-		scaleUpBtn.style.opacity = isLayoutMode ? '1' : '0.5';
-		scaleDownBtn.style.opacity = isLayoutMode ? '1' : '0.5';
-		scaleUpBtn.style.cursor = isLayoutMode ? 'pointer' : 'not-allowed';
-		scaleDownBtn.style.cursor = isLayoutMode ? 'pointer' : 'not-allowed';
+		scaleUpBtn.style.opacity = isLayoutMode ? "1" : "0.5";
+		scaleDownBtn.style.opacity = isLayoutMode ? "1" : "0.5";
+		scaleUpBtn.style.cursor = isLayoutMode ? "pointer" : "not-allowed";
+		scaleDownBtn.style.cursor = isLayoutMode ? "pointer" : "not-allowed";
 	}
 
 	try {
 		// Map string values to Rive enums
 		const fitMap = {
-			'contain': window.rive.Fit.Contain,
-			'cover': window.rive.Fit.Cover,
-			'fill': window.rive.Fit.Fill,
-			'fitWidth': window.rive.Fit.FitWidth,
-			'fitHeight': window.rive.Fit.FitHeight,
-			'scaleDown': window.rive.Fit.ScaleDown,
-			'none': window.rive.Fit.None,
-			'layout': window.rive.Fit.Layout
+			contain: window.rive.Fit.Contain,
+			cover: window.rive.Fit.Cover,
+			fill: window.rive.Fit.Fill,
+			fitWidth: window.rive.Fit.FitWidth,
+			fitHeight: window.rive.Fit.FitHeight,
+			scaleDown: window.rive.Fit.ScaleDown,
+			none: window.rive.Fit.None,
+			layout: window.rive.Fit.Layout,
 		};
 
 		const alignmentMap = {
-			'center': window.rive.Alignment.Center,
-			'topLeft': window.rive.Alignment.TopLeft,
-			'topCenter': window.rive.Alignment.TopCenter,
-			'topRight': window.rive.Alignment.TopRight,
-			'centerLeft': window.rive.Alignment.CenterLeft,
-			'centerRight': window.rive.Alignment.CenterRight,
-			'bottomLeft': window.rive.Alignment.BottomLeft,
-			'bottomCenter': window.rive.Alignment.BottomCenter,
-			'bottomRight': window.rive.Alignment.BottomRight
+			center: window.rive.Alignment.Center,
+			topLeft: window.rive.Alignment.TopLeft,
+			topCenter: window.rive.Alignment.TopCenter,
+			topRight: window.rive.Alignment.TopRight,
+			centerLeft: window.rive.Alignment.CenterLeft,
+			centerRight: window.rive.Alignment.CenterRight,
+			bottomLeft: window.rive.Alignment.BottomLeft,
+			bottomCenter: window.rive.Alignment.BottomCenter,
+			bottomRight: window.rive.Alignment.BottomRight,
 		};
 
 		const fit = fitMap[fitValue] || window.rive.Fit.Contain;
-		const alignment = alignmentMap[alignmentValue] || window.rive.Alignment.Center;
+		const alignment =
+			alignmentMap[alignmentValue] || window.rive.Alignment.Center;
 
 		// Create new layout
 		const layout = new window.rive.Layout({
 			fit: fit,
-			alignment: alignment
+			alignment: alignment,
 		});
 
 		// Set layout scale factor if using Layout fit
-		if (fitValue === 'layout') {
+		if (fitValue === "layout") {
 			layout.layoutScaleFactor = scaleValue;
 		}
 
 		// Apply the new layout
 		riveInstance.layout = layout;
-		
+
 		// Trigger resize to apply changes with proper aspect ratio
 		setTimeout(() => {
 			resizeCanvasToAnimationAspectRatio();
 		}, 100);
 
-		logger.info(`Layout updated - Fit: ${fitValue}, Alignment: ${alignmentValue}, Scale: ${scaleValue}`);
-		
-		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Layout updated: ${fitValue} fit, ${alignmentValue} alignment${fitValue === 'layout' ? `, ${scaleValue}x scale` : ''}`;
-		}
+		logger.info(
+			`Layout updated - Fit: ${fitValue}, Alignment: ${alignmentValue}, Scale: ${scaleValue}`,
+		);
 
+		if (statusMessageDiv) {
+			statusMessageDiv.textContent = `Layout updated: ${fitValue} fit, ${alignmentValue} alignment${fitValue === "layout" ? `, ${scaleValue}x scale` : ""}`;
+		}
 	} catch (error) {
-		logger.error('Error updating Rive layout:', error);
+		logger.error("Error updating Rive layout:", error);
 		if (statusMessageDiv) {
 			statusMessageDiv.textContent = `Error updating layout: ${error.message}`;
 		}
@@ -1335,35 +1473,39 @@ function handleRiveLayoutChange() {
  * Handles scale up button click
  */
 function handleScaleUp() {
-	const layoutScaleInput = document.getElementById('layoutScaleInput');
-	const riveFitSelect = document.getElementById('riveFitSelect');
-	
-	logger.debug(`[ScaleUp] Button clicked. Input found: ${!!layoutScaleInput}, Fit select found: ${!!riveFitSelect}`);
-	
+	const layoutScaleInput = document.getElementById("layoutScaleInput");
+	const riveFitSelect = document.getElementById("riveFitSelect");
+
+	logger.debug(
+		`[ScaleUp] Button clicked. Input found: ${!!layoutScaleInput}, Fit select found: ${!!riveFitSelect}`,
+	);
+
 	if (!layoutScaleInput || !riveFitSelect) {
-		logger.warn('[ScaleUp] Missing required elements');
+		logger.warn("[ScaleUp] Missing required elements");
 		return;
 	}
-	
+
 	const fitValue = riveFitSelect.value;
 	logger.debug(`[ScaleUp] Current fit mode: ${fitValue}`);
-	
-	if (fitValue !== 'layout') {
-		logger.debug('[ScaleUp] Not in layout mode, ignoring click');
+
+	if (fitValue !== "layout") {
+		logger.debug("[ScaleUp] Not in layout mode, ignoring click");
 		return;
 	}
-	
+
 	const currentValue = parseFloat(layoutScaleInput.value) || 1;
 	const step = parseFloat(layoutScaleInput.step) || 0.1;
 	const max = parseFloat(layoutScaleInput.max) || 5;
-	
-	logger.debug(`[ScaleUp] Current: ${currentValue}, Step: ${step}, Max: ${max}`);
-	
+
+	logger.debug(
+		`[ScaleUp] Current: ${currentValue}, Step: ${step}, Max: ${max}`,
+	);
+
 	const newValue = Math.min(currentValue + step, max);
 	layoutScaleInput.value = newValue.toFixed(1);
-	
+
 	logger.debug(`[ScaleUp] New value set: ${newValue.toFixed(1)}`);
-	
+
 	// Trigger the layout change
 	handleRiveLayoutChange();
 }
@@ -1372,37 +1514,39 @@ function handleScaleUp() {
  * Handles scale down button click
  */
 function handleScaleDown() {
-	const layoutScaleInput = document.getElementById('layoutScaleInput');
-	const riveFitSelect = document.getElementById('riveFitSelect');
-	
-	logger.debug(`[ScaleDown] Button clicked. Input found: ${!!layoutScaleInput}, Fit select found: ${!!riveFitSelect}`);
-	
+	const layoutScaleInput = document.getElementById("layoutScaleInput");
+	const riveFitSelect = document.getElementById("riveFitSelect");
+
+	logger.debug(
+		`[ScaleDown] Button clicked. Input found: ${!!layoutScaleInput}, Fit select found: ${!!riveFitSelect}`,
+	);
+
 	if (!layoutScaleInput || !riveFitSelect) {
-		logger.warn('[ScaleDown] Missing required elements');
+		logger.warn("[ScaleDown] Missing required elements");
 		return;
 	}
-	
+
 	const fitValue = riveFitSelect.value;
 	logger.debug(`[ScaleDown] Current fit mode: ${fitValue}`);
-	
-	if (fitValue !== 'layout') {
-		logger.debug('[ScaleDown] Not in layout mode, ignoring click');
+
+	if (fitValue !== "layout") {
+		logger.debug("[ScaleDown] Not in layout mode, ignoring click");
 		return;
 	}
-	
+
 	const currentValue = parseFloat(layoutScaleInput.value) || 1;
 	const step = parseFloat(layoutScaleInput.step) || 0.1;
 	const min = parseFloat(layoutScaleInput.min) || 0.1;
-	
-	logger.debug(`[ScaleDown] Current: ${currentValue}, Step: ${step}, Min: ${min}`);
-	
+
+	logger.debug(
+		`[ScaleDown] Current: ${currentValue}, Step: ${step}, Min: ${min}`,
+	);
+
 	const newValue = Math.max(currentValue - step, min);
 	layoutScaleInput.value = newValue.toFixed(1);
-	
+
 	logger.debug(`[ScaleDown] New value set: ${newValue.toFixed(1)}`);
-	
+
 	// Trigger the layout change
 	handleRiveLayoutChange();
 }
-
-

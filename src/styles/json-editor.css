@@ -4,41 +4,41 @@
 /* dark styling of the editor */
 div.jsoneditor,
 div.jsoneditor-menu {
-    border-color: #4b4b4b;
+	border-color: #4b4b4b;
 }
 
 div.jsoneditor-menu {
-    background-color: #4b4b4b;
+	background-color: #4b4b4b;
 }
 
 div.jsoneditor-tree,
 div.jsoneditor textarea.jsoneditor-text {
-    background-color: #666666;
-    color: #ffffff;
+	background-color: #666666;
+	color: #ffffff;
 }
 
 div.jsoneditor-field,
 div.jsoneditor-value {
-    color: #ffffff;
+	color: #ffffff;
 }
 
 table.jsoneditor-search div.jsoneditor-frame {
-    background: #808080;
+	background: #808080;
 }
 
 tr.jsoneditor-highlight,
 tr.jsoneditor-selected {
-    background-color: #808080;
+	background-color: #808080;
 }
 
-div.jsoneditor-field[contenteditable=true]:focus,
-div.jsoneditor-field[contenteditable=true]:hover,
-div.jsoneditor-value[contenteditable=true]:focus,
-div.jsoneditor-value[contenteditable=true]:hover,
+div.jsoneditor-field[contenteditable="true"]:focus,
+div.jsoneditor-field[contenteditable="true"]:hover,
+div.jsoneditor-value[contenteditable="true"]:focus,
+div.jsoneditor-value[contenteditable="true"]:hover,
 div.jsoneditor-field.jsoneditor-highlight,
 div.jsoneditor-value.jsoneditor-highlight {
-    background-color: #808080;
-    border-color: #808080;
+	background-color: #808080;
+	border-color: #808080;
 }
 
 div.jsoneditor-field.highlight-active,
@@ -47,107 +47,107 @@ div.jsoneditor-field.highlight-active:hover,
 div.jsoneditor-value.highlight-active,
 div.jsoneditor-value.highlight-active:focus,
 div.jsoneditor-value.highlight-active:hover {
-    background-color: #b1b1b1;
-    border-color: #b1b1b1;
+	background-color: #b1b1b1;
+	border-color: #b1b1b1;
 }
 
 div.jsoneditor-tree button:focus {
-    background-color: #868686;
+	background-color: #868686;
 }
 
 /* coloring of JSON in tree mode */
 div.jsoneditor-readonly {
-    color: #acacac;
+	color: #acacac;
 }
 
 div.jsoneditor td.jsoneditor-separator {
-    color: #acacac;
+	color: #acacac;
 }
 
 div.jsoneditor-value.jsoneditor-string {
-    color: #00ff88;
+	color: #00ff88;
 }
 
 div.jsoneditor-value.jsoneditor-object,
 div.jsoneditor-value.jsoneditor-array {
-    color: #bababa;
+	color: #bababa;
 }
 
 div.jsoneditor-value.jsoneditor-number {
-    color: #ff4040;
+	color: #ff4040;
 }
 
 div.jsoneditor-value.jsoneditor-boolean {
-    color: #ff8048;
+	color: #ff8048;
 }
 
 div.jsoneditor-value.jsoneditor-null {
-    color: #49a7fc;
+	color: #49a7fc;
 }
 
 div.jsoneditor-value.jsoneditor-invalid {
-    color: white;
+	color: white;
 }
 
 /* JSON Inspector Component */
 #jsonInspectorComponent #output {
-    flex: 1;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
+	flex: 1;
+	width: 100%;
+	height: 100%;
+	min-height: 0;
 }
 
 #output {
-    /* Container for JSONEditor */
-    width: 70vw;
-    height: 100%;
-    border: 1px solid #444;
-    border-radius: 8px;
-    background-color: #2a2a2a;
-    box-sizing: border-box;
+	/* Container for JSONEditor */
+	width: 70vw;
+	height: 100%;
+	border: 1px solid #444;
+	border-radius: 8px;
+	background-color: #2a2a2a;
+	box-sizing: border-box;
 }
 
 /* Style for JSONEditor itself */
 div.jsoneditor {
-    border: none;
+	border: none;
 }
 
 div.jsoneditor-menu {
-    background-color: #3c3c3c;
-    border-bottom: 1px solid #444;
+	background-color: #3c3c3c;
+	border-bottom: 1px solid #444;
 }
 
-div.jsoneditor-menu>button,
-div.jsoneditor-menu>div.jsoneditor-modes>button {
-    color: #d4d4d4;
+div.jsoneditor-menu > button,
+div.jsoneditor-menu > div.jsoneditor-modes > button {
+	color: #d4d4d4;
 }
 
 div.jsoneditor-search div.jsoneditor-frame {
-    background-color: #333;
+	background-color: #333;
 }
 
 div.jsoneditor-search input {
-    background-color: #252525;
-    color: #d4d4d4;
-    border: 1px solid #555;
+	background-color: #252525;
+	color: #d4d4d4;
+	border: 1px solid #555;
 }
 
 /* Custom scrollbar styling for JSON Inspector (Rive Parser) */
 #jsonInspectorComponent #output::-webkit-scrollbar {
-    width: 8px !important;
+	width: 8px !important;
 }
 
 #jsonInspectorComponent #output::-webkit-scrollbar-track {
-    background: #1a1a1a !important;
-    border-radius: 4px !important;
+	background: #1a1a1a !important;
+	border-radius: 4px !important;
 }
 
 #jsonInspectorComponent #output::-webkit-scrollbar-thumb {
-    background: #444 !important;
-    border-radius: 4px !important;
-    border: 1px solid #333 !important;
+	background: #444 !important;
+	border-radius: 4px !important;
+	border: 1px solid #333 !important;
 }
 
 #jsonInspectorComponent #output::-webkit-scrollbar-thumb:hover {
-    background: #555 !important;
-} 
+	background: #555 !important;
+}

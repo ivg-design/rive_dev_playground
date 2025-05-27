@@ -78,16 +78,16 @@ extra_css:
 nav:
   - Home: index.md
   - Getting Started:
-    - Quick Start: guide/quick-start.md
-    - Installation: guide/installation.md
+      - Quick Start: guide/quick-start.md
+      - Installation: guide/installation.md
   - User Guide:
-    - User Guide: guide/user-guide.md
-    - Asset Manager: guide/asset-manager.md
+      - User Guide: guide/user-guide.md
+      - Asset Manager: guide/asset-manager.md
   - Advanced:
-    - Debugging: advanced/debugging.md
-    - Runtime Controls: advanced/runtime-controls.md
+      - Debugging: advanced/debugging.md
+      - Runtime Controls: advanced/runtime-controls.md
   - Development:
-    - Versioning: development/versioning.md
+      - Versioning: development/versioning.md
   - Deployment:
-    - GitHub Pages: deployment/github-pages.md
-    - Deployment Guide: deployment/deployment.md 
+      - GitHub Pages: deployment/github-pages.md
+      - Deployment Guide: deployment/deployment.md

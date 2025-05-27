@@ -2,75 +2,75 @@
 
 /* Golden Layout Container */
 #goldenLayoutContainer {
-    width: 100%;
-    height: calc(100vh - 40px); /* Leave space for status message */
-    position: relative;
-    background-color: #1e1e1e;
-    min-height: 400px; /* Ensure minimum height */
-    display: flex;
-    flex-direction: column;
+	width: 100%;
+	height: calc(100vh - 40px); /* Leave space for status message */
+	position: relative;
+	background-color: #1e1e1e;
+	min-height: 400px; /* Ensure minimum height */
+	display: flex;
+	flex-direction: column;
 }
 
 /* Ensure Golden Layout root has proper styling */
 .lm_goldenlayout {
-    background-color: #1e1e1e !important;
-    flex: 1;
-    min-height: 0;
+	background-color: #1e1e1e !important;
+	flex: 1;
+	min-height: 0;
 }
 
 .lm_root {
-    background-color: #1e1e1e !important;
+	background-color: #1e1e1e !important;
 }
 
 /* Golden Layout Component Styling */
 .lm_content {
-    background-color: #1e1e1e !important;
+	background-color: #1e1e1e !important;
 }
 
 .lm_header {
-    background-color: #2a2a2a !important;
-    border-bottom: 1px solid #444 !important;
+	background-color: #2a2a2a !important;
+	border-bottom: 1px solid #444 !important;
 }
 
 .lm_tab {
-    background-color: #333 !important;
-    color: #d4d4d4 !important;
-    border-right: 1px solid #444 !important;
+	background-color: #333 !important;
+	color: #d4d4d4 !important;
+	border-right: 1px solid #444 !important;
 }
 
 .lm_tab.lm_active {
-    background-color: #4a90e2 !important;
-    color: white !important;
+	background-color: #4a90e2 !important;
+	color: white !important;
 }
 
 .lm_splitter {
-    background-color: #444 !important;
+	background-color: #444 !important;
 }
 
 .lm_splitter:hover {
-    background-color: #6366f1 !important;
+	background-color: #6366f1 !important;
 }
 
 /* Prevent controls panel from being too small */
 .lm_item[data-component="controls"] {
-    min-width: 350px !important;
-    max-width: 40vw !important;
+	min-width: 350px !important;
+	max-width: 40vw !important;
 }
 
 .lm_item[data-component="controls"] .lm_content {
-    min-width: 350px !important;
-    max-width: 40vw !important;
+	min-width: 350px !important;
+	max-width: 40vw !important;
 }
 
 /* Override width constraints when controls is in full width mode */
 .lm_item.ctrl-gl-full-width {
-    max-width: none !important;
-    width: 100% !important;
+	max-width: none !important;
+	width: 100% !important;
 }
 
 .lm_item.ctrl-gl-full-width .lm_content {
-    max-width: none !important;
-    width: 100% !important;
+	max-width: none !important;
+	width: 100% !important;
 }
 
 /* Component content styling */
@@ -79,10 +79,10 @@
 #dynamicControlsComponent,
 #jsonInspectorComponent,
 #assetManagerComponent {
-    height: 100%;
-    padding: 0;
-    box-sizing: border-box;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-} 
+	height: 100%;
+	padding: 0;
+	box-sizing: border-box;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}

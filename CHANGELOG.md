@@ -1,11 +1,21 @@
+## [Unreleased] - 2024-05-23
+
+### Changed
+- Enforced consistent code formatting: tabs (4 spaces) for code, 2 spaces for YAML files
+- Reformatted all project files using Prettier
+- Fixed GitHub Actions workflow: added `version_type` input to `semantic-release.yml` for correct context access
+- General documentation and config improvements
+
 ## [1.2.0] - 2025-05-27
 
 ### Changes
-- - feat: Create unified release and deployment workflow to fix version synchronization issues [minor] - fix: Resolve deprecated GitHub Actions set-output commands with modern GITHUB_OUTPUT syntax - fix: Fix number input text visibility in layout scale controls - numbers now display properly - fix: Remove browser default number input spinners that were causing secondary popup buttons - refactor: Disable separate semantic-release and deploy workflows in favor of unified approach - fix: Ensure deployment always uses correct version from semantic release process - docs: Update workflow documentation and improve version management process
+
+-   - feat: Create unified release and deployment workflow to fix version synchronization issues [minor] - fix: Resolve deprecated GitHub Actions set-output commands with modern GITHUB_OUTPUT syntax - fix: Fix number input text visibility in layout scale controls - numbers now display properly - fix: Remove browser default number input spinners that were causing secondary popup buttons - refactor: Disable separate semantic-release and deploy workflows in favor of unified approach - fix: Ensure deployment always uses correct version from semantic release process - docs: Update workflow documentation and improve version management process
 
 ## [1.2.0] - 2025-05-27
 
 ### Changes
+
 - feat: Create unified release and deployment workflow to fix version synchronization issues [minor]
 - fix: Resolve deprecated GitHub Actions set-output commands with modern GITHUB_OUTPUT syntax
 - fix: Fix number input text visibility in layout scale controls - numbers now display properly
@@ -17,11 +27,13 @@
 ## [1.1.2] - 2025-05-27
 
 ### Changes
+
 - fix: fix scale control functionality to RiveControlInterface and RiveParserHandler [fix]
 
 ## [1.1.1] - 2025-05-27
 
 ### Changes
+
 - fix: add null checks for classList operations and ensure version updates on all deployments [fix]
 - fix: improve error handling in Golden Layout controls state check
 - docs: trigger deployment for version 1.1.0
@@ -29,6 +41,7 @@
 ## [1.1.0] - 2025-05-27
 
 ### Changes
+
 - chore: Update project name and enhance dependencies for Rive Playground [minor]
 
 # Changelog
@@ -38,6 +51,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.1] - 2025-05-27
 
 ### Changes
+
 - refactor: Update documentation structure and links for improved navigation
 - feat: Integrate documentation build process into deployment workflow
 - feat: Enhance Rive Tester UI and functionality with dynamic controls and improved asset management
@@ -70,4 +84,3 @@ All notable changes to this project will be documented in this file.
 - Enhance index.html layout and parser.js functionality. Updated index.html to improve user interface with additional controls for Rive file parsing, including file selection and calibration inputs. Refactored parser.js to introduce a new runOriginalClientParser function for better handling of Rive instances and file paths. Improved error handling and logging throughout the parser modules for enhanced debugging and maintainability.
 - Refactor vmBlueprintAnalyzer and vmInstancePropertyValueExtractor for improved property analysis and value extraction. Enhanced analyzeBlueprintFromDefinition to include nested ViewModel properties and added generateBlueprintFingerprint function. Updated extractVmInstancePropertyValue to utilize dedicated value getters for better clarity and maintainability.
 - initial commit for a rive parser and testing environment
-

@@ -7,20 +7,22 @@ The Asset Manager is a powerful feature that allows you to inspect and replace e
 The Asset Manager panel displays all embedded assets found in your Rive file, including:
 
 - **Images** (PNG, JPG, WebP, SVG)
-- **Fonts** (TTF, OTF, WOFF, WOFF2)  
-- **Audio** (MP3, WAV, OGG) - *Future support*
+- **Fonts** (TTF, OTF, WOFF, WOFF2)
+- **Audio** (MP3, WAV, OGG) - _Future support_
 
 ## :mag: Asset Information
 
 Each asset displays comprehensive metadata:
 
 ### Basic Information
+
 - **Asset Name** - The original filename or identifier
 - **Asset Type** - Image, Font, Audio, etc.
 - **File Extension** - Original file format
 - **Status Indicator** - Current state (embedded, replaced, error)
 
 ### Technical Details
+
 - **Asset ID** - Unique identifier within the Rive file
 - **CDN UUID** - Content delivery network identifier (if applicable)
 - **Replacement Status** - Shows if asset has been modified
@@ -35,9 +37,7 @@ Replace assets with files from your computer:
 2. **Select a replacement file** from your file system
 3. **Watch the animation update** in real-time
 
-!!! tip "Supported Formats"
-    - **Images**: PNG, JPG, JPEG, WebP, SVG, GIF
-    - **Fonts**: TTF, OTF, WOFF, WOFF2
+!!! tip "Supported Formats" - **Images**: PNG, JPG, JPEG, WebP, SVG, GIF - **Fonts**: TTF, OTF, WOFF, WOFF2
 
 ### URL Replacement
 
@@ -48,16 +48,16 @@ Replace assets with files from the web:
 3. **The asset loads** and updates the animation
 
 !!! warning "CORS Considerations"
-    Some URLs may not work due to Cross-Origin Resource Sharing (CORS) restrictions. Use direct file links when possible.
+Some URLs may not work due to Cross-Origin Resource Sharing (CORS) restrictions. Use direct file links when possible.
 
 ### Status Indicators
 
-| Icon | Status | Description |
-|------|--------|-------------|
-| :material-paperclip: | **Embedded** | Original asset from Rive file |
-| :material-folder: | **File Replaced** | Replaced with local file |
-| :material-link: | **URL Replaced** | Replaced with web URL |
-| :material-alert: | **Error** | Failed to load replacement |
+| Icon                 | Status            | Description                   |
+| -------------------- | ----------------- | ----------------------------- |
+| :material-paperclip: | **Embedded**      | Original asset from Rive file |
+| :material-folder:    | **File Replaced** | Replaced with local file      |
+| :material-link:      | **URL Replaced**  | Replaced with web URL         |
+| :material-alert:     | **Error**         | Failed to load replacement    |
 
 ## :gear: Asset Operations
 
@@ -82,7 +82,7 @@ To restore an asset to its original embedded version:
 3. **Input fields are cleared** automatically
 
 !!! note "Reset Limitations"
-    Currently, reset functionality restores the UI state but may require reloading the Rive file to fully restore the original asset.
+Currently, reset functionality restores the UI state but may require reloading the Rive file to fully restore the original asset.
 
 ### Asset Information Modal
 
@@ -100,9 +100,9 @@ const assetMap = window.riveInstanceGlobal.assetMap;
 
 // Iterate through assets
 assetMap.forEach((asset, name) => {
-    console.log(`Asset: ${name}`);
-    console.log(`Type: ${asset.isImage ? 'Image' : 'Other'}`);
-    console.log(`Extension: ${asset.fileExtension}`);
+	console.log(`Asset: ${name}`);
+	console.log(`Type: ${asset.isImage ? "Image" : "Other"}`);
+	console.log(`Extension: ${asset.fileExtension}`);
 });
 ```
 
@@ -113,16 +113,16 @@ Replace assets programmatically:
 ```javascript
 // Replace an image asset
 function replaceAsset(assetName, imageUrl) {
-    fetch(imageUrl)
-        .then(response => response.arrayBuffer())
-        .then(buffer => {
-            const img = window.rive.decodeImage(new Uint8Array(buffer));
-            const asset = assetMap.get(assetName);
-            if (asset && asset.setRenderImage) {
-                asset.setRenderImage(img);
-                img.unref();
-            }
-        });
+	fetch(imageUrl)
+		.then((response) => response.arrayBuffer())
+		.then((buffer) => {
+			const img = window.rive.decodeImage(new Uint8Array(buffer));
+			const asset = assetMap.get(assetName);
+			if (asset && asset.setRenderImage) {
+				asset.setRenderImage(img);
+				img.unref();
+			}
+		});
 }
 ```
 
@@ -130,10 +130,7 @@ function replaceAsset(assetName, imageUrl) {
 
 ### File Formats
 
-!!! tip "Optimal Formats"
-    - **Images**: Use WebP for best compression, PNG for transparency
-    - **Fonts**: WOFF2 provides the best compression for web use
-    - **Compatibility**: Stick to widely supported formats
+!!! tip "Optimal Formats" - **Images**: Use WebP for best compression, PNG for transparency - **Fonts**: WOFF2 provides the best compression for web use - **Compatibility**: Stick to widely supported formats
 
 ### Performance Considerations
 
@@ -151,12 +148,12 @@ function replaceAsset(assetName, imageUrl) {
 
 ### Common Issues
 
-| Problem | Solution |
-|---------|----------|
-| Asset won't load | Check file format compatibility |
-| URL fails | Verify CORS headers and direct link |
-| Animation breaks | Ensure replacement matches original dimensions |
-| Reset doesn't work | Reload the Rive file completely |
+| Problem            | Solution                                       |
+| ------------------ | ---------------------------------------------- |
+| Asset won't load   | Check file format compatibility                |
+| URL fails          | Verify CORS headers and direct link            |
+| Animation breaks   | Ensure replacement matches original dimensions |
+| Reset doesn't work | Reload the Rive file completely                |
 
 ### Debug Information
 
@@ -164,17 +161,17 @@ Enable debug logging to troubleshoot asset issues:
 
 ```javascript
 // Enable asset manager debug logging
-LoggerAPI.setModuleLevel('assetManager', LogLevel.DEBUG);
+LoggerAPI.setModuleLevel("assetManager", LogLevel.DEBUG);
 ```
 
 ## :keyboard: Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Click` | Expand/collapse asset details |
-| `Enter` | Apply URL replacement |
-| `Escape` | Cancel current operation |
+| Shortcut | Action                        |
+| -------- | ----------------------------- |
+| `Click`  | Expand/collapse asset details |
+| `Enter`  | Apply URL replacement         |
+| `Escape` | Cancel current operation      |
 
 ---
 
-**Related**: [User Guide](user-guide.md) | [Debugging](../advanced/debugging.md) | [Versioning](../development/versioning.md) 
+**Related**: [User Guide](user-guide.md) | [Debugging](../advanced/debugging.md) | [Versioning](../development/versioning.md)

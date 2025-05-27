@@ -11,11 +11,11 @@ The Rive Playground uses an automated semantic versioning system that creates re
 
 ## Version Types
 
-| Type | When to Use | Examples |
-|------|-------------|----------|
-| **PATCH** | Bug fixes, small improvements | `fix: canvas clearing issue [patch]` |
-| **MINOR** | New features, non-breaking changes | `feat: add new control panel [minor]` |
-| **MAJOR** | Breaking changes, major updates | `feat!: redesign API structure [major]` |
+| Type      | When to Use                        | Examples                                |
+| --------- | ---------------------------------- | --------------------------------------- |
+| **PATCH** | Bug fixes, small improvements      | `fix: canvas clearing issue [patch]`    |
+| **MINOR** | New features, non-breaking changes | `feat: add new control panel [minor]`   |
+| **MAJOR** | Breaking changes, major updates    | `feat!: redesign API structure [major]` |
 
 ## How to Create a Release
 
@@ -46,7 +46,7 @@ Add one of these flags to your commit message:
 # Patch release
 git commit -m "fix: resolve status bar layout issue [patch]"
 
-# Minor release  
+# Minor release
 git commit -m "feat: add semantic versioning system [minor]"
 
 # Major release
@@ -69,15 +69,18 @@ git push origin main
 The system recognizes these patterns in commit messages:
 
 ### Patch Flags
+
 - `[patch]` or `[PATCH]`
 - `[fix]` or `[FIX]`
 - `--patch` or `--fix`
 
 ### Minor Flags
+
 - `[minor]` or `[MINOR]`
 - `--minor`
 
 ### Major Flags
+
 - `[major]` or `[MAJOR]`
 - `--major`
 
@@ -151,6 +154,7 @@ feat!(api): redesign parser interface [major]
 ### Version Not Created
 
 Check that your commit message contains a valid flag:
+
 ```bash
 # ❌ Won't trigger version
 git commit -m "fix canvas issue"
@@ -198,18 +202,21 @@ if echo "$COMMIT_MSG" | grep -qE "\[patch\]|\[PATCH\]|\[fix\]|\[FIX\]|--patch|--
 ## Examples
 
 ### Bug Fix Release (1.0.0 → 1.0.1)
+
 ```bash
 ./scripts/version.sh patch "fix: resolve canvas clearing issue"
 git push origin main
 ```
 
 ### Feature Release (1.0.1 → 1.1.0)
+
 ```bash
 ./scripts/version.sh minor "feat: add asset manager with drag-drop support"
 git push origin main
 ```
 
 ### Breaking Change (1.1.0 → 2.0.0)
+
 ```bash
 ./scripts/version.sh major "feat!: redesign control interface with new API"
 git push origin main
@@ -224,4 +231,4 @@ The versioning system is integrated with the existing deployment workflow:
 3. **Release published** → GitHub Release created
 4. **Deployment triggered** → App deployed with new version
 
-This ensures that every release is properly versioned, documented, and deployed automatically. 
+This ensures that every release is properly versioned, documented, and deployed automatically.

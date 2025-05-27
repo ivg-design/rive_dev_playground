@@ -21,33 +21,38 @@ Get up and running with Rive Tester in just a few minutes!
 3. **Watch the magic happen** - your animation will appear in the Canvas panel
 
 !!! tip "Don't have a Rive file?"
-    You can download sample files from the [Rive Community](https://rive.app/community) or create your own using [Rive Editor](https://rive.app).
+You can download sample files from the [Rive Community](https://rive.app/community) or create your own using [Rive Editor](https://rive.app).
 
 ## :two: Explore the Interface
 
 The Rive Tester interface consists of five main panels:
 
 ### :control_knobs: Controls Panel
+
 - File loading and management
 - Playback controls (play, pause, stop)
 - Display settings (fit mode, alignment, background)
 
-### :art: Canvas Panel  
+### :art: Canvas Panel
+
 - Live animation preview
 - Real-time rendering with WebGL2
 - Interactive elements and mouse events
 
 ### :mag: JSON Inspector
+
 - Complete Rive file structure
 - Interactive tree view with search
 - Multiple view modes (tree, code, text)
 
 ### :zap: Dynamic Controls
+
 - Auto-generated UI for ViewModel properties
 - Real-time property manipulation
 - Support for all property types (boolean, number, enum, etc.)
 
 ### :package: Asset Manager
+
 - View embedded assets (images, fonts)
 - Replace assets with local files or URLs
 - Asset metadata and status information
@@ -69,21 +74,12 @@ The Rive Tester interface consists of five main panels:
 
 ## :bulb: Pro Tips
 
-!!! tip "Keyboard Shortcuts"
-    - `Space` - Play/Pause animation
-    - `R` - Reset animation
-    - `F` - Toggle fullscreen canvas
-    - `Ctrl/Cmd + O` - Open file dialog
-    - `F1` - Open documentation
+!!! tip "Keyboard Shortcuts" - `Space` - Play/Pause animation - `R` - Reset animation - `F` - Toggle fullscreen canvas - `Ctrl/Cmd + O` - Open file dialog - `F1` - Open documentation
 
-!!! info "Panel Management"
-    - **Drag tabs** to rearrange panels
-    - **Resize panels** by dragging borders
-    - **Close panels** and restore them via the restore bar
-    - **Reset layout** using the reset button
+!!! info "Panel Management" - **Drag tabs** to rearrange panels - **Resize panels** by dragging borders - **Close panels** and restore them via the restore bar - **Reset layout** using the reset button
 
 !!! warning "Browser Compatibility"
-    Rive Tester requires a modern browser with WebGL2 support. Chrome, Firefox, Safari, and Edge are all supported.
+Rive Tester requires a modern browser with WebGL2 support. Chrome, Firefox, Safari, and Edge are all supported.
 
 ## :question: Need Help?
 
@@ -93,4 +89,4 @@ The Rive Tester interface consists of five main panels:
 
 ---
 
-**Next Steps**: [User Guide](user-guide.md) | [Asset Manager](asset-manager.md) 
+**Next Steps**: [User Guide](user-guide.md) | [Asset Manager](asset-manager.md)

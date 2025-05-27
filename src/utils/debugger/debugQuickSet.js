@@ -3,90 +3,99 @@
  * Provides shortcuts for debug level configuration in the console
  */
 
-import { LoggerAPI, LogLevel, createLogger } from './debugLogger.js';
+import { LoggerAPI, LogLevel, createLogger } from "./debugLogger.js";
 
 // Create a logger for this module
-const logger = createLogger('debugQuickSet');
+const logger = createLogger("debugQuickSet");
 
 // Attach to window (will be extended by debugControl.js)
 window.debugHelper = {
-    // Easy functions to change log levels from the browser console
-    verbose: () => {
-        LoggerAPI.setAllLevels(LogLevel.TRACE);
-        logger.info('All modules set to TRACE level');
-    },
-    debug: () => {
-        LoggerAPI.setAllLevels(LogLevel.DEBUG);
-        logger.info('All modules set to DEBUG level');
-    },
-    normal: () => {
-        LoggerAPI.setAllLevels(LogLevel.INFO);
-        logger.info('All modules set to INFO level');
-    },
-    quiet: () => {
-        LoggerAPI.setAllLevels(LogLevel.WARN);
-        logger.info('All modules set to WARN level');
-    },
-    silent: () => {
-        LoggerAPI.setAllLevels(LogLevel.ERROR);
-        logger.info('All modules set to ERROR level (silent)');
-    },
-    off: () => {
-        LoggerAPI.setAllLevels(LogLevel.NONE);
-        logger.info('All logging disabled');
-    },
-    traceSingle: (module) => {
-        LoggerAPI.setModuleLevel(module, LogLevel.TRACE);
-        logger.info(`Module '${module}' set to TRACE level`);
-    },
-    
-    // Helper for toggling Pills Active state directly
-    togglePills: () => {
-        if (window.vm && typeof window.vm.boolean === 'function') {
-            try {
-                const pillsActive = window.vm.boolean('Pills Active');
-                const newValue = !pillsActive.value;
-                pillsActive.value = newValue;
-                logger.info(`Pills Active toggled to: ${newValue}`);
-                return newValue;
-            } catch (e) {
-                logger.error('Error toggling Pills Active:', e);
-                return null;
-            }
-        } else {
-            logger.warn('VM not available or missing boolean method');
-            return null;
-        }
-    },
-    
-    // Helper to check state of key properties
-    checkState: () => {
-        if (window.vm) {
-            try {
-                const props = {};
-                if (typeof window.vm.boolean === 'function') {
-                    try { props['Pills Active'] = window.vm.boolean('Pills Active').value; } catch (e) {}
-                    try { props['Pills In'] = window.vm.boolean('Pills In').value; } catch (e) {}
-                }
-                // Use console.table for this specific case as it's a data display function
-                console.table(props);
-                return props;
-            } catch (e) {
-                logger.error('Error checking state:', e);
-                return null;
-            }
-        } else {
-            logger.warn('VM not available');
-            return null;
-        }
-    },
-    
-    // Helper to show current debug settings (will be extended by debugControl.js)
-    currentSettings: () => {
-        logger.info('Debug settings function will be available after debugControl.js loads');
-        return null;
-    }
+	// Easy functions to change log levels from the browser console
+	verbose: () => {
+		LoggerAPI.setAllLevels(LogLevel.TRACE);
+		logger.info("All modules set to TRACE level");
+	},
+	debug: () => {
+		LoggerAPI.setAllLevels(LogLevel.DEBUG);
+		logger.info("All modules set to DEBUG level");
+	},
+	normal: () => {
+		LoggerAPI.setAllLevels(LogLevel.INFO);
+		logger.info("All modules set to INFO level");
+	},
+	quiet: () => {
+		LoggerAPI.setAllLevels(LogLevel.WARN);
+		logger.info("All modules set to WARN level");
+	},
+	silent: () => {
+		LoggerAPI.setAllLevels(LogLevel.ERROR);
+		logger.info("All modules set to ERROR level (silent)");
+	},
+	off: () => {
+		LoggerAPI.setAllLevels(LogLevel.NONE);
+		logger.info("All logging disabled");
+	},
+	traceSingle: (module) => {
+		LoggerAPI.setModuleLevel(module, LogLevel.TRACE);
+		logger.info(`Module '${module}' set to TRACE level`);
+	},
+
+	// Helper for toggling Pills Active state directly
+	togglePills: () => {
+		if (window.vm && typeof window.vm.boolean === "function") {
+			try {
+				const pillsActive = window.vm.boolean("Pills Active");
+				const newValue = !pillsActive.value;
+				pillsActive.value = newValue;
+				logger.info(`Pills Active toggled to: ${newValue}`);
+				return newValue;
+			} catch (e) {
+				logger.error("Error toggling Pills Active:", e);
+				return null;
+			}
+		} else {
+			logger.warn("VM not available or missing boolean method");
+			return null;
+		}
+	},
+
+	// Helper to check state of key properties
+	checkState: () => {
+		if (window.vm) {
+			try {
+				const props = {};
+				if (typeof window.vm.boolean === "function") {
+					try {
+						props["Pills Active"] =
+							window.vm.boolean("Pills Active").value;
+					} catch (e) {}
+					try {
+						props["Pills In"] = window.vm.boolean("Pills In").value;
+					} catch (e) {}
+				}
+				// Use console.table for this specific case as it's a data display function
+				console.table(props);
+				return props;
+			} catch (e) {
+				logger.error("Error checking state:", e);
+				return null;
+			}
+		} else {
+			logger.warn("VM not available");
+			return null;
+		}
+	},
+
+	// Helper to show current debug settings (will be extended by debugControl.js)
+	currentSettings: () => {
+		logger.info(
+			"Debug settings function will be available after debugControl.js loads",
+		);
+		return null;
+	},
 };
 
 // Log that debug helpers are ready
-logger.info('Debug helpers attached to window.debugHelper - Debug controls hidden by default, use window.debugHelper.enable() to show'); 
+logger.info(
+	"Debug helpers attached to window.debugHelper - Debug controls hidden by default, use window.debugHelper.enable() to show",
+);

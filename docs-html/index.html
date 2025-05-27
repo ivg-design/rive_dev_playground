@@ -1,276 +1,466 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rive Tester Documentation</title>
-    <link rel="stylesheet" href="styles/docs.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
-</head>
-<body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-brand">
-                <h1>🎮 Rive Tester</h1>
-                <span class="nav-subtitle">Documentation</span>
-            </div>
-            <div class="nav-links">
-                <a href="../index.html" class="nav-link app-link">
-                    <span class="nav-icon">🚀</span>
-                    Launch App
-                </a>
-                <a href="https://github.com/ivg-design/rive_dev_playground" class="nav-link" target="_blank">
-                    <span class="nav-icon">📁</span>
-                    GitHub
-                </a>
-            </div>
-        </div>
-    </nav>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Rive Tester Documentation</title>
+		<link rel="stylesheet" href="styles/docs.css" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
+		/>
+	</head>
+	<body>
+		<nav class="navbar">
+			<div class="nav-container">
+				<div class="nav-brand">
+					<h1>🎮 Rive Tester</h1>
+					<span class="nav-subtitle">Documentation</span>
+				</div>
+				<div class="nav-links">
+					<a href="../index.html" class="nav-link app-link">
+						<span class="nav-icon">🚀</span>
+						Launch App
+					</a>
+					<a
+						href="https://github.com/ivg-design/rive_dev_playground"
+						class="nav-link"
+						target="_blank"
+					>
+						<span class="nav-icon">📁</span>
+						GitHub
+					</a>
+				</div>
+			</div>
+		</nav>
 
-    <div class="container">
-        <aside class="sidebar">
-            <div class="sidebar-content">
-                <div class="sidebar-section">
-                    <h3>Getting Started</h3>
-                    <ul>
-                        <li><a href="#overview" class="sidebar-link active">Overview</a></li>
-                        <li><a href="#quick-start" class="sidebar-link">Quick Start</a></li>
-                        <li><a href="#features" class="sidebar-link">Features</a></li>
-                    </ul>
-                </div>
-                
-                <div class="sidebar-section">
-                    <h3>User Guide</h3>
-                    <ul>
-                        <li><a href="user-guide.html" class="sidebar-link">Interface Guide</a></li>
-                        <li><a href="asset-manager.html" class="sidebar-link">Asset Manager</a></li>
-                        <li><a href="dynamic-controls.html" class="sidebar-link">Dynamic Controls</a></li>
-                        <li><a href="json-inspector.html" class="sidebar-link">JSON Inspector</a></li>
-                    </ul>
-                </div>
-                
-                <div class="sidebar-section">
-                    <h3>Advanced</h3>
-                    <ul>
-                        <li><a href="debugging.html" class="sidebar-link">Debugging</a></li>
-                        <li><a href="runtime-controls.html" class="sidebar-link">Runtime Controls</a></li>
-                        <li><a href="deployment.html" class="sidebar-link">Deployment</a></li>
-                    </ul>
-                </div>
-                
-                <div class="sidebar-section">
-                    <h3>Development</h3>
-                    <ul>
-                        <li><a href="architecture.html" class="sidebar-link">Architecture</a></li>
-                        <li><a href="css-guide.html" class="sidebar-link">CSS Guide</a></li>
-                        <li><a href="api-reference.html" class="sidebar-link">API Reference</a></li>
-                    </ul>
-                </div>
-            </div>
-        </aside>
+		<div class="container">
+			<aside class="sidebar">
+				<div class="sidebar-content">
+					<div class="sidebar-section">
+						<h3>Getting Started</h3>
+						<ul>
+							<li>
+								<a href="#overview" class="sidebar-link active"
+									>Overview</a
+								>
+							</li>
+							<li>
+								<a href="#quick-start" class="sidebar-link"
+									>Quick Start</a
+								>
+							</li>
+							<li>
+								<a href="#features" class="sidebar-link"
+									>Features</a
+								>
+							</li>
+						</ul>
+					</div>
 
-        <main class="main-content">
-            <div class="content-wrapper">
-                <header class="page-header">
-                    <h1 id="overview">Rive Tester Documentation</h1>
-                    <p class="page-subtitle">Interactive Rive file parser, inspector, and debugging tool</p>
-                </header>
+					<div class="sidebar-section">
+						<h3>User Guide</h3>
+						<ul>
+							<li>
+								<a href="user-guide.html" class="sidebar-link"
+									>Interface Guide</a
+								>
+							</li>
+							<li>
+								<a
+									href="asset-manager.html"
+									class="sidebar-link"
+									>Asset Manager</a
+								>
+							</li>
+							<li>
+								<a
+									href="dynamic-controls.html"
+									class="sidebar-link"
+									>Dynamic Controls</a
+								>
+							</li>
+							<li>
+								<a
+									href="json-inspector.html"
+									class="sidebar-link"
+									>JSON Inspector</a
+								>
+							</li>
+						</ul>
+					</div>
 
-                <section class="hero-section">
-                    <div class="hero-content">
-                        <div class="hero-text">
-                            <h2>Welcome to Rive Tester</h2>
-                            <p>A comprehensive web-based tool for parsing, inspecting, and debugging Rive animation files. Load <code>.riv</code> files, explore their structure, test animations with dynamic controls, and analyze state machines and ViewModel properties.</p>
-                            <div class="hero-buttons">
-                                <a href="../index.html" class="btn btn-primary">
-                                    <span class="btn-icon">🚀</span>
-                                    Launch Application
-                                </a>
-                                <a href="#quick-start" class="btn btn-secondary">
-                                    <span class="btn-icon">📖</span>
-                                    Quick Start Guide
-                                </a>
-                            </div>
-                        </div>
-                        <div class="hero-image">
-                            <div class="app-preview">
-                                <div class="preview-header">
-                                    <div class="preview-controls">
-                                        <span class="control-dot red"></span>
-                                        <span class="control-dot yellow"></span>
-                                        <span class="control-dot green"></span>
-                                    </div>
-                                    <span class="preview-title">Rive Tester</span>
-                                </div>
-                                <div class="preview-content">
-                                    <div class="preview-panel">
-                                        <div class="panel-header">Controls</div>
-                                        <div class="panel-content"></div>
-                                    </div>
-                                    <div class="preview-panel">
-                                        <div class="panel-header">Canvas</div>
-                                        <div class="panel-content canvas-preview"></div>
-                                    </div>
-                                    <div class="preview-panel">
-                                        <div class="panel-header">Inspector</div>
-                                        <div class="panel-content"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+					<div class="sidebar-section">
+						<h3>Advanced</h3>
+						<ul>
+							<li>
+								<a href="debugging.html" class="sidebar-link"
+									>Debugging</a
+								>
+							</li>
+							<li>
+								<a
+									href="runtime-controls.html"
+									class="sidebar-link"
+									>Runtime Controls</a
+								>
+							</li>
+							<li>
+								<a href="deployment.html" class="sidebar-link"
+									>Deployment</a
+								>
+							</li>
+						</ul>
+					</div>
 
-                <section id="quick-start" class="content-section">
-                    <h2>🚀 Quick Start</h2>
-                    <div class="quick-start-grid">
-                        <div class="quick-start-card">
-                            <div class="card-icon">🌐</div>
-                            <h3>Live Demo</h3>
-                            <p>Try the application immediately without any setup</p>
-                            <a href="../index.html" class="card-link">Launch App →</a>
-                        </div>
-                        <div class="quick-start-card">
-                            <div class="card-icon">💻</div>
-                            <h3>Local Development</h3>
-                            <p>Set up the development environment on your machine</p>
-                            <a href="deployment.html" class="card-link">Setup Guide →</a>
-                        </div>
-                        <div class="quick-start-card">
-                            <div class="card-icon">📚</div>
-                            <h3>User Guide</h3>
-                            <p>Learn how to use all the features and panels</p>
-                            <a href="user-guide.html" class="card-link">Read Guide →</a>
-                        </div>
-                    </div>
-                </section>
+					<div class="sidebar-section">
+						<h3>Development</h3>
+						<ul>
+							<li>
+								<a href="architecture.html" class="sidebar-link"
+									>Architecture</a
+								>
+							</li>
+							<li>
+								<a href="css-guide.html" class="sidebar-link"
+									>CSS Guide</a
+								>
+							</li>
+							<li>
+								<a
+									href="api-reference.html"
+									class="sidebar-link"
+									>API Reference</a
+								>
+							</li>
+						</ul>
+					</div>
+				</div>
+			</aside>
 
-                <section id="features" class="content-section">
-                    <h2>✨ Key Features</h2>
-                    <div class="features-grid">
-                        <div class="feature-card">
-                            <div class="feature-icon">🎮</div>
-                            <h3>Interactive Playground</h3>
-                            <p>Load local .riv files with real-time animation playback and professional IDE-like interface with dockable panels.</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">🔍</div>
-                            <h3>Deep Inspection</h3>
-                            <p>Analyze artboards, state machines, ViewModels, and embedded assets with interactive tree views.</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">🎛️</div>
-                            <h3>Runtime Controls</h3>
-                            <p>Auto-generated UI controls for ViewModel properties, state machine inputs, and animation playback.</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">📦</div>
-                            <h3>Asset Manager</h3>
-                            <p>View, inspect, and replace embedded assets (images, fonts) with local files or URLs in real-time.</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">🐛</div>
-                            <h3>Debugging Tools</h3>
-                            <p>Global runtime access, modular logging system, and comprehensive error handling.</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">🎨</div>
-                            <h3>Modern UI</h3>
-                            <p>Dark theme, responsive design, and modular CSS architecture for professional workflow.</p>
-                        </div>
-                    </div>
-                </section>
+			<main class="main-content">
+				<div class="content-wrapper">
+					<header class="page-header">
+						<h1 id="overview">Rive Tester Documentation</h1>
+						<p class="page-subtitle">
+							Interactive Rive file parser, inspector, and
+							debugging tool
+						</p>
+					</header>
 
-                <section class="content-section">
-                    <h2>📋 Documentation Sections</h2>
-                    <div class="docs-grid">
-                        <div class="docs-card">
-                            <h3>User Guide</h3>
-                            <p>Complete guide to using the interface, panels, and features</p>
-                            <ul>
-                                <li><a href="user-guide.html">Interface Overview</a></li>
-                                <li><a href="asset-manager.html">Asset Manager</a></li>
-                                <li><a href="dynamic-controls.html">Dynamic Controls</a></li>
-                                <li><a href="json-inspector.html">JSON Inspector</a></li>
-                            </ul>
-                        </div>
-                        <div class="docs-card">
-                            <h3>Advanced Topics</h3>
-                            <p>In-depth guides for power users and developers</p>
-                            <ul>
-                                <li><a href="debugging.html">Debugging Guide</a></li>
-                                <li><a href="runtime-controls.html">Runtime Controls</a></li>
-                                <li><a href="deployment.html">Deployment</a></li>
-                            </ul>
-                        </div>
-                        <div class="docs-card">
-                            <h3>Development</h3>
-                            <p>Technical documentation for contributors</p>
-                            <ul>
-                                <li><a href="architecture.html">Architecture</a></li>
-                                <li><a href="css-guide.html">CSS Guide</a></li>
-                                <li><a href="api-reference.html">API Reference</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+					<section class="hero-section">
+						<div class="hero-content">
+							<div class="hero-text">
+								<h2>Welcome to Rive Tester</h2>
+								<p>
+									A comprehensive web-based tool for parsing,
+									inspecting, and debugging Rive animation
+									files. Load <code>.riv</code> files, explore
+									their structure, test animations with
+									dynamic controls, and analyze state machines
+									and ViewModel properties.
+								</p>
+								<div class="hero-buttons">
+									<a
+										href="../index.html"
+										class="btn btn-primary"
+									>
+										<span class="btn-icon">🚀</span>
+										Launch Application
+									</a>
+									<a
+										href="#quick-start"
+										class="btn btn-secondary"
+									>
+										<span class="btn-icon">📖</span>
+										Quick Start Guide
+									</a>
+								</div>
+							</div>
+							<div class="hero-image">
+								<div class="app-preview">
+									<div class="preview-header">
+										<div class="preview-controls">
+											<span
+												class="control-dot red"
+											></span>
+											<span
+												class="control-dot yellow"
+											></span>
+											<span
+												class="control-dot green"
+											></span>
+										</div>
+										<span class="preview-title"
+											>Rive Tester</span
+										>
+									</div>
+									<div class="preview-content">
+										<div class="preview-panel">
+											<div class="panel-header">
+												Controls
+											</div>
+											<div class="panel-content"></div>
+										</div>
+										<div class="preview-panel">
+											<div class="panel-header">
+												Canvas
+											</div>
+											<div
+												class="panel-content canvas-preview"
+											></div>
+										</div>
+										<div class="preview-panel">
+											<div class="panel-header">
+												Inspector
+											</div>
+											<div class="panel-content"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
 
-                <section class="content-section">
-                    <h2>🛠️ Technical Stack</h2>
-                    <div class="tech-stack">
-                        <div class="tech-item">
-                            <strong>@rive-app/webgl2</strong>
-                            <span>Official Rive WebGL2 runtime</span>
-                        </div>
-                        <div class="tech-item">
-                            <strong>Golden Layout</strong>
-                            <span>Professional dockable panel system</span>
-                        </div>
-                        <div class="tech-item">
-                            <strong>JSONEditor</strong>
-                            <span>Interactive JSON tree viewer</span>
-                        </div>
-                        <div class="tech-item">
-                            <strong>Modular CSS</strong>
-                            <span>Maintainable styling architecture</span>
-                        </div>
-                    </div>
-                </section>
-            </div>
-        </main>
-    </div>
+					<section id="quick-start" class="content-section">
+						<h2>🚀 Quick Start</h2>
+						<div class="quick-start-grid">
+							<div class="quick-start-card">
+								<div class="card-icon">🌐</div>
+								<h3>Live Demo</h3>
+								<p>
+									Try the application immediately without any
+									setup
+								</p>
+								<a href="../index.html" class="card-link"
+									>Launch App →</a
+								>
+							</div>
+							<div class="quick-start-card">
+								<div class="card-icon">💻</div>
+								<h3>Local Development</h3>
+								<p>
+									Set up the development environment on your
+									machine
+								</p>
+								<a href="deployment.html" class="card-link"
+									>Setup Guide →</a
+								>
+							</div>
+							<div class="quick-start-card">
+								<div class="card-icon">📚</div>
+								<h3>User Guide</h3>
+								<p>
+									Learn how to use all the features and panels
+								</p>
+								<a href="user-guide.html" class="card-link"
+									>Read Guide →</a
+								>
+							</div>
+						</div>
+					</section>
 
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-section">
-                <h4>Rive Tester</h4>
-                <p>Interactive Rive file parser and debugging tool</p>
-            </div>
-            <div class="footer-section">
-                <h4>Links</h4>
-                <ul>
-                    <li><a href="../index.html">Launch App</a></li>
-                    <li><a href="https://github.com/ivg-design/rive_dev_playground">GitHub</a></li>
-                    <li><a href="https://rive.app">Rive.app</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Documentation</h4>
-                <ul>
-                    <li><a href="user-guide.html">User Guide</a></li>
-                    <li><a href="debugging.html">Debugging</a></li>
-                    <li><a href="api-reference.html">API Reference</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2025 IVG Design. Built with ❤️ for the Rive community.</p>
-        </div>
-    </footer>
+					<section id="features" class="content-section">
+						<h2>✨ Key Features</h2>
+						<div class="features-grid">
+							<div class="feature-card">
+								<div class="feature-icon">🎮</div>
+								<h3>Interactive Playground</h3>
+								<p>
+									Load local .riv files with real-time
+									animation playback and professional IDE-like
+									interface with dockable panels.
+								</p>
+							</div>
+							<div class="feature-card">
+								<div class="feature-icon">🔍</div>
+								<h3>Deep Inspection</h3>
+								<p>
+									Analyze artboards, state machines,
+									ViewModels, and embedded assets with
+									interactive tree views.
+								</p>
+							</div>
+							<div class="feature-card">
+								<div class="feature-icon">🎛️</div>
+								<h3>Runtime Controls</h3>
+								<p>
+									Auto-generated UI controls for ViewModel
+									properties, state machine inputs, and
+									animation playback.
+								</p>
+							</div>
+							<div class="feature-card">
+								<div class="feature-icon">📦</div>
+								<h3>Asset Manager</h3>
+								<p>
+									View, inspect, and replace embedded assets
+									(images, fonts) with local files or URLs in
+									real-time.
+								</p>
+							</div>
+							<div class="feature-card">
+								<div class="feature-icon">🐛</div>
+								<h3>Debugging Tools</h3>
+								<p>
+									Global runtime access, modular logging
+									system, and comprehensive error handling.
+								</p>
+							</div>
+							<div class="feature-card">
+								<div class="feature-icon">🎨</div>
+								<h3>Modern UI</h3>
+								<p>
+									Dark theme, responsive design, and modular
+									CSS architecture for professional workflow.
+								</p>
+							</div>
+						</div>
+					</section>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-    <script src="scripts/docs.js"></script>
-</body>
-</html> 
+					<section class="content-section">
+						<h2>📋 Documentation Sections</h2>
+						<div class="docs-grid">
+							<div class="docs-card">
+								<h3>User Guide</h3>
+								<p>
+									Complete guide to using the interface,
+									panels, and features
+								</p>
+								<ul>
+									<li>
+										<a href="user-guide.html"
+											>Interface Overview</a
+										>
+									</li>
+									<li>
+										<a href="asset-manager.html"
+											>Asset Manager</a
+										>
+									</li>
+									<li>
+										<a href="dynamic-controls.html"
+											>Dynamic Controls</a
+										>
+									</li>
+									<li>
+										<a href="json-inspector.html"
+											>JSON Inspector</a
+										>
+									</li>
+								</ul>
+							</div>
+							<div class="docs-card">
+								<h3>Advanced Topics</h3>
+								<p>
+									In-depth guides for power users and
+									developers
+								</p>
+								<ul>
+									<li>
+										<a href="debugging.html"
+											>Debugging Guide</a
+										>
+									</li>
+									<li>
+										<a href="runtime-controls.html"
+											>Runtime Controls</a
+										>
+									</li>
+									<li>
+										<a href="deployment.html">Deployment</a>
+									</li>
+								</ul>
+							</div>
+							<div class="docs-card">
+								<h3>Development</h3>
+								<p>Technical documentation for contributors</p>
+								<ul>
+									<li>
+										<a href="architecture.html"
+											>Architecture</a
+										>
+									</li>
+									<li>
+										<a href="css-guide.html">CSS Guide</a>
+									</li>
+									<li>
+										<a href="api-reference.html"
+											>API Reference</a
+										>
+									</li>
+								</ul>
+							</div>
+						</div>
+					</section>
+
+					<section class="content-section">
+						<h2>🛠️ Technical Stack</h2>
+						<div class="tech-stack">
+							<div class="tech-item">
+								<strong>@rive-app/webgl2</strong>
+								<span>Official Rive WebGL2 runtime</span>
+							</div>
+							<div class="tech-item">
+								<strong>Golden Layout</strong>
+								<span>Professional dockable panel system</span>
+							</div>
+							<div class="tech-item">
+								<strong>JSONEditor</strong>
+								<span>Interactive JSON tree viewer</span>
+							</div>
+							<div class="tech-item">
+								<strong>Modular CSS</strong>
+								<span>Maintainable styling architecture</span>
+							</div>
+						</div>
+					</section>
+				</div>
+			</main>
+		</div>
+
+		<footer class="footer">
+			<div class="footer-content">
+				<div class="footer-section">
+					<h4>Rive Tester</h4>
+					<p>Interactive Rive file parser and debugging tool</p>
+				</div>
+				<div class="footer-section">
+					<h4>Links</h4>
+					<ul>
+						<li><a href="../index.html">Launch App</a></li>
+						<li>
+							<a
+								href="https://github.com/ivg-design/rive_dev_playground"
+								>GitHub</a
+							>
+						</li>
+						<li><a href="https://rive.app">Rive.app</a></li>
+					</ul>
+				</div>
+				<div class="footer-section">
+					<h4>Documentation</h4>
+					<ul>
+						<li><a href="user-guide.html">User Guide</a></li>
+						<li><a href="debugging.html">Debugging</a></li>
+						<li><a href="api-reference.html">API Reference</a></li>
+					</ul>
+				</div>
+			</div>
+			<div class="footer-bottom">
+				<p>
+					&copy; 2025 IVG Design. Built with ❤️ for the Rive
+					community.
+				</p>
+			</div>
+		</footer>
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+		<script src="scripts/docs.js"></script>
+	</body>
+</html>

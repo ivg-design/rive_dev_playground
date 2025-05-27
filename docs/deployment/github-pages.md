@@ -46,21 +46,23 @@ This creates a local copy of exactly what will be deployed to GitHub Pages.
 ## Step 4: Deploy
 
 1. **Commit and push your changes:**
-   ```bash
-   git add .
-   git commit -m "Add GitHub Pages deployment"
-   git push origin main
-   ```
+
+    ```bash
+    git add .
+    git commit -m "Add GitHub Pages deployment"
+    git push origin main
+    ```
 
 2. **Monitor the deployment:**
-   - Go to your repository on GitHub
-   - Click the **Actions** tab
-   - Watch the "Deploy Rive Tester to GitHub Pages" workflow
-   - Deployment typically takes 2-3 minutes
+
+    - Go to your repository on GitHub
+    - Click the **Actions** tab
+    - Watch the "Deploy Rive Tester to GitHub Pages" workflow
+    - Deployment typically takes 2-3 minutes
 
 3. **Access your deployed app:**
-   - Your app will be available at: `https://[username].github.io/[repository-name]/rive-tester/`
-   - The landing page will be at: `https://[username].github.io/[repository-name]/`
+    - Your app will be available at: `https://[username].github.io/[repository-name]/rive-tester/`
+    - The landing page will be at: `https://[username].github.io/[repository-name]/`
 
 ## Expected URL Structure
 
@@ -99,28 +101,30 @@ GitHub Pages Root
 ### Deployment Fails
 
 1. **Check the Actions log:**
-   - Go to repository → Actions → Failed workflow
-   - Click on the failed job to see error details
+
+    - Go to repository → Actions → Failed workflow
+    - Click on the failed job to see error details
 
 2. **Common issues:**
-   - Missing dependencies in package.json
-   - File path issues (ensure all paths are relative)
-   - Large file sizes (GitHub has limits)
+    - Missing dependencies in package.json
+    - File path issues (ensure all paths are relative)
+    - Large file sizes (GitHub has limits)
 
 ### App Doesn't Load
 
 1. **Check browser console for errors**
 2. **Verify all dependencies are included:**
-   - Rive runtime should be in node_modules
-   - JSONEditor should be available
-   - All source files should be present
+
+    - Rive runtime should be in node_modules
+    - JSONEditor should be available
+    - All source files should be present
 
 3. **Test locally first:**
-   ```bash
-   npm run test-deployment
-   cd _test-deployment
-   npx http-server -p 8080
-   ```
+    ```bash
+    npm run test-deployment
+    cd _test-deployment
+    npx http-server -p 8080
+    ```
 
 ### File Upload Issues
 
@@ -140,6 +144,7 @@ To update the deployed version:
 ## Integration with Existing CEP Documentation
 
 The deployment creates a unified landing page that links to both:
+
 - Your new Rive Tester app
 - Your existing CEP documentation site
 
@@ -155,6 +160,7 @@ This provides a single entry point for all your development tools.
 ## Performance Optimization
 
 The deployment includes:
+
 - ✅ Production-only npm dependencies
 - ✅ Minified CSS and JS where possible
 - ✅ Efficient file structure
@@ -163,8 +169,9 @@ The deployment includes:
 ## Monitoring and Analytics
 
 Consider adding:
+
 - Google Analytics for usage tracking
 - Error monitoring (e.g., Sentry)
 - Performance monitoring
 
-Add these to the HTML files if needed for production use. 
+Add these to the HTML files if needed for production use.

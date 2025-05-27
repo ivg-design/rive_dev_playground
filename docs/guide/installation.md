@@ -81,9 +81,9 @@ This creates a `site/` directory with the built documentation.
 ### Recommended Setup
 
 - **Code Editor**: VS Code with extensions:
-  - ES6 modules support
-  - Live Server
-  - Prettier for code formatting
+    - ES6 modules support
+    - Live Server
+    - Prettier for code formatting
 - **Browser**: Chrome with Developer Tools
 - **Terminal**: Integrated terminal in VS Code
 
@@ -107,11 +107,11 @@ rive_dev_playground/
 
 ### Common Issues
 
-| Problem | Solution |
-|---------|----------|
-| Port already in use | Change port number or kill existing process |
-| Module not found | Run `npm install` to install dependencies |
-| CORS errors | Use a proper HTTP server, not file:// protocol |
+| Problem              | Solution                                        |
+| -------------------- | ----------------------------------------------- |
+| Port already in use  | Change port number or kill existing process     |
+| Module not found     | Run `npm install` to install dependencies       |
+| CORS errors          | Use a proper HTTP server, not file:// protocol  |
 | WebGL2 not supported | Use a modern browser or update graphics drivers |
 
 ### Port Conflicts
@@ -132,9 +132,9 @@ Rive Tester requires WebGL2 support. Check compatibility:
 
 ```javascript
 // Test WebGL2 support in browser console
-const canvas = document.createElement('canvas');
-const gl = canvas.getContext('webgl2');
-console.log('WebGL2 supported:', !!gl);
+const canvas = document.createElement("canvas");
+const gl = canvas.getContext("webgl2");
+console.log("WebGL2 supported:", !!gl);
 ```
 
 ## :building_construction: Building for Production
@@ -166,11 +166,11 @@ The application is a static site and can be deployed to:
 
 For different deployment environments, you may need to configure:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `BASE_URL` | Base URL for the application | `/` |
-| `DOCS_URL` | Documentation URL | Auto-detected |
-| `API_URL` | API endpoint (if applicable) | N/A |
+| Variable   | Description                  | Default       |
+| ---------- | ---------------------------- | ------------- |
+| `BASE_URL` | Base URL for the application | `/`           |
+| `DOCS_URL` | Documentation URL            | Auto-detected |
+| `API_URL`  | API endpoint (if applicable) | N/A           |
 
 ## :package: Dependencies
 
@@ -209,4 +209,4 @@ Currently, the project uses manual testing. Automated tests can be added using:
 
 ---
 
-**Next Steps**: [Quick Start](quick-start.md) | [User Guide](user-guide.md) 
+**Next Steps**: [Quick Start](quick-start.md) | [User Guide](user-guide.md)

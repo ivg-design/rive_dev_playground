@@ -1,266 +1,445 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Rive Parser Test</title>
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Rive Parser Test</title>
+		<!-- Golden Layout CSS (CDN) -->
+		<link
+			href="https://unpkg.com/golden-layout@1.5.9/src/css/goldenlayout-base.css"
+			rel="stylesheet"
+			type="text/css"
+		/>
+		<link
+			href="https://unpkg.com/golden-layout@1.5.9/src/css/goldenlayout-dark-theme.css"
+			rel="stylesheet"
+			type="text/css"
+		/>
 
-        <!-- Golden Layout CSS (CDN) -->
-        <link href="https://unpkg.com/golden-layout@1.5.9/src/css/goldenlayout-base.css" rel="stylesheet" type="text/css">
-        <link href="https://unpkg.com/golden-layout@1.5.9/src/css/goldenlayout-dark-theme.css" rel="stylesheet" type="text/css">
+		<!-- JSONEditor CSS -->
+		<link
+			href="./node_modules/jsoneditor/dist/jsoneditor.min.css"
+			rel="stylesheet"
+			type="text/css"
+		/>
 
-        <!-- JSONEditor CSS -->
-        <link href="./node_modules/jsoneditor/dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
+		<!-- Font Awesome and Inter Font for Control Panel -->
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+		/>
+		<!-- Backup Font Awesome CDN -->
+		<link
+			rel="stylesheet"
+			href="https://use.fontawesome.com/releases/v6.4.0/css/all.css"
+			crossorigin="anonymous"
+		/>
 
-        <!-- Font Awesome and Inter Font for Control Panel -->
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <!-- Backup Font Awesome CDN -->
-        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" crossorigin="anonymous">
+		<!-- Modular CSS files -->
+		<link rel="stylesheet" href="src/styles/base.css" />
+		<link rel="stylesheet" href="src/styles/golden-layout.css" />
+		<link rel="stylesheet" href="src/styles/json-editor.css" />
+		<link rel="stylesheet" href="src/styles/controls.css" />
+		<link rel="stylesheet" href="src/styles/dynamic-controls.css" />
+		<link rel="stylesheet" href="src/styles/canvas.css" />
+		<link rel="stylesheet" href="src/styles/asset-manager.css" />
+	</head>
 
-        <!-- Modular CSS files -->
-        <link rel="stylesheet" href="src/styles/base.css">
-        <link rel="stylesheet" href="src/styles/golden-layout.css">
-        <link rel="stylesheet" href="src/styles/json-editor.css">
-        <link rel="stylesheet" href="src/styles/controls.css">
-        <link rel="stylesheet" href="src/styles/dynamic-controls.css">
-        <link rel="stylesheet" href="src/styles/canvas.css">
-        <link rel="stylesheet" href="src/styles/asset-manager.css">
-    </head>
+	<body class="jsoneditor-dark">
+		<!-- Main Application Container -->
+		<div
+			id="appContainer"
+			style="display: flex; flex-direction: column; height: 100vh"
+		>
+			<!-- Restore Bar Container (will be populated by Golden Layout manager) -->
+			<div id="restoreBarContainer"></div>
+			<!-- Golden Layout Container -->
+			<div
+				id="goldenLayoutContainer"
+				style="flex: 1; min-height: 0"
+			></div>
+			<!-- Status Message -->
+			<div class="version-info">v1.2.0</div>
+			<p class="log-message" id="statusMessage">
+				Please select a Rive file to begin parsing.
+			</p>
+		</div>
 
-    <body class="jsoneditor-dark">
-        <!-- Main Application Container -->
-        <div id="appContainer" style="display: flex; flex-direction: column; height: 100vh;">
-            <!-- Restore Bar Container (will be populated by Golden Layout manager) -->
-            <div id="restoreBarContainer"></div>
-            <!-- Golden Layout Container -->
-            <div id="goldenLayoutContainer" style="flex: 1; min-height: 0;"></div>
-            <!-- Status Message -->
-            <div class="version-info">v1.2.0</div><p class="log-message" id="statusMessage">Please select a Rive file to begin parsing.</p>
-        </div>
+		<!-- Hidden templates for Golden Layout components -->
+		<div id="componentTemplates" style="display: none">
+			<!-- Controls Template with Dynamic Panel Layout -->
+			<div id="controlsTemplate">
+				<div class="ctrl-control-panel">
+					<div class="ctrl-panel-header">
+						<h2 class="ctrl-panel-title">
+							<i class="fas fa-play-circle"></i>
+							Rive Animation Controls
+						</h2>
+					</div>
 
-        <!-- Hidden templates for Golden Layout components -->
-        <div id="componentTemplates" style="display: none;">
-            <!-- Controls Template with Dynamic Panel Layout -->
-            <div id="controlsTemplate">
-                <div class="ctrl-control-panel">
-                    <div class="ctrl-panel-header">
-                        <h2 class="ctrl-panel-title">
-                            <i class="fas fa-play-circle"></i>
-                            Rive Animation Controls
-                        </h2>
-                    </div>
+					<div class="ctrl-panel-content">
+						<!-- File Management Section -->
+						<section class="ctrl-control-section">
+							<div class="ctrl-section-header">
+								<h3>
+									<i class="fas fa-file-upload"></i> Rive File
+								</h3>
+							</div>
+							<div class="ctrl-control-row">
+								<div class="ctrl-file-input-wrapper">
+									<div class="file-picker-container">
+										<input
+											type="file"
+											id="riveFilePicker"
+											class="ctrl-file-input"
+											accept=".riv"
+										/>
+										<label
+											for="riveFilePicker"
+											class="ctrl-file-input-label"
+										>
+											<i
+												class="fas fa-cloud-upload-alt"
+											></i>
+											<span class="ctrl-file-text"
+												>Choose Rive File</span
+											>
+											<span class="ctrl-file-status"
+												>none</span
+											>
+										</label>
+									</div>
+									<div
+										id="fileSelectedIndicator"
+										class="file-selected-indicator"
+										style="display: none"
+										title="Click to change file"
+									>
+										<span id="selectedFileName"
+											>No file selected</span
+										>
+									</div>
+								</div>
+								<button
+									class="ctrl-btn ctrl-btn-danger ctrl-btn-wide"
+									id="clearFileBtn"
+								>
+									<i class="fas fa-trash-alt"></i>
+								</button>
+							</div>
+						</section>
 
-                    <div class="ctrl-panel-content">
-                        <!-- File Management Section -->
-                        <section class="ctrl-control-section">
-                            <div class="ctrl-section-header">
-                                <h3><i class="fas fa-file-upload"></i> Rive File</h3>
-                            </div>
-                            <div class="ctrl-control-row">
-                                <div class="ctrl-file-input-wrapper">
-                                    <div class="file-picker-container">
-                                        <input type="file" id="riveFilePicker" class="ctrl-file-input" accept=".riv">
-                                        <label for="riveFilePicker" class="ctrl-file-input-label">
-                                            <i class="fas fa-cloud-upload-alt"></i>
-                                            <span class="ctrl-file-text">Choose Rive File</span>
-                                            <span class="ctrl-file-status">none</span>
-                                        </label>
-                                    </div>
-                                    <div id="fileSelectedIndicator" class="file-selected-indicator" style="display: none;" title="Click to change file">
-                                        <span id="selectedFileName">No file selected</span>
-                                    </div>
-                                </div>
-                                <button class="ctrl-btn ctrl-btn-danger ctrl-btn-wide" id="clearFileBtn">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </div>
-                        </section>
+						<!-- Artboard Section -->
+						<section class="ctrl-control-section">
+							<div class="ctrl-section-header">
+								<h3>
+									<i class="fas fa-layer-group"></i> Artboards
+								</h3>
+							</div>
+							<div class="ctrl-control-row">
+								<div class="ctrl-select-wrapper">
+									<select
+										id="artboardSelector"
+										class="ctrl-custom-select"
+									>
+										<option value="">No Artboards</option>
+									</select>
+									<i
+										class="fas fa-chevron-down ctrl-select-arrow"
+									></i>
+								</div>
+								<button
+									class="ctrl-btn ctrl-btn-primary ctrl-btn-wide"
+									id="applySelectionBtn"
+								>
+									<i class="fas fa-check"></i>
+								</button>
+							</div>
+						</section>
 
-                        <!-- Artboard Section -->
-                        <section class="ctrl-control-section">
-                            <div class="ctrl-section-header">
-                                <h3><i class="fas fa-layer-group"></i> Artboards</h3>
-                            </div>
-                            <div class="ctrl-control-row">
-                                <div class="ctrl-select-wrapper">
-                                    <select id="artboardSelector" class="ctrl-custom-select">
-                                        <option value="">No Artboards</option>
-                                    </select>
-                                    <i class="fas fa-chevron-down ctrl-select-arrow"></i>
-                                </div>
-                                <button class="ctrl-btn ctrl-btn-primary ctrl-btn-wide" id="applySelectionBtn">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                            </div>
-                        </section>
+						<!-- Timeline Control Section -->
+						<section class="ctrl-control-section">
+							<div class="ctrl-section-header">
+								<h3><i class="fas fa-clock"></i> Timelines</h3>
+							</div>
+							<div class="ctrl-control-row">
+								<div class="ctrl-select-wrapper">
+									<select
+										id="animationSelector"
+										class="ctrl-custom-select"
+									>
+										<option value="">No timelines</option>
+									</select>
+									<i
+										class="fas fa-chevron-down ctrl-select-arrow"
+									></i>
+								</div>
+								<div class="ctrl-button-group">
+									<button
+										class="ctrl-btn ctrl-btn-success"
+										id="toggleTimelineBtn"
+									>
+										<i class="fas fa-play"></i>
+									</button>
+									<button
+										class="ctrl-btn ctrl-btn-warning"
+										id="pauseTimelineBtn"
+									>
+										<i class="fas fa-pause"></i>
+									</button>
+								</div>
+							</div>
+						</section>
 
-                        <!-- Timeline Control Section -->
-                        <section class="ctrl-control-section">
-                            <div class="ctrl-section-header">
-                                <h3><i class="fas fa-clock"></i> Timelines</h3>
-                            </div>
-                            <div class="ctrl-control-row">
-                                <div class="ctrl-select-wrapper">
-                                    <select id="animationSelector" class="ctrl-custom-select">
-                                        <option value="">No timelines</option>
-                                    </select>
-                                    <i class="fas fa-chevron-down ctrl-select-arrow"></i>
-                                </div>
-                                <div class="ctrl-button-group">
-                                    <button class="ctrl-btn ctrl-btn-success" id="toggleTimelineBtn">
-                                        <i class="fas fa-play"></i>
-                                    </button>
-                                    <button class="ctrl-btn ctrl-btn-warning" id="pauseTimelineBtn">
-                                        <i class="fas fa-pause"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </section>
+						<!-- State Machine Section -->
+						<section class="ctrl-control-section">
+							<div class="ctrl-section-header">
+								<h3>
+									<i class="fas fa-project-diagram"></i> State
+									Machines
+								</h3>
+							</div>
+							<div class="ctrl-control-row">
+								<div class="ctrl-select-wrapper">
+									<select
+										id="stateMachineSelector"
+										class="ctrl-custom-select"
+									>
+										<option value="">
+											No state machines
+										</option>
+									</select>
+									<i
+										class="fas fa-chevron-down ctrl-select-arrow"
+									></i>
+								</div>
+								<button
+									class="ctrl-btn ctrl-btn-success ctrl-btn-wide"
+									id="toggleStateMachineBtn"
+								>
+									<i class="fas fa-play"></i>
+								</button>
+							</div>
+						</section>
 
-                        <!-- State Machine Section -->
-                        <section class="ctrl-control-section">
-                            <div class="ctrl-section-header">
-                                <h3><i class="fas fa-project-diagram"></i> State Machines</h3>
-                            </div>
-                            <div class="ctrl-control-row">
-                                <div class="ctrl-select-wrapper">
-                                    <select id="stateMachineSelector" class="ctrl-custom-select">
-                                        <option value="">No state machines</option>
-                                    </select>
-                                    <i class="fas fa-chevron-down ctrl-select-arrow"></i>
-                                </div>
-                                <button class="ctrl-btn ctrl-btn-success ctrl-btn-wide" id="toggleStateMachineBtn">
-                                    <i class="fas fa-play"></i>
-                                </button>
-                            </div>
-                        </section>
+						<!-- Color & Layout Section -->
+						<section
+							class="ctrl-control-section ctrl-background-section"
+						>
+							<div class="ctrl-section-header">
+								<h3>
+									<i class="fas fa-palette"></i> Color &
+									Layout
+								</h3>
+							</div>
+							<div class="ctrl-background-controls-compact">
+								<!-- Row 1: Background Color + Layout Scale -->
+								<div class="ctrl-row-1">
+									<div class="ctrl-color-picker-half">
+										<input
+											type="color"
+											id="canvasBackgroundColor"
+											class="ctrl-color-input"
+											value="#252525"
+										/>
+									</div>
+									<div class="ctrl-number-input-half">
+										<div
+											class="ctrl-number-input-container"
+										>
+											<input
+												type="number"
+												id="layoutScaleInput"
+												class="ctrl-number-input"
+												value="1"
+												min="0.1"
+												max="5"
+												step="0.1"
+											/>
+											<div
+												class="ctrl-number-increment-buttons"
+											>
+												<button
+													type="button"
+													class="ctrl-number-increment-btn"
+													id="scaleUpBtn"
+												>
+													<i
+														class="fas fa-chevron-up"
+													></i>
+												</button>
+												<button
+													type="button"
+													class="ctrl-number-increment-btn"
+													id="scaleDownBtn"
+												>
+													<i
+														class="fas fa-chevron-down"
+													></i>
+												</button>
+											</div>
+										</div>
+									</div>
+								</div>
 
-                        <!-- Color & Layout Section -->
-                        <section class="ctrl-control-section ctrl-background-section">
-                            <div class="ctrl-section-header">
-                                <h3><i class="fas fa-palette"></i> Color & Layout</h3>
-                            </div>
-                            <div class="ctrl-background-controls-compact">
-                                <!-- Row 1: Background Color + Layout Scale -->
-                                <div class="ctrl-row-1">
-                                    <div class="ctrl-color-picker-half">
-                                        <input type="color" id="canvasBackgroundColor" class="ctrl-color-input" value="#252525">
-                                    </div>
-                                    <div class="ctrl-number-input-half">
-                                        <div class="ctrl-number-input-container">
-                                            <input type="number" id="layoutScaleInput" class="ctrl-number-input" value="1" min="0.1" max="5" step="0.1">
-                                            <div class="ctrl-number-increment-buttons">
-                                                <button type="button" class="ctrl-number-increment-btn" id="scaleUpBtn">
-                                                    <i class="fas fa-chevron-up"></i>
-                                                </button>
-                                                <button type="button" class="ctrl-number-increment-btn" id="scaleDownBtn">
-                                                    <i class="fas fa-chevron-down"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+								<!-- Row 2: Fit Mode -->
+								<div class="ctrl-row-2">
+									<div class="ctrl-select-wrapper">
+										<select
+											id="riveFitSelect"
+											class="ctrl-custom-select"
+										>
+											<option value="contain">
+												Contain
+											</option>
+											<option value="cover">Cover</option>
+											<option value="fill">Fill</option>
+											<option value="fitWidth">
+												Fit Width
+											</option>
+											<option value="fitHeight">
+												Fit Height
+											</option>
+											<option value="scaleDown">
+												Scale Down
+											</option>
+											<option value="none">None</option>
+											<option value="layout">
+												Layout
+											</option>
+										</select>
+										<i
+											class="fas fa-chevron-down ctrl-select-arrow"
+										></i>
+									</div>
+								</div>
 
-                                <!-- Row 2: Fit Mode -->
-                                <div class="ctrl-row-2">
-                                    <div class="ctrl-select-wrapper">
-                                        <select id="riveFitSelect" class="ctrl-custom-select">
-                                            <option value="contain">Contain</option>
-                                            <option value="cover">Cover</option>
-                                            <option value="fill">Fill</option>
-                                            <option value="fitWidth">Fit Width</option>
-                                            <option value="fitHeight">Fit Height</option>
-                                            <option value="scaleDown">Scale Down</option>
-                                            <option value="none">None</option>
-                                            <option value="layout">Layout</option>
-                                        </select>
-                                        <i class="fas fa-chevron-down ctrl-select-arrow"></i>
-                                    </div>
-                                </div>
+								<!-- Row 3: Alignment -->
+								<div class="ctrl-row-3">
+									<div class="ctrl-select-wrapper">
+										<select
+											id="riveAlignmentSelect"
+											class="ctrl-custom-select"
+										>
+											<option value="center">
+												Center
+											</option>
+											<option value="topLeft">
+												Top Left
+											</option>
+											<option value="topCenter">
+												Top Center
+											</option>
+											<option value="topRight">
+												Top Right
+											</option>
+											<option value="centerLeft">
+												Center Left
+											</option>
+											<option value="centerRight">
+												Center Right
+											</option>
+											<option value="bottomLeft">
+												Bottom Left
+											</option>
+											<option value="bottomCenter">
+												Bottom Center
+											</option>
+											<option value="bottomRight">
+												Bottom Right
+											</option>
+										</select>
+										<i
+											class="fas fa-chevron-down ctrl-select-arrow"
+										></i>
+									</div>
+								</div>
+							</div>
+						</section>
+					</div>
+				</div>
+			</div>
 
-                                <!-- Row 3: Alignment -->
-                                <div class="ctrl-row-3">
-                                    <div class="ctrl-select-wrapper">
-                                        <select id="riveAlignmentSelect" class="ctrl-custom-select">
-                                            <option value="center">Center</option>
-                                            <option value="topLeft">Top Left</option>
-                                            <option value="topCenter">Top Center</option>
-                                            <option value="topRight">Top Right</option>
-                                            <option value="centerLeft">Center Left</option>
-                                            <option value="centerRight">Center Right</option>
-                                            <option value="bottomLeft">Bottom Left</option>
-                                            <option value="bottomCenter">Bottom Center</option>
-                                            <option value="bottomRight">Bottom Right</option>
-                                        </select>
-                                        <i class="fas fa-chevron-down ctrl-select-arrow"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                </div>
-            </div>
+			<!-- Canvas Template -->
+			<div id="canvasTemplate">
+				<div id="canvasContainer">
+					<canvas id="rive-canvas"></canvas>
+				</div>
+			</div>
 
-            <!-- Canvas Template -->
-            <div id="canvasTemplate">
-                <div id="canvasContainer">
-                    <canvas id="rive-canvas"></canvas>
-                </div>
-            </div>
+			<!-- Dynamic Controls Template -->
+			<div id="dynamicControlsTemplate">
+				<div id="dynamicControlsContainer">
+					<p>Please Load a Rive File</p>
+				</div>
+			</div>
 
-            <!-- Dynamic Controls Template -->
-            <div id="dynamicControlsTemplate">
-                <div id="dynamicControlsContainer">
-                    <p>Please Load a Rive File</p>
-                </div>
-            </div>
+			<!-- JSON Inspector Template -->
+			<div id="jsonInspectorTemplate">
+				<div id="output"></div>
+				<!-- JSONEditor goes here -->
+			</div>
 
-            <!-- JSON Inspector Template -->
-            <div id="jsonInspectorTemplate">
-                <div id="output"></div> <!-- JSONEditor goes here -->
-            </div>
+			<!-- Asset Manager Template -->
+			<div id="assetManagerTemplate">
+				<div id="assetManagerContainer">
+					<div class="asset-manager-empty">
+						<div class="empty-icon">📦</div>
+						<h3>No Assets Available</h3>
+						<p>
+							Load a Rive file to view and manage embedded assets
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
 
-            <!-- Asset Manager Template -->
-            <div id="assetManagerTemplate">
-                <div id="assetManagerContainer">
-                    <div class="asset-manager-empty">
-                        <div class="empty-icon">📦</div>
-                        <h3>No Assets Available</h3>
-                        <p>Load a Rive file to view and manage embedded assets</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+		<!-- Load the Rive runtime -->
+		<script src="./node_modules/@rive-app/webgl2/rive.js"></script>
 
-        <!-- Load the Rive runtime -->
-        <script src="./node_modules/@rive-app/webgl2/rive.js"></script>
+		<!-- jQuery (required by Golden Layout v1.5.9) -->
+		<script src="https://unpkg.com/jquery@3.6.0/dist/jquery.min.js"></script>
 
-        <!-- jQuery (required by Golden Layout v1.5.9) -->
-        <script src="https://unpkg.com/jquery@3.6.0/dist/jquery.min.js"></script>
+		<!-- Golden Layout JS (CDN) -->
+		<script src="https://unpkg.com/golden-layout@1.5.9/dist/goldenlayout.min.js"></script>
 
-        <!-- Golden Layout JS (CDN) -->
-        <script src="https://unpkg.com/golden-layout@1.5.9/dist/goldenlayout.min.js"></script>
+		<!-- JSONEditor JS (Ensure it's loaded before scripts that use it) -->
+		<script src="./node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
 
-        <!-- JSONEditor JS (Ensure it's loaded before scripts that use it) -->
-        <script src="./node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
+		<!-- Logging System Scripts -->
+		<script type="module" src="src/utils/debugger/debugLogger.js"></script>
+		<script type="module" src="src/utils/debugger/logConfig.js"></script>
+		<script
+			type="module"
+			src="src/utils/debugger/parser-logger.js"
+		></script>
+		<script
+			type="module"
+			src="src/utils/debugger/debugQuickSet.js"
+		></script>
 
-        <!-- Logging System Scripts -->
-        <script type="module" src="src/utils/debugger/debugLogger.js"></script>
-        <script type="module" src="src/utils/debugger/logConfig.js"></script>
-        <script type="module" src="src/utils/debugger/parser-logger.js"></script>
-        <script type="module" src="src/utils/debugger/debugQuickSet.js"></script>
+		<!-- Core Scripts -->
+		<script src="src/components/parser.js"></script>
+		<script
+			type="module"
+			src="src/components/goldenLayoutManager.js"
+		></script>
+		<script
+			type="module"
+			src="src/components/riveParserHandler.js"
+		></script>
+		<script
+			type="module"
+			src="src/components/riveControlInterface.js"
+		></script>
+		<script type="module" src="src/components/assetManager.js"></script>
 
-        <!-- Core Scripts -->
-        <script src="src/components/parser.js"></script>
-        <script type="module" src="src/components/goldenLayoutManager.js"></script>
-        <script type="module" src="src/components/riveParserHandler.js"></script>
-        <script type="module" src="src/components/riveControlInterface.js"></script>
-        <script type="module" src="src/components/assetManager.js"></script>
-
-        <!-- Debug Controls -->
-        <script type="module" src="src/utils/debugger/debugControl.js"></script>
-    </body>
-
+		<!-- Debug Controls -->
+		<script type="module" src="src/utils/debugger/debugControl.js"></script>
+	</body>
 </html>

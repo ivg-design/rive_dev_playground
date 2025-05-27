@@ -2,196 +2,196 @@
 
 /* Root variables for consistent theming */
 :root {
-  --md-primary-fg-color: #4a90e2;
-  --md-primary-fg-color--light: #6ba3e8;
-  --md-primary-fg-color--dark: #357abd;
-  --md-accent-fg-color: #28a745;
-  --rive-gradient: linear-gradient(135deg, #4a90e2, #28a745);
+	--md-primary-fg-color: #4a90e2;
+	--md-primary-fg-color--light: #6ba3e8;
+	--md-primary-fg-color--dark: #357abd;
+	--md-accent-fg-color: #28a745;
+	--rive-gradient: linear-gradient(135deg, #4a90e2, #28a745);
 }
 
 /* Custom header styling */
 .md-header {
-  background: var(--rive-gradient);
+	background: var(--rive-gradient);
 }
 
 /* Hero section styling */
 .md-typeset .admonition.info {
-  border-color: var(--md-primary-fg-color);
+	border-color: var(--md-primary-fg-color);
 }
 
 .md-typeset .admonition.info > .admonition-title {
-  background-color: var(--md-primary-fg-color--light);
+	background-color: var(--md-primary-fg-color--light);
 }
 
 /* Custom button styling */
 .md-button {
-  border-radius: 6px;
-  transition: all 0.2s ease;
+	border-radius: 6px;
+	transition: all 0.2s ease;
 }
 
 .md-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .md-button--primary {
-  background: var(--rive-gradient);
-  border: none;
+	background: var(--rive-gradient);
+	border: none;
 }
 
 /* Grid cards styling */
 .grid.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-  margin: 1rem 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 1rem;
+	margin: 1rem 0;
 }
 
 .grid.cards > * {
-  background: var(--md-default-bg-color);
-  border: 1px solid var(--md-default-fg-color--lightest);
-  border-radius: 8px;
-  padding: 1.5rem;
-  transition: all 0.2s ease;
+	background: var(--md-default-bg-color);
+	border: 1px solid var(--md-default-fg-color--lightest);
+	border-radius: 8px;
+	padding: 1.5rem;
+	transition: all 0.2s ease;
 }
 
 .grid.cards > *:hover {
-  border-color: var(--md-primary-fg-color);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	border-color: var(--md-primary-fg-color);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Code block enhancements */
 .md-typeset .highlight {
-  border-radius: 8px;
-  overflow: hidden;
+	border-radius: 8px;
+	overflow: hidden;
 }
 
 .md-typeset .highlight > pre {
-  margin: 0;
+	margin: 0;
 }
 
 /* Table styling */
 .md-typeset table:not([class]) {
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	border-radius: 8px;
+	overflow: hidden;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .md-typeset table:not([class]) th {
-  background: var(--md-primary-fg-color--light);
-  color: white;
+	background: var(--md-primary-fg-color--light);
+	color: white;
 }
 
 /* Navigation enhancements */
 .md-nav__item--active > .md-nav__link {
-  color: var(--md-primary-fg-color);
-  font-weight: 600;
+	color: var(--md-primary-fg-color);
+	font-weight: 600;
 }
 
 /* Footer customization */
 .md-footer {
-  background: var(--md-default-bg-color--dark);
+	background: var(--md-default-bg-color--dark);
 }
 
 /* Emoji sizing */
 .md-typeset .twemoji {
-  width: 1.2em;
-  height: 1.2em;
+	width: 1.2em;
+	height: 1.2em;
 }
 
 /* Custom admonition types */
 .md-typeset .admonition.tip {
-  border-color: var(--md-accent-fg-color);
+	border-color: var(--md-accent-fg-color);
 }
 
 .md-typeset .admonition.tip > .admonition-title {
-  background-color: var(--md-accent-fg-color);
+	background-color: var(--md-accent-fg-color);
 }
 
 /* Responsive adjustments */
 @media screen and (max-width: 768px) {
-  .grid.cards {
-    grid-template-columns: 1fr;
-  }
-  
-  .md-button {
-    width: 100%;
-    text-align: center;
-  }
+	.grid.cards {
+		grid-template-columns: 1fr;
+	}
+
+	.md-button {
+		width: 100%;
+		text-align: center;
+	}
 }
 
 /* Dark mode adjustments */
 [data-md-color-scheme="slate"] {
-  --md-default-bg-color: #0d1117;
-  --md-default-bg-color--light: #161b22;
-  --md-default-bg-color--lighter: #21262d;
-  --md-default-bg-color--lightest: #30363d;
+	--md-default-bg-color: #0d1117;
+	--md-default-bg-color--light: #161b22;
+	--md-default-bg-color--lighter: #21262d;
+	--md-default-bg-color--lightest: #30363d;
 }
 
 [data-md-color-scheme="slate"] .grid.cards > * {
-  background: var(--md-default-bg-color--light);
-  border-color: var(--md-default-bg-color--lightest);
+	background: var(--md-default-bg-color--light);
+	border-color: var(--md-default-bg-color--lightest);
 }
 
 [data-md-color-scheme="slate"] .grid.cards > *:hover {
-  background: var(--md-default-bg-color--lighter);
+	background: var(--md-default-bg-color--lighter);
 }
 
 /* Syntax highlighting improvements */
 .md-typeset .highlight .filename {
-  background: var(--md-primary-fg-color);
-  color: white;
-  padding: 0.5rem 1rem;
-  margin: 0;
-  font-size: 0.8rem;
-  font-weight: 500;
+	background: var(--md-primary-fg-color);
+	color: white;
+	padding: 0.5rem 1rem;
+	margin: 0;
+	font-size: 0.8rem;
+	font-weight: 500;
 }
 
 /* Custom spacing for sections */
 .md-typeset h2 {
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--md-default-fg-color--lightest);
+	margin-top: 2rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--md-default-fg-color--lightest);
 }
 
 .md-typeset h2:first-child {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: none;
+	margin-top: 0;
+	padding-top: 0;
+	border-top: none;
 }
 
 /* Link styling */
 .md-typeset a {
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.2s ease;
+	text-decoration: none;
+	border-bottom: 1px solid transparent;
+	transition: border-color 0.2s ease;
 }
 
 .md-typeset a:hover {
-  border-bottom-color: var(--md-primary-fg-color);
+	border-bottom-color: var(--md-primary-fg-color);
 }
 
 /* Search highlighting */
 .md-search-result__teaser mark {
-  background: var(--md-accent-fg-color);
-  color: white;
+	background: var(--md-accent-fg-color);
+	color: white;
 }
 
 /* Custom scrollbar for webkit browsers */
 ::-webkit-scrollbar {
-  width: 8px;
+	width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--md-default-bg-color--light);
+	background: var(--md-default-bg-color--light);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--md-default-fg-color--lighter);
-  border-radius: 4px;
+	background: var(--md-default-fg-color--lighter);
+	border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--md-primary-fg-color);
-} 
+	background: var(--md-primary-fg-color);
+}

@@ -37,16 +37,16 @@ https://ivg-design.github.io/rive-tester/
 ✅ **ViewModel Controls**: Interactive controls for ViewModel properties  
 ✅ **JSON Inspector**: Detailed view of parsed Rive file structure  
 ✅ **Debug System**: Built-in debugging with persistent settings  
-✅ **Responsive Design**: Works on desktop and mobile devices  
+✅ **Responsive Design**: Works on desktop and mobile devices
 
 ## Local Development vs Deployed Version
 
-| Feature | Local Development | Deployed Version |
-|---------|------------------|------------------|
-| File Access | Direct file system | Upload only |
-| Dependencies | npm install required | Pre-installed |
-| Hot Reload | Available with dev server | Static files |
-| Debugging | Full console access | Browser dev tools |
+| Feature      | Local Development         | Deployed Version  |
+| ------------ | ------------------------- | ----------------- |
+| File Access  | Direct file system        | Upload only       |
+| Dependencies | npm install required      | Pre-installed     |
+| Hot Reload   | Available with dev server | Static files      |
+| Debugging    | Full console access       | Browser dev tools |
 
 ## Updating the Deployment
 
@@ -60,16 +60,19 @@ To update the deployed version:
 ## Troubleshooting
 
 ### App Not Loading
+
 - Check browser console for errors
 - Ensure JavaScript is enabled
 - Try a hard refresh (Ctrl+F5 or Cmd+Shift+R)
 
 ### File Upload Issues
+
 - Ensure the file is a valid .riv file
 - Check file size (GitHub Pages has limits)
 - Try with a different browser
 
 ### Animation Not Playing
+
 - Check that the Rive file contains animations
 - Verify ViewModel properties are correctly configured
 - Use the debug panel to inspect the loaded data
@@ -92,4 +95,4 @@ To contribute to the Rive Tester:
 4. Test locally
 5. Submit a pull request
 
-The deployment will automatically update once changes are merged to main. 
+The deployment will automatically update once changes are merged to main.

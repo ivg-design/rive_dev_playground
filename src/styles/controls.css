@@ -1,507 +1,511 @@
 /* Reset and Base Styles */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
 }
 
 /* Golden Layout wrapper */
 #fileControls {
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100% !important;
-    overflow: hidden !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: #e2e8f0;
-    line-height: 1.6;
+	display: flex !important;
+	flex-direction: column !important;
+	height: 100% !important;
+	overflow: hidden !important;
+	font-family:
+		"Inter",
+		-apple-system,
+		BlinkMacSystemFont,
+		"Segoe UI",
+		Roboto,
+		sans-serif;
+	color: #e2e8f0;
+	line-height: 1.6;
 }
 
 /* Golden Layout Container Query Setup */
 #fileControls {
-    container-type: size;
-    container-name: file-controls;
+	container-type: size;
+	container-name: file-controls;
 
-    /* Base variables needed for calculations */
-    --panel-content-padding: 12px;
-    /* 6px padding × 2 sides */
-    --section-padding: 16px;
-    /* 8px padding × 2 per section */
-    --section-gap-base: 6px;
-    --control-gap-base: 6px;
+	/* Base variables needed for calculations */
+	--panel-content-padding: 12px;
+	/* 6px padding × 2 sides */
+	--section-padding: 16px;
+	/* 8px padding × 2 per section */
+	--section-gap-base: 6px;
+	--control-gap-base: 6px;
 
-    /* Header height variables */
-    --panel-header-height: 0px;
-    /* Default: hidden */
-    --section-header-height: 0px;
-    /* Default: hidden */
-    --section-header-margin: 0px;
-    /* Default: no margin */
+	/* Header height variables */
+	--panel-header-height: 0px;
+	/* Default: hidden */
+	--section-header-height: 0px;
+	/* Default: hidden */
+	--section-header-margin: 0px;
+	/* Default: no margin */
 
-    /* Fallback variables for browsers that don't support container queries */
-    --ctrl-panel-btn-height: 34px;
-    --ctrl-panel-btn-width: 40px;
-    --ctrl-panel-btn-wide-width: 86px;
-    --ctrl-panel-select-height: 34px;
-    --ctrl-panel-input-height: 34px;
-    --ctrl-panel-color-input-height: 34px;
-    --ctrl-panel-number-input-height: 34px;
-    --ctrl-panel-button-group-width: 86px;
-    --ctrl-panel-button-group-gap: 6px;
-    --ctrl-panel-number-increment-width: 82px;
-    --ctrl-panel-section-gap: 6px;
-    --ctrl-panel-control-gap: 6px;
+	/* Fallback variables for browsers that don't support container queries */
+	--ctrl-panel-btn-height: 34px;
+	--ctrl-panel-btn-width: 40px;
+	--ctrl-panel-btn-wide-width: 86px;
+	--ctrl-panel-select-height: 34px;
+	--ctrl-panel-input-height: 34px;
+	--ctrl-panel-color-input-height: 34px;
+	--ctrl-panel-number-input-height: 34px;
+	--ctrl-panel-button-group-width: 86px;
+	--ctrl-panel-button-group-gap: 6px;
+	--ctrl-panel-number-increment-width: 82px;
+	--ctrl-panel-section-gap: 6px;
+	--ctrl-panel-control-gap: 6px;
 }
 
-#fileControls>* {
-    flex: 1;
-    min-height: 0;
+#fileControls > * {
+	flex: 1;
+	min-height: 0;
 }
 
 /* Control Panel Container */
 .ctrl-control-panel {
-    background: rgba(30, 41, 59, 0.95);
-    border-radius: 8px;
-    box-shadow:
-        0 25px 50px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
+	background: rgba(30, 41, 59, 0.95);
+	border-radius: 8px;
+	box-shadow:
+		0 25px 50px rgba(0, 0, 0, 0.5),
+		0 0 0 1px rgba(255, 255, 255, 0.05),
+		inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	backdrop-filter: blur(20px);
+	transition: all 0.3s ease;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	width: 100%;
 }
 
 @container file-controls (min-width: 768px) {
-    .ctrl-control-panel {
-        border-radius: 10px;
-    }
+	.ctrl-control-panel {
+		border-radius: 10px;
+	}
 }
 
 @container file-controls (min-width: 1200px) {
-    .ctrl-control-panel {
-        border-radius: 12px;
-    }
+	.ctrl-control-panel {
+		border-radius: 12px;
+	}
 }
 
 .ctrl-control-panel:hover {
-    box-shadow:
-        0 35px 70px rgba(0, 0, 0, 0.6),
-        0 0 0 1px rgba(255, 255, 255, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+	box-shadow:
+		0 35px 70px rgba(0, 0, 0, 0.6),
+		0 0 0 1px rgba(255, 255, 255, 0.08),
+		inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 /* Panel Header */
 .ctrl-panel-header {
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    padding: 10px 32px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    height: auto;
-    /* Fixed height: 24px top + 24px bottom + ~40px content */
+	background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+	padding: 10px 32px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	height: auto;
+	/* Fixed height: 24px top + 24px bottom + ~40px content */
 }
 
 .ctrl-panel-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #f1f5f9;
-    display: flex;
-    align-items: center;
-    /* gap: 12px; */
+	font-size: 1.5rem;
+	font-weight: 600;
+	color: #f1f5f9;
+	display: flex;
+	align-items: center;
+	/* gap: 12px; */
 }
 
 .ctrl-panel-title i {
-    color: #3b82f6;
-    font-size: 1.3rem;
-    margin-right: 15px;
+	color: #3b82f6;
+	font-size: 1.3rem;
+	margin-right: 15px;
 }
 
 /* Hide title at small sizes */
 @container file-controls (max-width: 400px) {
-    .ctrl-panel-header {
-        display: none;
-    }
+	.ctrl-panel-header {
+		display: none;
+	}
 
-    #fileControls {
-        --panel-header-height: 0px;
-    }
+	#fileControls {
+		--panel-header-height: 0px;
+	}
 }
 
 @container file-controls (max-height: 450px) {
-    .ctrl-panel-header {
-        display: none;
-    }
+	.ctrl-panel-header {
+		display: none;
+	}
 
-    #fileControls {
-        --panel-header-height: 0px;
-    }
+	#fileControls {
+		--panel-header-height: 0px;
+	}
 }
 
 /* When header is visible, set the height variable */
 @container file-controls (min-width: 401px) and (min-height: 451px) {
-    #fileControls {
-        --panel-header-height: 88px;
-    }
+	#fileControls {
+		--panel-header-height: 88px;
+	}
 }
 
 /* Panel Content */
 .ctrl-panel-content {
-    padding: 6px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: auto auto 1fr;
-    gap: 6px;
-    flex: 1;
-    overflow: hidden;
+	padding: 6px;
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	grid-template-rows: auto auto 1fr;
+	gap: 6px;
+	flex: 1;
+	overflow: hidden;
 }
 
 @container file-controls (min-width: 768px) {
-    .ctrl-panel-content {
-        padding: 12px;
-        gap: 8px;
-        grid-template-rows: auto auto 1fr;
-    }
+	.ctrl-panel-content {
+		padding: 12px;
+		gap: 8px;
+		grid-template-rows: auto auto 1fr;
+	}
 }
 
 @container file-controls (min-width: 1200px) {
-    .ctrl-panel-content {
-        padding: 16px;
-        gap: 12px;
-        grid-template-rows: auto auto 1fr;
-    }
+	.ctrl-panel-content {
+		padding: 16px;
+		gap: 12px;
+		grid-template-rows: auto auto 1fr;
+	}
 }
 
 /* Background section spans 2 columns in the third row */
 .ctrl-background-section {
-    grid-column: 1 / -1;
-    grid-row: 3;
+	grid-column: 1 / -1;
+	grid-row: 3;
 }
 
 /* Mobile layout */
 @container file-controls (max-width: 767px) {
-    .ctrl-panel-content {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto auto auto;
-    }
+	.ctrl-panel-content {
+		grid-template-columns: 1fr;
+		grid-template-rows: auto auto auto auto auto;
+	}
 
-    .ctrl-background-section {
-        grid-column: 1;
-        grid-row: 5;
-    }
+	.ctrl-background-section {
+		grid-column: 1;
+		grid-row: 5;
+	}
 
-    /* Override for full width mode */
-    #fileControls.ctrl-full-width-mode .ctrl-panel-content {
-        display: flex !important;
-        flex-direction: row !important;
-        grid-template-columns: unset !important;
-        grid-template-rows: unset !important;
-    }
+	/* Override for full width mode */
+	#fileControls.ctrl-full-width-mode .ctrl-panel-content {
+		display: flex !important;
+		flex-direction: row !important;
+		grid-template-columns: unset !important;
+		grid-template-rows: unset !important;
+	}
 
-    #fileControls.ctrl-full-width-mode .ctrl-background-section {
-        grid-column: unset !important;
-        grid-row: unset !important;
-    }
+	#fileControls.ctrl-full-width-mode .ctrl-background-section {
+		grid-column: unset !important;
+		grid-row: unset !important;
+	}
 }
 
 /* Custom scrollbar for panel content */
 .ctrl-panel-content::-webkit-scrollbar {
-    width: 6px;
+	width: 6px;
 }
 
 .ctrl-panel-content::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.3);
-    border-radius: 3px;
+	background: rgba(15, 23, 42, 0.3);
+	border-radius: 3px;
 }
 
 .ctrl-panel-content::-webkit-scrollbar-thumb {
-    background: rgba(59, 130, 246, 0.5);
-    border-radius: 3px;
+	background: rgba(59, 130, 246, 0.5);
+	border-radius: 3px;
 }
 
 .ctrl-panel-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(59, 130, 246, 0.7);
+	background: rgba(59, 130, 246, 0.7);
 }
 
 /* Control Sections */
 .ctrl-control-section {
-    background: rgba(51, 65, 85, 0.3);
-    border-radius: 6px;
-    padding: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+	background: rgba(51, 65, 85, 0.3);
+	border-radius: 6px;
+	padding: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	display: flex;
+	flex-direction: column;
+	height: 100%;
 }
 
 @container file-controls (min-width: 768px) {
-    .ctrl-control-section {
-        padding: 12px;
-        border-radius: 8px;
-    }
+	.ctrl-control-section {
+		padding: 12px;
+		border-radius: 8px;
+	}
 }
 
 @container file-controls (min-width: 1200px) {
-    .ctrl-control-section {
-        padding: 16px;
-        border-radius: 8px;
-    }
+	.ctrl-control-section {
+		padding: 16px;
+		border-radius: 8px;
+	}
 }
 
 /* Section hover effect removed - only buttons should have hover effects */
 
 .ctrl-section-header {
-    display: none;
+	display: none;
 }
 
 /* Show section headers in tall layouts */
 @container file-controls (min-height: 700px) {
-    .ctrl-section-header {
-        display: block;
-        margin-bottom: 4px;
-        height: 24px;
-        /* Fixed height: 20px content + 4px margin */
-    }
+	.ctrl-section-header {
+		display: block;
+		margin-bottom: 4px;
+		height: 24px;
+		/* Fixed height: 20px content + 4px margin */
+	}
 
-    .ctrl-section-header h3 {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #cbd5e1;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        height: 20px;
-    }
+	.ctrl-section-header h3 {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: #cbd5e1;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		height: 20px;
+	}
 
-    .ctrl-section-header i {
-        color: #3b82f6;
-        font-size: 0.7rem;
-    }
+	.ctrl-section-header i {
+		color: #3b82f6;
+		font-size: 0.7rem;
+	}
 
-    #fileControls {
-        --section-header-height: 24px;
-        /* 20px + 4px margin */
-        --section-header-margin: 4px;
-    }
+	#fileControls {
+		--section-header-height: 24px;
+		/* 20px + 4px margin */
+		--section-header-margin: 4px;
+	}
 }
 
 /* Control Rows */
 .ctrl-control-row {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    height: 100%;
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	height: 100%;
 }
 
 @container file-controls (min-width: 768px) {
-    .ctrl-control-row {
-        gap: 8px;
-    }
+	.ctrl-control-row {
+		gap: 8px;
+	}
 }
 
 @container file-controls (min-width: 1200px) {
-    .ctrl-control-row {
-        gap: 12px;
-    }
+	.ctrl-control-row {
+		gap: 12px;
+	}
 }
 
 /* Vertical layout for tall screens */
 @container file-controls (min-height: 700px) {
-    .ctrl-control-row {
-        flex-direction: column;
-        gap: 8px;
-        align-items: stretch;
-    }
+	.ctrl-control-row {
+		flex-direction: column;
+		gap: 8px;
+		align-items: stretch;
+	}
 }
 
 /* File Input Styling */
 .ctrl-file-input-wrapper {
-    flex: 1;
+	flex: 1;
 }
 
 .ctrl-file-input {
-    display: none;
+	display: none;
 }
 
 .ctrl-file-input-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0 8px;
-    background: rgba(15, 23, 42, 0.8);
-    border: 2px dashed rgba(148, 163, 184, 0.3);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    flex: 1;
-    font-size: 0.75rem;
-    /* Height will be set by container query variables */
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 0 8px;
+	background: rgba(15, 23, 42, 0.8);
+	border: 2px dashed rgba(148, 163, 184, 0.3);
+	border-radius: 4px;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	flex: 1;
+	font-size: 0.75rem;
+	/* Height will be set by container query variables */
 }
 
 @container file-controls (min-width: 768px) {
-    .ctrl-file-input-label {
-        gap: 8px;
-        padding: 0 12px;
-        font-size: 0.85rem;
-    }
+	.ctrl-file-input-label {
+		gap: 8px;
+		padding: 0 12px;
+		font-size: 0.85rem;
+	}
 }
 
 @container file-controls (min-width: 1200px) {
-    .ctrl-file-input-label {
-        gap: 12px;
-        padding: 0 16px;
-        font-size: 0.95rem;
-    }
+	.ctrl-file-input-label {
+		gap: 12px;
+		padding: 0 16px;
+		font-size: 0.95rem;
+	}
 }
 
 .ctrl-file-input-label:hover {
-    border-color: rgba(59, 130, 246, 0.5);
-    background: rgba(59, 130, 246, 0.1);
+	border-color: rgba(59, 130, 246, 0.5);
+	background: rgba(59, 130, 246, 0.1);
 }
 
 .ctrl-file-input-label i {
-    color: #60a5fa;
-    font-size: 1.2rem;
+	color: #60a5fa;
+	font-size: 1.2rem;
 }
 
 .ctrl-file-text {
-    font-weight: 500;
-    color: #e2e8f0;
+	font-weight: 500;
+	color: #e2e8f0;
 }
 
 .ctrl-file-status {
-    color: #94a3b8;
-    font-size: 0.9rem;
-    margin-left: auto;
+	color: #94a3b8;
+	font-size: 0.9rem;
+	margin-left: auto;
 }
 
 /* File Selected Indicator */
 .file-selected-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 12px;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    border: 2px solid #10b981;
-    border-radius: 4px;
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 500;
-    flex: 1;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    /* Height will be set by container query variables */
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 12px;
+	background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+	border: 2px solid #10b981;
+	border-radius: 4px;
+	color: white;
+	font-size: 0.75rem;
+	font-weight: 500;
+	flex: 1;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	/* Height will be set by container query variables */
 }
 
 .file-selected-indicator:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
-    border-color: #059669;
+	background: linear-gradient(135deg, #059669 0%, #047857 100%);
+	border-color: #059669;
 }
 
 @container file-controls (min-width: 768px) {
-    .file-selected-indicator {
-        gap: 10px;
-        padding: 0 16px;
-        font-size: 0.85rem;
-    }
+	.file-selected-indicator {
+		gap: 10px;
+		padding: 0 16px;
+		font-size: 0.85rem;
+	}
 }
 
 @container file-controls (min-width: 1200px) {
-    .file-selected-indicator {
-        gap: 12px;
-        padding: 0 20px;
-        font-size: 0.95rem;
-    }
+	.file-selected-indicator {
+		gap: 12px;
+		padding: 0 20px;
+		font-size: 0.95rem;
+	}
 }
 
 #selectedFileName {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: white;
+	flex: 1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: white;
 }
-
-
 
 /* Custom Select Styling */
 .ctrl-select-wrapper {
-    position: relative;
-    flex: 1;
+	position: relative;
+	flex: 1;
 }
 
 .ctrl-custom-select {
-    width: 100%;
-    padding: 0 24px 0 8px;
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 4px;
-    color: #e2e8f0;
-    font-size: 0.75rem;
-    appearance: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    /* Height will be set by container query variables */
+	width: 100%;
+	padding: 0 24px 0 8px;
+	background: rgba(15, 23, 42, 0.8);
+	border: 1px solid rgba(148, 163, 184, 0.2);
+	border-radius: 4px;
+	color: #e2e8f0;
+	font-size: 0.75rem;
+	appearance: none;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	/* Height will be set by container query variables */
 }
 
 @container file-controls (min-width: 768px) {
-    .ctrl-custom-select {
-        padding: 0 30px 0 12px;
-        font-size: 0.85rem;
-    }
+	.ctrl-custom-select {
+		padding: 0 30px 0 12px;
+		font-size: 0.85rem;
+	}
 }
 
 @container file-controls (min-width: 1200px) {
-    .ctrl-custom-select {
-        padding: 0 36px 0 16px;
-        font-size: 0.95rem;
-    }
+	.ctrl-custom-select {
+		padding: 0 36px 0 16px;
+		font-size: 0.95rem;
+	}
 }
 
 .ctrl-custom-select:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+	outline: none;
+	border-color: #3b82f6;
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .ctrl-custom-select:hover {
-    border-color: rgba(148, 163, 184, 0.4);
+	border-color: rgba(148, 163, 184, 0.4);
 }
 
 .ctrl-select-arrow {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #94a3b8;
-    pointer-events: none;
-    transition: transform 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+	position: absolute;
+	right: 12px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: #94a3b8;
+	pointer-events: none;
+	transition: transform 0.3s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .ctrl-select-wrapper:hover .ctrl-select-arrow {
-    color: #cbd5e1;
+	color: #cbd5e1;
 }
 
 /* Button Styling */
 .ctrl-btn {
-    padding: 0;
-    border: none;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-    text-decoration: none;
-    position: relative;
-    overflow: hidden;
-    flex-shrink: 0;
-    /* Height and width will be set by container query variables */
+	padding: 0;
+	border: none;
+	border-radius: 4px;
+	font-size: 0.8rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	white-space: nowrap;
+	text-decoration: none;
+	position: relative;
+	overflow: hidden;
+	flex-shrink: 0;
+	/* Height and width will be set by container query variables */
 }
 
 /* Ensure Font Awesome icons display properly in buttons and other elements */
@@ -511,13 +515,15 @@
 .ctrl-section-header i,
 .ctrl-panel-title i,
 .ctrl-number-increment-btn i {
-    font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free", "Font Awesome 5 Pro", "FontAwesome" !important;
-    font-weight: 900 !important;
-    font-style: normal !important;
-    display: inline-block !important;
-    text-rendering: auto !important;
-    -webkit-font-smoothing: antialiased !important;
-    line-height: 1 !important;
+	font-family:
+		"Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free",
+		"Font Awesome 5 Pro", "FontAwesome" !important;
+	font-weight: 900 !important;
+	font-style: normal !important;
+	display: inline-block !important;
+	text-rendering: auto !important;
+	-webkit-font-smoothing: antialiased !important;
+	line-height: 1 !important;
 }
 
 /* Additional Font Awesome support for different icon classes */
@@ -525,13 +531,15 @@
 .far,
 .fal,
 .fab {
-    font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free", "Font Awesome 5 Pro", "FontAwesome" !important;
-    font-weight: 900 !important;
-    font-style: normal !important;
-    display: inline-block !important;
-    text-rendering: auto !important;
-    -webkit-font-smoothing: antialiased !important;
-    line-height: 1 !important;
+	font-family:
+		"Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free",
+		"Font Awesome 5 Pro", "FontAwesome" !important;
+	font-weight: 900 !important;
+	font-style: normal !important;
+	display: inline-block !important;
+	text-rendering: auto !important;
+	-webkit-font-smoothing: antialiased !important;
+	line-height: 1 !important;
 }
 
 /* Ensure Font Awesome pseudo-elements work properly */
@@ -539,1051 +547,1279 @@
 .far::before,
 .fal::before,
 .fab::before {
-    font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free", "Font Awesome 5 Pro", "FontAwesome" !important;
-    font-weight: 900 !important;
-    display: inline-block !important;
-    text-rendering: auto !important;
-    -webkit-font-smoothing: antialiased !important;
+	font-family:
+		"Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free",
+		"Font Awesome 5 Pro", "FontAwesome" !important;
+	font-weight: 900 !important;
+	display: inline-block !important;
+	text-rendering: auto !important;
+	-webkit-font-smoothing: antialiased !important;
 }
 
 .ctrl-button-group {
-    display: flex;
-    gap: 6px;
-    flex-shrink: 0;
+	display: flex;
+	gap: 6px;
+	flex-shrink: 0;
 }
 
 @container file-controls (min-width: 768px) {
-    .ctrl-btn {
-        font-size: 0.9rem;
-    }
+	.ctrl-btn {
+		font-size: 0.9rem;
+	}
 
-    .ctrl-button-group {
-        gap: 8px;
-    }
+	.ctrl-button-group {
+		gap: 8px;
+	}
 }
 
 @container file-controls (min-width: 1200px) {
-    .ctrl-btn {
-        font-size: 1rem;
-    }
+	.ctrl-btn {
+		font-size: 1rem;
+	}
 
-    .ctrl-button-group {
-        gap: 12px;
-    }
+	.ctrl-button-group {
+		gap: 12px;
+	}
 }
 
 /* Dynamic height calculations for all responsive layouts */
 
 /* 1. NARROW + COMPACT: Width < 768px, Height < 700px (e.g., 352×518px) */
 @container file-controls (max-width: 767px) and (max-height: 699px) {
-    #fileControls {
+	#fileControls {
+		--ctrl-panel-total-rows: 7;
+		/* Single column: 1+1+1+1+3 rows */
+		--ctrl-panel-total-sections: 5;
+		--ctrl-panel-section-headers-total-space: calc(
+			var(--section-header-height) * var(--ctrl-panel-total-sections)
+		);
+		/* Headers are hidden in compact, so this will be 0 */
+		--ctrl-panel-base-height: calc(100cqh - var(--panel-header-height));
+		--ctrl-panel-content-padding: 12px;
+		/* 6px padding × 2 sides = 12px total */
+		--ctrl-panel-section-space: calc(
+			16px * var(--ctrl-panel-total-sections)
+		);
+		/* 8px padding × 2 sides × 5 sections = 16px × 5 */
+		--ctrl-panel-gap-space: calc(6px * 4);
+		/* 4 gaps between 5 sections (6px each in narrow layout) */
+		--ctrl-panel-background-internal-gaps: calc(
+			var(--control-gap-base) * 2
+		);
+		/* 2 gaps between 3 rows in background section */
+		--ctrl-panel-available-height: calc(
+			var(--ctrl-panel-base-height) - var(--ctrl-panel-content-padding) -
+				var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) -
+				var(--ctrl-panel-section-headers-total-space) -
+				var(--ctrl-panel-background-internal-gaps) - 20px
+		);
+		--ctrl-panel-row-height: calc(
+			var(--ctrl-panel-available-height) / var(--ctrl-panel-total-rows)
+		);
+		--ctrl-panel-section-gap: 6px;
+		--ctrl-panel-control-gap: var(--control-gap-base);
 
-        --ctrl-panel-total-rows: 7;
-        /* Single column: 1+1+1+1+3 rows */
-        --ctrl-panel-total-sections: 5;
-        --ctrl-panel-section-headers-total-space: calc(var(--section-header-height) * var(--ctrl-panel-total-sections));
-        /* Headers are hidden in compact, so this will be 0 */
-        --ctrl-panel-base-height: calc(100cqh - var(--panel-header-height));
-        --ctrl-panel-content-padding: 12px;
-        /* 6px padding × 2 sides = 12px total */
-        --ctrl-panel-section-space: calc(16px * var(--ctrl-panel-total-sections));
-        /* 8px padding × 2 sides × 5 sections = 16px × 5 */
-        --ctrl-panel-gap-space: calc(6px * 4);
-        /* 4 gaps between 5 sections (6px each in narrow layout) */
-        --ctrl-panel-background-internal-gaps: calc(var(--control-gap-base) * 2);
-        /* 2 gaps between 3 rows in background section */
-        --ctrl-panel-available-height: calc(var(--ctrl-panel-base-height) - var(--ctrl-panel-content-padding) - var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) - var(--ctrl-panel-section-headers-total-space) - var(--ctrl-panel-background-internal-gaps) - 20px);
-        --ctrl-panel-row-height: calc(var(--ctrl-panel-available-height) / var(--ctrl-panel-total-rows));
-        --ctrl-panel-section-gap: 6px;
-        --ctrl-panel-control-gap: var(--control-gap-base);
+		/* Element Heights */
+		--ctrl-panel-btn-height: clamp(
+			32px,
+			var(--ctrl-panel-row-height),
+			70px
+		);
+		--ctrl-panel-select-height: clamp(
+			32px,
+			var(--ctrl-panel-row-height),
+			70px
+		);
+		--ctrl-panel-input-height: clamp(
+			32px,
+			var(--ctrl-panel-row-height),
+			70px
+		);
+		--ctrl-panel-color-input-height: clamp(
+			32px,
+			var(--ctrl-panel-row-height),
+			70px
+		);
+		--ctrl-panel-number-input-height: clamp(
+			32px,
+			var(--ctrl-panel-row-height),
+			70px
+		);
 
-        /* Element Heights */
-        --ctrl-panel-btn-height: clamp(32px, var(--ctrl-panel-row-height), 70px);
-        --ctrl-panel-select-height: clamp(32px, var(--ctrl-panel-row-height), 70px);
-        --ctrl-panel-input-height: clamp(32px, var(--ctrl-panel-row-height), 70px);
-        --ctrl-panel-color-input-height: clamp(32px, var(--ctrl-panel-row-height), 70px);
-        --ctrl-panel-number-input-height: clamp(32px, var(--ctrl-panel-row-height), 70px);
-
-        /* Element Widths - Calculated for narrow container (single column) */
-        --ctrl-panel-section-width: calc(100cqw - var(--panel-content-padding) - var(--section-padding));
-        --ctrl-panel-btn-width: clamp(28px, calc(var(--ctrl-panel-section-width) * 0.10), 40px);
-        --ctrl-panel-btn-wide-width: clamp(60px, calc(var(--ctrl-panel-section-width) * 0.22), 80px);
-        --ctrl-panel-button-group-width: clamp(60px, calc(var(--ctrl-panel-section-width) * 0.22), 80px);
-        --ctrl-panel-button-group-gap: 4px;
-        --ctrl-panel-number-increment-width: clamp(60px, calc(var(--ctrl-panel-section-width) * 0.20), 75px);
-    }
+		/* Element Widths - Calculated for narrow container (single column) */
+		--ctrl-panel-section-width: calc(
+			100cqw - var(--panel-content-padding) - var(--section-padding)
+		);
+		--ctrl-panel-btn-width: clamp(
+			28px,
+			calc(var(--ctrl-panel-section-width) * 0.1),
+			40px
+		);
+		--ctrl-panel-btn-wide-width: clamp(
+			60px,
+			calc(var(--ctrl-panel-section-width) * 0.22),
+			80px
+		);
+		--ctrl-panel-button-group-width: clamp(
+			60px,
+			calc(var(--ctrl-panel-section-width) * 0.22),
+			80px
+		);
+		--ctrl-panel-button-group-gap: 4px;
+		--ctrl-panel-number-increment-width: clamp(
+			60px,
+			calc(var(--ctrl-panel-section-width) * 0.2),
+			75px
+		);
+	}
 }
 
 /* 2. NARROW + TALL: Width < 768px, Height ≥ 700px */
 @container file-controls (max-width: 767px) and (min-height: 700px) {
-    #fileControls {
+	#fileControls {
+		--ctrl-panel-total-rows: 12;
+		/* Single column with vertical layout: 2+2+2+2+4 rows */
+		--ctrl-panel-total-sections: 5;
+		--ctrl-panel-section-headers-total-space: calc(
+			var(--section-header-height) * var(--ctrl-panel-total-sections)
+		);
+		/* Headers visible in tall layout (5 sections × 24px each) */
+		--ctrl-panel-base-height: calc(100cqh - var(--panel-header-height));
+		--ctrl-panel-content-padding: 12px;
+		/* 6px padding × 2 sides = 12px total */
+		--ctrl-panel-section-space: calc(
+			16px * var(--ctrl-panel-total-sections)
+		);
+		/* 8px padding × 2 sides × 5 sections = 16px × 5 */
+		--ctrl-panel-gap-space: calc(6px * 4);
+		/* 4 gaps between 5 sections (6px each in narrow+tall layout) */
+		--ctrl-panel-background-internal-gaps: calc(8px * 2);
+		/* 2 gaps between 3 rows in background section (8px each in tall layout) */
+		--ctrl-panel-available-height: calc(
+			var(--ctrl-panel-base-height) - var(--ctrl-panel-content-padding) -
+				var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) -
+				var(--ctrl-panel-section-headers-total-space) -
+				var(--ctrl-panel-background-internal-gaps) - 50px
+		);
+		--ctrl-panel-row-height: calc(
+			var(--ctrl-panel-available-height) / var(--ctrl-panel-total-rows)
+		);
+		--ctrl-panel-section-gap: 6px;
+		--ctrl-panel-control-gap: 8px;
 
-        --ctrl-panel-total-rows: 12;
-        /* Single column with vertical layout: 2+2+2+2+4 rows */
-        --ctrl-panel-total-sections: 5;
-        --ctrl-panel-section-headers-total-space: calc(var(--section-header-height) * var(--ctrl-panel-total-sections));
-        /* Headers visible in tall layout (5 sections × 24px each) */
-        --ctrl-panel-base-height: calc(100cqh - var(--panel-header-height));
-        --ctrl-panel-content-padding: 12px;
-        /* 6px padding × 2 sides = 12px total */
-        --ctrl-panel-section-space: calc(16px * var(--ctrl-panel-total-sections));
-        /* 8px padding × 2 sides × 5 sections = 16px × 5 */
-        --ctrl-panel-gap-space: calc(6px * 4);
-        /* 4 gaps between 5 sections (6px each in narrow+tall layout) */
-        --ctrl-panel-background-internal-gaps: calc(8px * 2);
-        /* 2 gaps between 3 rows in background section (8px each in tall layout) */
-        --ctrl-panel-available-height: calc(var(--ctrl-panel-base-height) - var(--ctrl-panel-content-padding) - var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) - var(--ctrl-panel-section-headers-total-space) - var(--ctrl-panel-background-internal-gaps) - 50px);
-        --ctrl-panel-row-height: calc(var(--ctrl-panel-available-height) / var(--ctrl-panel-total-rows));
-        --ctrl-panel-section-gap: 6px;
-        --ctrl-panel-control-gap: 8px;
+		/* Element Heights */
+		--ctrl-panel-btn-height: clamp(
+			32px,
+			var(--ctrl-panel-row-height),
+			80px
+		);
+		--ctrl-panel-select-height: clamp(
+			32px,
+			var(--ctrl-panel-row-height),
+			80px
+		);
+		--ctrl-panel-input-height: clamp(
+			32px,
+			var(--ctrl-panel-row-height),
+			80px
+		);
+		--ctrl-panel-color-input-height: clamp(
+			32px,
+			var(--ctrl-panel-row-height),
+			80px
+		);
+		--ctrl-panel-number-input-height: clamp(
+			32px,
+			var(--ctrl-panel-row-height),
+			80px
+		);
 
-        /* Element Heights */
-        --ctrl-panel-btn-height: clamp(32px, var(--ctrl-panel-row-height), 80px);
-        --ctrl-panel-select-height: clamp(32px, var(--ctrl-panel-row-height), 80px);
-        --ctrl-panel-input-height: clamp(32px, var(--ctrl-panel-row-height), 80px);
-        --ctrl-panel-color-input-height: clamp(32px, var(--ctrl-panel-row-height), 80px);
-        --ctrl-panel-number-input-height: clamp(32px, var(--ctrl-panel-row-height), 80px);
-
-        /* Element Widths - Full width in vertical layout */
-        --ctrl-panel-section-width: calc(100cqw - var(--panel-content-padding) - var(--section-padding));
-        --ctrl-panel-btn-width: 100%;
-        --ctrl-panel-btn-wide-width: 100%;
-        --ctrl-panel-button-group-width: 100%;
-        --ctrl-panel-button-group-gap: 8px;
-        --ctrl-panel-number-increment-width: clamp(60px, calc(var(--ctrl-panel-section-width) * 0.20), 75px);
-    }
+		/* Element Widths - Full width in vertical layout */
+		--ctrl-panel-section-width: calc(
+			100cqw - var(--panel-content-padding) - var(--section-padding)
+		);
+		--ctrl-panel-btn-width: 100%;
+		--ctrl-panel-btn-wide-width: 100%;
+		--ctrl-panel-button-group-width: 100%;
+		--ctrl-panel-button-group-gap: 8px;
+		--ctrl-panel-number-increment-width: clamp(
+			60px,
+			calc(var(--ctrl-panel-section-width) * 0.2),
+			75px
+		);
+	}
 }
 
 /* 3. WIDE + COMPACT: Width ≥ 768px, Height < 700px */
 @container file-controls (min-width: 768px) and (max-width: 1199px) and (max-height: 699px) {
-    #fileControls {
+	#fileControls {
+		--ctrl-panel-total-rows: 3;
+		/* Two column grid: 3 rows total (1+1+1) */
+		--ctrl-panel-total-sections: 5;
+		/* But arranged in 2x2 + 1 spanning grid */
+		--ctrl-panel-section-headers-total-space: calc(
+			var(--section-header-height) * var(--ctrl-panel-total-sections)
+		);
+		/* Headers are hidden in compact, so this will be 0 */
+		--ctrl-panel-base-height: calc(100cqh - var(--panel-header-height));
+		--ctrl-panel-content-padding: 24px;
+		/* 12px padding × 2 sides = 24px total */
+		--ctrl-panel-section-space: calc(
+			24px * var(--ctrl-panel-total-sections)
+		);
+		/* 12px padding × 2 sides × 5 sections = 24px × 5 */
+		--ctrl-panel-gap-space: calc(8px * 2);
+		/* 2 row gaps in grid */
+		--ctrl-panel-background-internal-gaps: calc(8px * 2);
+		/* 2 gaps between 3 rows in background section (8px each in wide layout) */
+		--ctrl-panel-available-height: calc(
+			var(--ctrl-panel-base-height) - var(--ctrl-panel-content-padding) -
+				var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) -
+				var(--ctrl-panel-section-headers-total-space) -
+				var(--ctrl-panel-background-internal-gaps) - 20px
+		);
+		--ctrl-panel-row-height: calc(
+			var(--ctrl-panel-available-height) / var(--ctrl-panel-total-rows)
+		);
+		--ctrl-panel-section-gap: 8px;
+		--ctrl-panel-control-gap: 8px;
 
-        --ctrl-panel-total-rows: 3;
-        /* Two column grid: 3 rows total (1+1+1) */
-        --ctrl-panel-total-sections: 5;
-        /* But arranged in 2x2 + 1 spanning grid */
-        --ctrl-panel-section-headers-total-space: calc(var(--section-header-height) * var(--ctrl-panel-total-sections));
-        /* Headers are hidden in compact, so this will be 0 */
-        --ctrl-panel-base-height: calc(100cqh - var(--panel-header-height));
-        --ctrl-panel-content-padding: 24px;
-        /* 12px padding × 2 sides = 24px total */
-        --ctrl-panel-section-space: calc(24px * var(--ctrl-panel-total-sections));
-        /* 12px padding × 2 sides × 5 sections = 24px × 5 */
-        --ctrl-panel-gap-space: calc(8px * 2);
-        /* 2 row gaps in grid */
-        --ctrl-panel-background-internal-gaps: calc(8px * 2);
-        /* 2 gaps between 3 rows in background section (8px each in wide layout) */
-        --ctrl-panel-available-height: calc(var(--ctrl-panel-base-height) - var(--ctrl-panel-content-padding) - var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) - var(--ctrl-panel-section-headers-total-space) - var(--ctrl-panel-background-internal-gaps) - 20px);
-        --ctrl-panel-row-height: calc(var(--ctrl-panel-available-height) / var(--ctrl-panel-total-rows));
-        --ctrl-panel-section-gap: 8px;
-        --ctrl-panel-control-gap: 8px;
+		/* Element Heights */
+		--ctrl-panel-btn-height: clamp(
+			36px,
+			var(--ctrl-panel-row-height),
+			90px
+		);
+		--ctrl-panel-select-height: clamp(
+			36px,
+			var(--ctrl-panel-row-height),
+			90px
+		);
+		--ctrl-panel-input-height: clamp(
+			36px,
+			var(--ctrl-panel-row-height),
+			90px
+		);
+		--ctrl-panel-color-input-height: clamp(
+			36px,
+			var(--ctrl-panel-row-height),
+			90px
+		);
+		--ctrl-panel-number-input-height: clamp(
+			36px,
+			var(--ctrl-panel-row-height),
+			90px
+		);
 
-        /* Element Heights */
-        --ctrl-panel-btn-height: clamp(36px, var(--ctrl-panel-row-height), 90px);
-        --ctrl-panel-select-height: clamp(36px, var(--ctrl-panel-row-height), 90px);
-        --ctrl-panel-input-height: clamp(36px, var(--ctrl-panel-row-height), 90px);
-        --ctrl-panel-color-input-height: clamp(36px, var(--ctrl-panel-row-height), 90px);
-        --ctrl-panel-number-input-height: clamp(36px, var(--ctrl-panel-row-height), 90px);
-
-        /* Element Widths - Calculated for wide container (two columns) */
-        --ctrl-panel-section-width: calc((100cqw - var(--panel-content-padding) - var(--section-gap-base)) / 2 - var(--section-padding));
-        --ctrl-panel-btn-width: clamp(40px, calc(var(--ctrl-panel-section-width) * 0.20), 60px);
-        --ctrl-panel-btn-wide-width: clamp(80px, calc(var(--ctrl-panel-section-width) * 0.45), 120px);
-        --ctrl-panel-button-group-width: clamp(80px, calc(var(--ctrl-panel-section-width) * 0.45), 120px);
-        --ctrl-panel-button-group-gap: 8px;
-        --ctrl-panel-number-increment-width: clamp(80px, calc(var(--ctrl-panel-section-width) * 0.40), 110px);
-    }
+		/* Element Widths - Calculated for wide container (two columns) */
+		--ctrl-panel-section-width: calc(
+			(100cqw - var(--panel-content-padding) - var(--section-gap-base)) /
+				2 - var(--section-padding)
+		);
+		--ctrl-panel-btn-width: clamp(
+			40px,
+			calc(var(--ctrl-panel-section-width) * 0.2),
+			60px
+		);
+		--ctrl-panel-btn-wide-width: clamp(
+			80px,
+			calc(var(--ctrl-panel-section-width) * 0.45),
+			120px
+		);
+		--ctrl-panel-button-group-width: clamp(
+			80px,
+			calc(var(--ctrl-panel-section-width) * 0.45),
+			120px
+		);
+		--ctrl-panel-button-group-gap: 8px;
+		--ctrl-panel-number-increment-width: clamp(
+			80px,
+			calc(var(--ctrl-panel-section-width) * 0.4),
+			110px
+		);
+	}
 }
 
 /* 4. WIDE + TALL: Width ≥ 768px, Height ≥ 700px */
 @container file-controls (min-width: 768px) and (max-width: 1199px) and (min-height: 700px) {
-    #fileControls {
+	#fileControls {
+		--ctrl-panel-total-rows: 12;
+		/* Two column with vertical layout: 2+2+2+2+4 rows */
+		--ctrl-panel-total-sections: 5;
+		--ctrl-panel-section-headers-total-space: calc(
+			var(--section-header-height) * var(--ctrl-panel-total-sections)
+		);
+		/* Headers visible in tall layout (5 sections × 24px each) */
+		--ctrl-panel-base-height: calc(100cqh - var(--panel-header-height));
+		--ctrl-panel-content-padding: 24px;
+		/* 12px padding × 2 sides = 24px total */
+		--ctrl-panel-section-space: calc(
+			24px * var(--ctrl-panel-total-sections)
+		);
+		/* 12px padding × 2 sides × 5 sections = 24px × 5 */
+		--ctrl-panel-gap-space: calc(8px * 2);
+		--ctrl-panel-background-internal-gaps: calc(8px * 2);
+		/* 2 gaps between 3 rows in background section (8px each in wide+tall layout) */
+		--ctrl-panel-available-height: calc(
+			var(--ctrl-panel-base-height) - var(--ctrl-panel-content-padding) -
+				var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) -
+				var(--ctrl-panel-section-headers-total-space) -
+				var(--ctrl-panel-background-internal-gaps) - 20px
+		);
+		--ctrl-panel-row-height: calc(
+			var(--ctrl-panel-available-height) / var(--ctrl-panel-total-rows)
+		);
+		--ctrl-panel-section-gap: 8px;
+		--ctrl-panel-control-gap: 8px;
 
-        --ctrl-panel-total-rows: 12;
-        /* Two column with vertical layout: 2+2+2+2+4 rows */
-        --ctrl-panel-total-sections: 5;
-        --ctrl-panel-section-headers-total-space: calc(var(--section-header-height) * var(--ctrl-panel-total-sections));
-        /* Headers visible in tall layout (5 sections × 24px each) */
-        --ctrl-panel-base-height: calc(100cqh - var(--panel-header-height));
-        --ctrl-panel-content-padding: 24px;
-        /* 12px padding × 2 sides = 24px total */
-        --ctrl-panel-section-space: calc(24px * var(--ctrl-panel-total-sections));
-        /* 12px padding × 2 sides × 5 sections = 24px × 5 */
-        --ctrl-panel-gap-space: calc(8px * 2);
-        --ctrl-panel-background-internal-gaps: calc(8px * 2);
-        /* 2 gaps between 3 rows in background section (8px each in wide+tall layout) */
-        --ctrl-panel-available-height: calc(var(--ctrl-panel-base-height) - var(--ctrl-panel-content-padding) - var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) - var(--ctrl-panel-section-headers-total-space) - var(--ctrl-panel-background-internal-gaps) - 20px);
-        --ctrl-panel-row-height: calc(var(--ctrl-panel-available-height) / var(--ctrl-panel-total-rows));
-        --ctrl-panel-section-gap: 8px;
-        --ctrl-panel-control-gap: 8px;
+		/* Element Heights */
+		--ctrl-panel-btn-height: clamp(
+			34px,
+			var(--ctrl-panel-row-height),
+			90px
+		);
+		--ctrl-panel-select-height: clamp(
+			34px,
+			var(--ctrl-panel-row-height),
+			90px
+		);
+		--ctrl-panel-input-height: clamp(
+			34px,
+			var(--ctrl-panel-row-height),
+			90px
+		);
+		--ctrl-panel-color-input-height: clamp(
+			34px,
+			var(--ctrl-panel-row-height),
+			90px
+		);
+		--ctrl-panel-number-input-height: clamp(
+			34px,
+			var(--ctrl-panel-row-height),
+			90px
+		);
 
-        /* Element Heights */
-        --ctrl-panel-btn-height: clamp(34px, var(--ctrl-panel-row-height), 90px);
-        --ctrl-panel-select-height: clamp(34px, var(--ctrl-panel-row-height), 90px);
-        --ctrl-panel-input-height: clamp(34px, var(--ctrl-panel-row-height), 90px);
-        --ctrl-panel-color-input-height: clamp(34px, var(--ctrl-panel-row-height), 90px);
-        --ctrl-panel-number-input-height: clamp(34px, var(--ctrl-panel-row-height), 90px);
-
-        /* Element Widths - Full width in vertical layout */
-        --ctrl-panel-section-width: calc((100cqw - var(--panel-content-padding) - var(--section-gap-base)) / 2 - var(--section-padding));
-        --ctrl-panel-btn-width: 100%;
-        --ctrl-panel-btn-wide-width: 100%;
-        --ctrl-panel-button-group-width: 100%;
-        --ctrl-panel-button-group-gap: 8px;
-        --ctrl-panel-number-increment-width: clamp(80px, calc(var(--ctrl-panel-section-width) * 0.40), 110px);
-    }
+		/* Element Widths - Full width in vertical layout */
+		--ctrl-panel-section-width: calc(
+			(100cqw - var(--panel-content-padding) - var(--section-gap-base)) /
+				2 - var(--section-padding)
+		);
+		--ctrl-panel-btn-width: 100%;
+		--ctrl-panel-btn-wide-width: 100%;
+		--ctrl-panel-button-group-width: 100%;
+		--ctrl-panel-button-group-gap: 8px;
+		--ctrl-panel-number-increment-width: clamp(
+			80px,
+			calc(var(--ctrl-panel-section-width) * 0.4),
+			110px
+		);
+	}
 }
 
 /* 5. FULL WIDTH MODE: Any width (when controls panel is alone in row) */
 /* Use !important to override container query breakpoints */
 #fileControls.ctrl-full-width-mode {
-    /* Fixed dimensions */
-    --ctrl-panel-strip-height: 50px !important;
-    --ctrl-panel-strip-padding: 8px !important;
-    --ctrl-panel-strip-gap: 8px !important;
-    --ctrl-panel-strip-element-height: 34px !important;
+	/* Fixed dimensions */
+	--ctrl-panel-strip-height: 50px !important;
+	--ctrl-panel-strip-padding: 8px !important;
+	--ctrl-panel-strip-gap: 8px !important;
+	--ctrl-panel-strip-element-height: 34px !important;
 
-    /* Fixed button size - all buttons same width as play button */
-    --ctrl-panel-strip-btn-width: 38px !important;
-    --ctrl-panel-strip-btn-height: 34px !important;
+	/* Fixed button size - all buttons same width as play button */
+	--ctrl-panel-strip-btn-width: 38px !important;
+	--ctrl-panel-strip-btn-height: 34px !important;
 
-    /* Fixed element sizes */
-    --ctrl-panel-strip-color-width: calc(var(--ctrl-panel-strip-btn-width) * 2) !important;
-    /* 2x button width = 76px */
-    --ctrl-panel-strip-number-width: calc(var(--ctrl-panel-strip-btn-width) * 2) !important;
-    /* 2x button width = 76px */
-    --ctrl-panel-strip-number-increment-width: calc(var(--ctrl-panel-strip-number-width) * 0.5) !important;
-    /* 50% of number input = 38px */
+	/* Fixed element sizes */
+	--ctrl-panel-strip-color-width: calc(
+		var(--ctrl-panel-strip-btn-width) * 2
+	) !important;
+	/* 2x button width = 76px */
+	--ctrl-panel-strip-number-width: calc(
+		var(--ctrl-panel-strip-btn-width) * 2
+	) !important;
+	/* 2x button width = 76px */
+	--ctrl-panel-strip-number-increment-width: calc(
+		var(--ctrl-panel-strip-number-width) * 0.5
+	) !important;
+	/* 50% of number input = 38px */
 
-    /* Calculate space taken by fixed elements */
-    --ctrl-panel-strip-total-buttons: 5;
-    /* Section1: 1 clear btn, Section2: 1, Section3: 2, Section4: 1, Section5: 0 = 5 buttons total */
-    --ctrl-panel-strip-total-dropdowns: 6;
-    /* Section1: 1 file input, Section2: 1, Section3: 1, Section4: 1, Section5: 2 = 6 dropdowns total */
-    --ctrl-panel-strip-total-sections: 5;
-    /* 5 sections */
-    --ctrl-panel-strip-total-gaps-between-sections: calc(var(--ctrl-panel-strip-gap) * 4);
-    /* 4 gaps between 5 sections = 32px */
-    --ctrl-panel-strip-total-panel-padding: calc(var(--ctrl-panel-strip-padding) * 2);
-    /* Panel content left + right padding = 16px */
-    --ctrl-panel-strip-total-section-padding: 0px;
-    /* Sections have no padding in full width mode */
+	/* Calculate space taken by fixed elements */
+	--ctrl-panel-strip-total-buttons: 5;
+	/* Section1: 1 clear btn, Section2: 1, Section3: 2, Section4: 1, Section5: 0 = 5 buttons total */
+	--ctrl-panel-strip-total-dropdowns: 6;
+	/* Section1: 1 file input, Section2: 1, Section3: 1, Section4: 1, Section5: 2 = 6 dropdowns total */
+	--ctrl-panel-strip-total-sections: 5;
+	/* 5 sections */
+	--ctrl-panel-strip-total-gaps-between-sections: calc(
+		var(--ctrl-panel-strip-gap) * 4
+	);
+	/* 4 gaps between 5 sections = 32px */
+	--ctrl-panel-strip-total-panel-padding: calc(
+		var(--ctrl-panel-strip-padding) * 2
+	);
+	/* Panel content left + right padding = 16px */
+	--ctrl-panel-strip-total-section-padding: 0px;
+	/* Sections have no padding in full width mode */
 
-    /* Internal gaps within sections (4px between elements) */
-    --ctrl-panel-strip-section1-gaps: 4px;
-    /* 1 gap: file input + clear btn */
-    --ctrl-panel-strip-section2-gaps: 4px;
-    /* 1 gap: btn + dropdown */
-    --ctrl-panel-strip-section3-gaps: 8px;
-    /* 2 gaps: btn + btn + dropdown */
-    --ctrl-panel-strip-section4-gaps: 4px;
-    /* 1 gap: btn + dropdown */
-    --ctrl-panel-strip-section5-gaps: 12px;
-    /* 3 gaps: color + number + dropdown + dropdown */
-    --ctrl-panel-strip-total-internal-gaps: calc(var(--ctrl-panel-strip-section1-gaps) + var(--ctrl-panel-strip-section2-gaps) + var(--ctrl-panel-strip-section3-gaps) + var(--ctrl-panel-strip-section4-gaps) + var(--ctrl-panel-strip-section5-gaps));
-    /* 32px total */
+	/* Internal gaps within sections (4px between elements) */
+	--ctrl-panel-strip-section1-gaps: 4px;
+	/* 1 gap: file input + clear btn */
+	--ctrl-panel-strip-section2-gaps: 4px;
+	/* 1 gap: btn + dropdown */
+	--ctrl-panel-strip-section3-gaps: 8px;
+	/* 2 gaps: btn + btn + dropdown */
+	--ctrl-panel-strip-section4-gaps: 4px;
+	/* 1 gap: btn + dropdown */
+	--ctrl-panel-strip-section5-gaps: 12px;
+	/* 3 gaps: color + number + dropdown + dropdown */
+	--ctrl-panel-strip-total-internal-gaps: calc(
+		var(--ctrl-panel-strip-section1-gaps) +
+			var(--ctrl-panel-strip-section2-gaps) +
+			var(--ctrl-panel-strip-section3-gaps) +
+			var(--ctrl-panel-strip-section4-gaps) +
+			var(--ctrl-panel-strip-section5-gaps)
+	);
+	/* 32px total */
 
-    /* Fixed space calculation */
-    --ctrl-panel-strip-buttons-space: calc(var(--ctrl-panel-strip-btn-width) * var(--ctrl-panel-strip-total-buttons));
-    /* 5 * 38px = 190px */
-    --ctrl-panel-strip-color-number-space: calc(var(--ctrl-panel-strip-color-width) + var(--ctrl-panel-strip-number-width));
-    /* 76px + 76px = 152px */
-    --ctrl-panel-strip-fixed-space: calc(var(--ctrl-panel-strip-buttons-space) + var(--ctrl-panel-strip-color-number-space) + var(--ctrl-panel-strip-total-gaps-between-sections) + var(--ctrl-panel-strip-total-panel-padding) + var(--ctrl-panel-strip-total-internal-gaps));
-    /* 190 + 152 + 32 + 16 + 32 = 422px */
+	/* Fixed space calculation */
+	--ctrl-panel-strip-buttons-space: calc(
+		var(--ctrl-panel-strip-btn-width) *
+			var(--ctrl-panel-strip-total-buttons)
+	);
+	/* 5 * 38px = 190px */
+	--ctrl-panel-strip-color-number-space: calc(
+		var(--ctrl-panel-strip-color-width) +
+			var(--ctrl-panel-strip-number-width)
+	);
+	/* 76px + 76px = 152px */
+	--ctrl-panel-strip-fixed-space: calc(
+		var(--ctrl-panel-strip-buttons-space) +
+			var(--ctrl-panel-strip-color-number-space) +
+			var(--ctrl-panel-strip-total-gaps-between-sections) +
+			var(--ctrl-panel-strip-total-panel-padding) +
+			var(--ctrl-panel-strip-total-internal-gaps)
+	);
+	/* 190 + 152 + 32 + 16 + 32 = 422px */
 
-    /* Available space for dropdowns */
-    --ctrl-panel-strip-available-for-dropdowns: calc(100cqw - var(--ctrl-panel-strip-fixed-space) - 10px);
-    /* Total width - fixed space - 10px safety margin */
-    --ctrl-panel-strip-dropdown-width: calc(var(--ctrl-panel-strip-available-for-dropdowns) / var(--ctrl-panel-strip-total-dropdowns));
-    /* Divide remaining space by 6 dropdowns */
+	/* Available space for dropdowns */
+	--ctrl-panel-strip-available-for-dropdowns: calc(
+		100cqw - var(--ctrl-panel-strip-fixed-space) - 10px
+	);
+	/* Total width - fixed space - 10px safety margin */
+	--ctrl-panel-strip-dropdown-width: calc(
+		var(--ctrl-panel-strip-available-for-dropdowns) /
+			var(--ctrl-panel-strip-total-dropdowns)
+	);
+	/* Divide remaining space by 6 dropdowns */
 
-    /* Apply calculated widths */
-    --ctrl-panel-strip-select-width: var(--ctrl-panel-strip-dropdown-width) !important;
-    --ctrl-panel-strip-input-width: var(--ctrl-panel-strip-dropdown-width) !important;
-    /* File input acts like a dropdown */
+	/* Apply calculated widths */
+	--ctrl-panel-strip-select-width: var(
+		--ctrl-panel-strip-dropdown-width
+	) !important;
+	--ctrl-panel-strip-input-width: var(
+		--ctrl-panel-strip-dropdown-width
+	) !important;
+	/* File input acts like a dropdown */
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-control-panel {
-    /* Force single row layout */
-    height: var(--ctrl-panel-strip-height);
-    border-radius: 6px;
-    overflow: hidden;
+	/* Force single row layout */
+	height: var(--ctrl-panel-strip-height);
+	border-radius: 6px;
+	overflow: hidden;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-panel-header {
-    /* Hide header in full width mode */
-    display: none !important;
+	/* Hide header in full width mode */
+	display: none !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-panel-content {
-    /* Single row flex layout - override all container queries */
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: var(--ctrl-panel-strip-gap) !important;
-    padding: var(--ctrl-panel-strip-padding) !important;
-    height: 100% !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    /* Override grid layout from container queries */
-    grid-template-columns: unset !important;
-    grid-template-rows: unset !important;
+	/* Single row flex layout - override all container queries */
+	display: flex !important;
+	flex-direction: row !important;
+	align-items: center !important;
+	gap: var(--ctrl-panel-strip-gap) !important;
+	padding: var(--ctrl-panel-strip-padding) !important;
+	height: 100% !important;
+	overflow-x: auto !important;
+	overflow-y: hidden !important;
+	/* Override grid layout from container queries */
+	grid-template-columns: unset !important;
+	grid-template-rows: unset !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-control-section {
-    /* Inline sections */
-    flex-shrink: 0 !important;
-    height: var(--ctrl-panel-strip-element-height) !important;
-    padding: 0 !important;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
+	/* Inline sections */
+	flex-shrink: 0 !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
+	padding: 0 !important;
+	background: transparent !important;
+	border: none !important;
+	border-radius: 0 !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-section-header {
-    /* Hide section headers */
-    display: none !important;
+	/* Hide section headers */
+	display: none !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-control-row {
-    /* Inline controls */
-    flex-direction: row !important;
-    gap: 4px !important;
-    height: 100% !important;
-    align-items: center !important;
+	/* Inline controls */
+	flex-direction: row !important;
+	gap: 4px !important;
+	height: 100% !important;
+	align-items: center !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-background-controls-compact {
-    /* Inline background controls */
-    flex-direction: row !important;
-    gap: 4px !important;
-    height: 100% !important;
+	/* Inline background controls */
+	flex-direction: row !important;
+	gap: 4px !important;
+	height: 100% !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-row-1,
 #fileControls.ctrl-full-width-mode .ctrl-row-2,
 #fileControls.ctrl-full-width-mode .ctrl-row-3 {
-    /* Inline rows */
-    flex-direction: row !important;
-    gap: 4px !important;
-    height: var(--ctrl-panel-strip-element-height) !important;
+	/* Inline rows */
+	flex-direction: row !important;
+	gap: 4px !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
 }
 
 /* Full width mode element sizing - ALL buttons same width */
 #fileControls.ctrl-full-width-mode .ctrl-btn {
-    height: var(--ctrl-panel-strip-element-height) !important;
-    width: var(--ctrl-panel-strip-btn-width) !important;
-    flex-shrink: 0 !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
+	width: var(--ctrl-panel-strip-btn-width) !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-btn-wide {
-    width: var(--ctrl-panel-strip-btn-width) !important;
-    /* Same as regular buttons */
+	width: var(--ctrl-panel-strip-btn-width) !important;
+	/* Same as regular buttons */
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-custom-select {
-    height: var(--ctrl-panel-strip-element-height) !important;
-    width: var(--ctrl-panel-strip-select-width) !important;
-    flex-shrink: 0 !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
+	width: var(--ctrl-panel-strip-select-width) !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-file-input-label,
 #fileControls.ctrl-full-width-mode .file-selected-indicator {
-    height: var(--ctrl-panel-strip-element-height) !important;
-    width: var(--ctrl-panel-strip-input-width) !important;
-    flex-shrink: 0 !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
+	width: var(--ctrl-panel-strip-input-width) !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-color-input {
-    height: var(--ctrl-panel-strip-element-height) !important;
-    width: var(--ctrl-panel-strip-color-width) !important;
-    flex-shrink: 0 !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
+	width: var(--ctrl-panel-strip-color-width) !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-number-input-container {
-    height: var(--ctrl-panel-strip-element-height) !important;
-    width: var(--ctrl-panel-strip-number-width) !important;
-    flex-shrink: 0 !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
+	width: var(--ctrl-panel-strip-number-width) !important;
+	flex-shrink: 0 !important;
 }
 
 /* Button groups - each button same size as individual buttons */
 #fileControls.ctrl-full-width-mode .ctrl-button-group {
-    gap: 4px !important;
-    flex-shrink: 0 !important;
-    display: flex !important;
+	gap: 4px !important;
+	flex-shrink: 0 !important;
+	display: flex !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-button-group .ctrl-btn {
-    width: var(--ctrl-panel-strip-btn-width) !important;
-    /* Each button same size as play button */
+	width: var(--ctrl-panel-strip-btn-width) !important;
+	/* Each button same size as play button */
 }
 
 /* Ensure all individual buttons use the same width */
 #fileControls.ctrl-full-width-mode .ctrl-file-section .ctrl-btn,
 #fileControls.ctrl-full-width-mode .ctrl-animation-section .ctrl-btn,
 #fileControls.ctrl-full-width-mode .ctrl-state-machine-section .ctrl-btn {
-    width: var(--ctrl-panel-strip-btn-width) !important;
+	width: var(--ctrl-panel-strip-btn-width) !important;
 }
 
 /* Number input increment buttons - 50% of number input width */
 #fileControls.ctrl-full-width-mode .ctrl-number-increment-buttons {
-    width: var(--ctrl-panel-strip-number-increment-width) !important;
+	width: var(--ctrl-panel-strip-number-increment-width) !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-number-input {
-    padding-right: calc(var(--ctrl-panel-strip-number-increment-width) + 8px) !important;
-    text-align: center !important;
+	padding-right: calc(
+		var(--ctrl-panel-strip-number-increment-width) + 8px
+	) !important;
+	text-align: center !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-select-wrapper {
-    width: var(--ctrl-panel-strip-select-width) !important;
-    flex-shrink: 0 !important;
+	width: var(--ctrl-panel-strip-select-width) !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-file-input-wrapper {
-    width: var(--ctrl-panel-strip-input-width) !important;
-    flex-shrink: 0 !important;
+	width: var(--ctrl-panel-strip-input-width) !important;
+	flex-shrink: 0 !important;
 }
 
 /* Compact file picker text in full width mode */
 #fileControls.ctrl-full-width-mode .ctrl-file-text {
-    display: none !important;
+	display: none !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-file-input-label::after {
-    content: "File" !important;
-    font-weight: 500;
-    color: #e2e8f0;
+	content: "File" !important;
+	font-weight: 500;
+	color: #e2e8f0;
 }
 
 #fileControls.ctrl-full-width-mode .file-selected-indicator #selectedFileName {
-    max-width: calc(var(--ctrl-panel-strip-input-width) - 60px) !important;
+	max-width: calc(var(--ctrl-panel-strip-input-width) - 60px) !important;
 }
 
 #fileControls.ctrl-full-width-mode .ctrl-color-picker-half,
 #fileControls.ctrl-full-width-mode .ctrl-number-input-half {
-    width: auto !important;
-    flex: none !important;
+	width: auto !important;
+	flex: none !important;
 }
 
 /* Full width mode responsive adjustments */
 @container file-controls (min-width: 1200px) {
-    #fileControls.ctrl-full-width-mode {
-        --ctrl-panel-strip-height: 70px !important;
-        --ctrl-panel-strip-element-height: 54px !important;
-        --ctrl-panel-strip-btn-width: 54px !important;
-        --ctrl-panel-strip-gap: 12px !important;
-        --ctrl-panel-strip-padding: 12px !important;
-        /* Let calculated widths handle dropdowns */
-        --ctrl-panel-strip-color-width: calc(var(--ctrl-panel-strip-btn-width) * 2) !important;
-        --ctrl-panel-strip-number-width: calc(var(--ctrl-panel-strip-btn-width) * 2) !important;
-    }
+	#fileControls.ctrl-full-width-mode {
+		--ctrl-panel-strip-height: 70px !important;
+		--ctrl-panel-strip-element-height: 54px !important;
+		--ctrl-panel-strip-btn-width: 54px !important;
+		--ctrl-panel-strip-gap: 12px !important;
+		--ctrl-panel-strip-padding: 12px !important;
+		/* Let calculated widths handle dropdowns */
+		--ctrl-panel-strip-color-width: calc(
+			var(--ctrl-panel-strip-btn-width) * 2
+		) !important;
+		--ctrl-panel-strip-number-width: calc(
+			var(--ctrl-panel-strip-btn-width) * 2
+		) !important;
+	}
 }
 
 @container file-controls (max-width: 600px) {
-    #fileControls.ctrl-full-width-mode {
-        --ctrl-panel-strip-height: 50px !important;
-        --ctrl-panel-strip-element-height: 34px !important;
-        --ctrl-panel-strip-btn-width: 34px !important;
-        --ctrl-panel-strip-gap: 6px !important;
-        --ctrl-panel-strip-padding: 6px !important;
-        /* Let calculated widths handle dropdowns */
-        --ctrl-panel-strip-color-width: calc(var(--ctrl-panel-strip-btn-width) * 2) !important;
-        --ctrl-panel-strip-number-width: calc(var(--ctrl-panel-strip-btn-width) * 2) !important;
-    }
+	#fileControls.ctrl-full-width-mode {
+		--ctrl-panel-strip-height: 50px !important;
+		--ctrl-panel-strip-element-height: 34px !important;
+		--ctrl-panel-strip-btn-width: 34px !important;
+		--ctrl-panel-strip-gap: 6px !important;
+		--ctrl-panel-strip-padding: 6px !important;
+		/* Let calculated widths handle dropdowns */
+		--ctrl-panel-strip-color-width: calc(
+			var(--ctrl-panel-strip-btn-width) * 2
+		) !important;
+		--ctrl-panel-strip-number-width: calc(
+			var(--ctrl-panel-strip-btn-width) * 2
+		) !important;
+	}
 
-    /* Override container query layouts for full width mode */
-    #fileControls.ctrl-full-width-mode .ctrl-panel-content {
-        display: flex !important;
-        flex-direction: row !important;
-        grid-template-columns: unset !important;
-        grid-template-rows: unset !important;
-    }
+	/* Override container query layouts for full width mode */
+	#fileControls.ctrl-full-width-mode .ctrl-panel-content {
+		display: flex !important;
+		flex-direction: row !important;
+		grid-template-columns: unset !important;
+		grid-template-rows: unset !important;
+	}
 }
 
 /* Apply Control Panel Variables to All Elements */
 
 /* Panel Layout */
 .ctrl-panel-content {
-    gap: var(--ctrl-panel-section-gap) !important;
+	gap: var(--ctrl-panel-section-gap) !important;
 }
 
 .ctrl-control-row {
-    gap: var(--ctrl-panel-control-gap) !important;
+	gap: var(--ctrl-panel-control-gap) !important;
 }
 
 .ctrl-background-controls-compact {
-    gap: var(--ctrl-panel-control-gap) !important;
+	gap: var(--ctrl-panel-control-gap) !important;
 }
 
 /* Buttons */
 .ctrl-btn {
-    height: var(--ctrl-panel-btn-height) !important;
-    width: var(--ctrl-panel-btn-width) !important;
+	height: var(--ctrl-panel-btn-height) !important;
+	width: var(--ctrl-panel-btn-width) !important;
 }
 
 .ctrl-btn-wide {
-    height: var(--ctrl-panel-btn-height) !important;
-    width: var(--ctrl-panel-btn-wide-width) !important;
+	height: var(--ctrl-panel-btn-height) !important;
+	width: var(--ctrl-panel-btn-wide-width) !important;
 }
 
 .ctrl-button-group {
-    width: var(--ctrl-panel-button-group-width) !important;
-    gap: var(--ctrl-panel-button-group-gap) !important;
+	width: var(--ctrl-panel-button-group-width) !important;
+	gap: var(--ctrl-panel-button-group-gap) !important;
 }
 
 /* Tall layout button group adjustments */
 @container file-controls (min-height: 700px) {
-    .ctrl-button-group {
-        justify-content: space-between;
-    }
+	.ctrl-button-group {
+		justify-content: space-between;
+	}
 
-    .ctrl-button-group .ctrl-btn {
-        width: 49% !important;
-    }
+	.ctrl-button-group .ctrl-btn {
+		width: 49% !important;
+	}
 }
 
 /* Form Elements */
 .ctrl-custom-select {
-    height: var(--ctrl-panel-select-height) !important;
+	height: var(--ctrl-panel-select-height) !important;
 }
 
 .ctrl-file-input-label {
-    height: var(--ctrl-panel-input-height) !important;
+	height: var(--ctrl-panel-input-height) !important;
 }
 
 .file-selected-indicator {
-    height: var(--ctrl-panel-input-height) !important;
+	height: var(--ctrl-panel-input-height) !important;
 }
 
 /* Background Controls */
 .ctrl-row-1,
 .ctrl-row-2,
 .ctrl-row-3 {
-    height: var(--ctrl-panel-color-input-height) !important;
-    gap: var(--ctrl-panel-control-gap) !important;
+	height: var(--ctrl-panel-color-input-height) !important;
+	gap: var(--ctrl-panel-control-gap) !important;
 }
 
 .ctrl-color-input {
-    height: var(--ctrl-panel-color-input-height) !important;
+	height: var(--ctrl-panel-color-input-height) !important;
 }
 
 .ctrl-number-input-container {
-    height: var(--ctrl-panel-number-input-height) !important;
+	height: var(--ctrl-panel-number-input-height) !important;
 }
 
 .ctrl-number-increment-buttons {
-    width: var(--ctrl-panel-number-increment-width) !important;
+	width: var(--ctrl-panel-number-increment-width) !important;
 }
 
 .ctrl-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    transition: left 0.5s ease;
-    z-index: 0;
-    pointer-events: none;
+	content: "";
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(255, 255, 255, 0.1),
+		transparent
+	);
+	transition: left 0.5s ease;
+	z-index: 0;
+	pointer-events: none;
 }
 
 .ctrl-btn:hover::before {
-    left: 100%;
+	left: 100%;
 }
 
 /* Ensure button content (icons) appear above the hover effect */
 .ctrl-btn i {
-    position: relative;
-    z-index: 1;
+	position: relative;
+	z-index: 1;
 }
 
 .ctrl-btn-primary {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+	background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+	color: white;
+	box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
 .ctrl-btn-primary:hover {
-    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+	background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+	transform: translateY(-2px);
+	box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
 }
 
 .ctrl-btn-success {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+	background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+	color: white;
+	box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
 .ctrl-btn-success:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+	background: linear-gradient(135deg, #059669 0%, #047857 100%);
+	transform: translateY(-2px);
+	box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
 }
 
 .ctrl-btn-warning {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+	background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+	color: white;
+	box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
 }
 
 .ctrl-btn-warning:hover {
-    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+	background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+	transform: translateY(-2px);
+	box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
 }
 
 .ctrl-btn-danger {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+	background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+	color: white;
+	box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
 }
 
 .ctrl-btn-danger:hover {
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+	background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+	transform: translateY(-2px);
+	box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
 }
 
 /* Clear Button States */
 .ctrl-btn-danger:disabled {
-    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-    color: #9ca3af;
-    box-shadow: none;
-    cursor: not-allowed;
-    transform: none;
+	background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+	color: #9ca3af;
+	box-shadow: none;
+	cursor: not-allowed;
+	transform: none;
 }
 
 .ctrl-btn-danger:disabled:hover {
-    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-    transform: none;
-    box-shadow: none;
+	background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+	transform: none;
+	box-shadow: none;
 }
 
 /* Background Controls - 3 Row Layout */
 .ctrl-background-controls-compact {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    height: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	height: 100%;
 }
 
 .ctrl-row-1,
 .ctrl-row-2,
 .ctrl-row-3 {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    /* Height will be set by container query variables */
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	/* Height will be set by container query variables */
 }
 
 .ctrl-color-picker-half {
-    flex: 1;
-    display: flex;
-    align-items: center;
+	flex: 1;
+	display: flex;
+	align-items: center;
 }
 
 .ctrl-number-input-half {
-    flex: 1;
-    display: flex;
-    align-items: center;
+	flex: 1;
+	display: flex;
+	align-items: center;
 }
 
 .ctrl-row-2 .ctrl-select-wrapper,
 .ctrl-row-3 .ctrl-select-wrapper {
-    width: 100%;
-    min-width: auto;
+	width: 100%;
+	min-width: auto;
 }
 
 /* Dropdown heights are handled in the main .ctrl-custom-select rule above */
 
 @container file-controls (min-width: 768px) {
-    .ctrl-background-controls-compact {
-        gap: 8px;
-    }
+	.ctrl-background-controls-compact {
+		gap: 8px;
+	}
 
-    .ctrl-row-1,
-    .ctrl-row-2,
-    .ctrl-row-3 {
-        gap: 8px;
-    }
+	.ctrl-row-1,
+	.ctrl-row-2,
+	.ctrl-row-3 {
+		gap: 8px;
+	}
 }
 
 @container file-controls (min-width: 1200px) {
-    .ctrl-background-controls-compact {
-        gap: 12px;
-    }
+	.ctrl-background-controls-compact {
+		gap: 12px;
+	}
 
-    .ctrl-row-1,
-    .ctrl-row-2,
-    .ctrl-row-3 {
-        gap: 12px;
-    }
+	.ctrl-row-1,
+	.ctrl-row-2,
+	.ctrl-row-3 {
+		gap: 12px;
+	}
 }
 
 /* Background Controls - Tall Layout Specific Adjustments */
 @container file-controls (min-height: 700px) {
-    .ctrl-row-1 {
-        flex-direction: column;
-        gap: var(--ctrl-panel-control-gap);
-        height: calc(var(--ctrl-panel-row-height) * 2 + var(--ctrl-panel-control-gap)) !important;
-        /* 2 row heights + internal gap between the 2 elements */
-    }
+	.ctrl-row-1 {
+		flex-direction: column;
+		gap: var(--ctrl-panel-control-gap);
+		height: calc(
+			var(--ctrl-panel-row-height) * 2 + var(--ctrl-panel-control-gap)
+		) !important;
+		/* 2 row heights + internal gap between the 2 elements */
+	}
 
-    .ctrl-color-picker-half,
-    .ctrl-number-input-half {
-        width: 100%;
-        height: var(--ctrl-panel-row-height);
-        flex: none;
-        /* Prevent flex growth */
-    }
+	.ctrl-color-picker-half,
+	.ctrl-number-input-half {
+		width: 100%;
+		height: var(--ctrl-panel-row-height);
+		flex: none;
+		/* Prevent flex growth */
+	}
 
-    .ctrl-number-input {
-        padding: 0 calc(var(--ctrl-panel-number-increment-width) + 8px) 0 12px;
-    }
+	.ctrl-number-input {
+		padding: 0 calc(var(--ctrl-panel-number-increment-width) + 8px) 0 12px;
+	}
 
-    /* Ensure other rows maintain single row height */
-    .ctrl-row-2,
-    .ctrl-row-3 {
-        height: var(--ctrl-panel-row-height) !important;
-    }
+	/* Ensure other rows maintain single row height */
+	.ctrl-row-2,
+	.ctrl-row-3 {
+		height: var(--ctrl-panel-row-height) !important;
+	}
 }
 
 .ctrl-color-input {
-    width: 100%;
-    border: 2px solid rgba(148, 163, 184, 0.3);
-    border-radius: 4px;
-    cursor: pointer;
-    background: transparent;
-    /* Height will be set by container query variables */
+	width: 100%;
+	border: 2px solid rgba(148, 163, 184, 0.3);
+	border-radius: 4px;
+	cursor: pointer;
+	background: transparent;
+	/* Height will be set by container query variables */
 }
 
 .ctrl-number-input-container {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    position: relative;
-    /* Height will be set by container query variables */
+	display: flex;
+	align-items: center;
+	width: 100%;
+	position: relative;
+	/* Height will be set by container query variables */
 }
 
 .ctrl-number-input {
-    font-size: 0.75rem;
-    color: #e2e8f0;
-    background: rgba(15, 23, 42, 0.8);
-    padding: 0 90px 0 8px;
-    border-radius: 4px;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    width: 100%;
-    outline: none;
-    transition: all 0.3s ease;
-    text-align: left;
-    padding-left: 12px;
-    font-weight: 500;
-    height: 100%;
-    /* Hide browser default number input controls */
-    -webkit-appearance: none;
-    -moz-appearance: textfield;
-    appearance: none;
-    /* Ensure text is visible */
-    z-index: 1;
-    position: relative;
+	font-size: 0.75rem;
+	color: #e2e8f0;
+	background: rgba(15, 23, 42, 0.8);
+	padding: 0 90px 0 8px;
+	border-radius: 4px;
+	border: 1px solid rgba(148, 163, 184, 0.2);
+	width: 100%;
+	outline: none;
+	transition: all 0.3s ease;
+	text-align: left;
+	padding-left: 12px;
+	font-weight: 500;
+	height: 100%;
+	/* Hide browser default number input controls */
+	-webkit-appearance: none;
+	-moz-appearance: textfield;
+	appearance: none;
+	/* Ensure text is visible */
+	z-index: 1;
+	position: relative;
 }
 
 /* Hide Chrome's default number input spinner */
 .ctrl-number-input::-webkit-outer-spin-button,
 .ctrl-number-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-    display: none;
+	-webkit-appearance: none;
+	margin: 0;
+	display: none;
 }
 
 /* Hide Firefox's default number input spinner */
-.ctrl-number-input[type=number] {
-    -moz-appearance: textfield;
+.ctrl-number-input[type="number"] {
+	-moz-appearance: textfield;
 }
 
 @container file-controls (min-width: 768px) {
-    .ctrl-number-input {
-        font-size: 0.85rem;
-        padding: 0 112px 0 16px;
-    }
+	.ctrl-number-input {
+		font-size: 0.85rem;
+		padding: 0 112px 0 16px;
+	}
 }
 
 @container file-controls (min-width: 1200px) {
-    .ctrl-number-input {
-        font-size: 0.95rem;
-        padding: 0 136px 0 5px;
-    }
+	.ctrl-number-input {
+		font-size: 0.95rem;
+		padding: 0 136px 0 5px;
+	}
 }
 
 .ctrl-number-input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+	border-color: #3b82f6;
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .ctrl-number-increment-buttons {
-    position: absolute;
-    right: 2px;
-    top: 2px;
-    bottom: 2px;
-    width: 82px;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    z-index: 2;
+	position: absolute;
+	right: 2px;
+	top: 2px;
+	bottom: 2px;
+	width: 82px;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	z-index: 2;
 }
 
 @container file-controls (min-width: 768px) {
-    .ctrl-number-increment-buttons {
-        width: 104px;
-    }
+	.ctrl-number-increment-buttons {
+		width: 104px;
+	}
 }
 
 @container file-controls (min-width: 1200px) {
-    .ctrl-number-increment-buttons {
-        width: 128px;
-    }
+	.ctrl-number-increment-buttons {
+		width: 128px;
+	}
 }
 
 .ctrl-number-increment-btn {
-    flex: 1;
-    background: rgba(59, 130, 246, 0.8);
-    border: none;
-    border-radius: 2px;
-    color: white;
-    font-size: 0.6rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
+	flex: 1;
+	background: rgba(59, 130, 246, 0.8);
+	border: none;
+	border-radius: 2px;
+	color: white;
+	font-size: 0.6rem;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s ease;
 }
 
 @container file-controls (min-width: 768px) {
-    .ctrl-number-increment-btn {
-        font-size: 0.7rem;
-    }
+	.ctrl-number-increment-btn {
+		font-size: 0.7rem;
+	}
 }
 
 @container file-controls (min-width: 1200px) {
-    .ctrl-number-increment-btn {
-        font-size: 0.8rem;
-    }
+	.ctrl-number-increment-btn {
+		font-size: 0.8rem;
+	}
 }
 
 .ctrl-number-increment-btn:hover {
-    background: rgba(59, 130, 246, 1);
+	background: rgba(59, 130, 246, 1);
 }
 
 .ctrl-number-increment-btn:disabled {
-    background: rgba(107, 114, 128, 0.5);
-    cursor: not-allowed;
-    opacity: 0.5;
+	background: rgba(107, 114, 128, 0.5);
+	cursor: not-allowed;
+	opacity: 0.5;
 }
 
 .ctrl-number-increment-btn:disabled:hover {
-    background: rgba(107, 114, 128, 0.5);
+	background: rgba(107, 114, 128, 0.5);
 }
 
 /* ===== SINGLE ROW CONTROL STRIP LAYOUT ===== */
 /* When controls panel is alone in its Golden Layout row */
 
 #fileControls.ctrl-single-row-strip {
-    /* Override container query variables for single row layout */
-    --ctrl-panel-strip-height: 60px;
-    --ctrl-panel-strip-padding: 8px;
-    --ctrl-panel-strip-gap: 8px;
-    --ctrl-panel-strip-element-height: 44px;
-    --ctrl-panel-strip-btn-width: 44px;
-    --ctrl-panel-strip-btn-wide-width: 80px;
-    --ctrl-panel-strip-select-width: 120px;
-    --ctrl-panel-strip-input-width: 140px;
-    --ctrl-panel-strip-color-width: 44px;
-    --ctrl-panel-strip-number-width: 100px;
+	/* Override container query variables for single row layout */
+	--ctrl-panel-strip-height: 60px;
+	--ctrl-panel-strip-padding: 8px;
+	--ctrl-panel-strip-gap: 8px;
+	--ctrl-panel-strip-element-height: 44px;
+	--ctrl-panel-strip-btn-width: 44px;
+	--ctrl-panel-strip-btn-wide-width: 80px;
+	--ctrl-panel-strip-select-width: 120px;
+	--ctrl-panel-strip-input-width: 140px;
+	--ctrl-panel-strip-color-width: 44px;
+	--ctrl-panel-strip-number-width: 100px;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-control-panel {
-    /* Force single row layout */
-    height: var(--ctrl-panel-strip-height);
-    border-radius: 6px;
-    overflow: hidden;
+	/* Force single row layout */
+	height: var(--ctrl-panel-strip-height);
+	border-radius: 6px;
+	overflow: hidden;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-panel-header {
-    /* Hide header in strip mode */
-    display: none !important;
+	/* Hide header in strip mode */
+	display: none !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-panel-content {
-    /* Single row flex layout */
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: var(--ctrl-panel-strip-gap) !important;
-    padding: var(--ctrl-panel-strip-padding) !important;
-    height: 100% !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
+	/* Single row flex layout */
+	display: flex !important;
+	flex-direction: row !important;
+	align-items: center !important;
+	gap: var(--ctrl-panel-strip-gap) !important;
+	padding: var(--ctrl-panel-strip-padding) !important;
+	height: 100% !important;
+	overflow-x: auto !important;
+	overflow-y: hidden !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-control-section {
-    /* Inline sections */
-    flex-shrink: 0 !important;
-    height: var(--ctrl-panel-strip-element-height) !important;
-    padding: 0 !important;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
+	/* Inline sections */
+	flex-shrink: 0 !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
+	padding: 0 !important;
+	background: transparent !important;
+	border: none !important;
+	border-radius: 0 !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-section-header {
-    /* Hide section headers */
-    display: none !important;
+	/* Hide section headers */
+	display: none !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-control-row {
-    /* Inline controls */
-    flex-direction: row !important;
-    gap: 4px !important;
-    height: 100% !important;
-    align-items: center !important;
+	/* Inline controls */
+	flex-direction: row !important;
+	gap: 4px !important;
+	height: 100% !important;
+	align-items: center !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-background-controls-compact {
-    /* Inline background controls */
-    flex-direction: row !important;
-    gap: 4px !important;
-    height: 100% !important;
+	/* Inline background controls */
+	flex-direction: row !important;
+	gap: 4px !important;
+	height: 100% !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-row-1,
 #fileControls.ctrl-single-row-strip .ctrl-row-2,
 #fileControls.ctrl-single-row-strip .ctrl-row-3 {
-    /* Inline rows */
-    flex-direction: row !important;
-    gap: 4px !important;
-    height: var(--ctrl-panel-strip-element-height) !important;
+	/* Inline rows */
+	flex-direction: row !important;
+	gap: 4px !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
 }
 
 /* Strip mode element sizing */
 #fileControls.ctrl-single-row-strip .ctrl-btn {
-    height: var(--ctrl-panel-strip-element-height) !important;
-    width: var(--ctrl-panel-strip-btn-width) !important;
-    flex-shrink: 0 !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
+	width: var(--ctrl-panel-strip-btn-width) !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-btn-wide {
-    width: var(--ctrl-panel-strip-btn-wide-width) !important;
+	width: var(--ctrl-panel-strip-btn-wide-width) !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-custom-select {
-    height: var(--ctrl-panel-strip-element-height) !important;
-    width: var(--ctrl-panel-strip-select-width) !important;
-    flex-shrink: 0 !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
+	width: var(--ctrl-panel-strip-select-width) !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-file-input-label,
 #fileControls.ctrl-single-row-strip .file-selected-indicator {
-    height: var(--ctrl-panel-strip-element-height) !important;
-    width: var(--ctrl-panel-strip-input-width) !important;
-    flex-shrink: 0 !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
+	width: var(--ctrl-panel-strip-input-width) !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-color-input {
-    height: var(--ctrl-panel-strip-element-height) !important;
-    width: var(--ctrl-panel-strip-color-width) !important;
-    flex-shrink: 0 !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
+	width: var(--ctrl-panel-strip-color-width) !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-number-input-container {
-    height: var(--ctrl-panel-strip-element-height) !important;
-    width: var(--ctrl-panel-strip-number-width) !important;
-    flex-shrink: 0 !important;
+	height: var(--ctrl-panel-strip-element-height) !important;
+	width: var(--ctrl-panel-strip-number-width) !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-button-group {
-    width: var(--ctrl-panel-strip-btn-wide-width) !important;
-    gap: 4px !important;
-    flex-shrink: 0 !important;
+	width: var(--ctrl-panel-strip-btn-wide-width) !important;
+	gap: 4px !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-button-group .ctrl-btn {
-    width: calc((var(--ctrl-panel-strip-btn-wide-width) - 4px) / 2) !important;
+	width: calc((var(--ctrl-panel-strip-btn-wide-width) - 4px) / 2) !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-select-wrapper {
-    width: var(--ctrl-panel-strip-select-width) !important;
-    flex-shrink: 0 !important;
+	width: var(--ctrl-panel-strip-select-width) !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-file-input-wrapper {
-    width: var(--ctrl-panel-strip-input-width) !important;
-    flex-shrink: 0 !important;
+	width: var(--ctrl-panel-strip-input-width) !important;
+	flex-shrink: 0 !important;
 }
 
 #fileControls.ctrl-single-row-strip .ctrl-color-picker-half,
 #fileControls.ctrl-single-row-strip .ctrl-number-input-half {
-    width: auto !important;
-    flex: none !important;
+	width: auto !important;
+	flex: none !important;
 }
 
 /* Strip mode responsive adjustments */
 @container file-controls (min-width: 1200px) {
-    #fileControls.ctrl-single-row-strip {
-        --ctrl-panel-strip-height: 70px;
-        --ctrl-panel-strip-element-height: 54px;
-        --ctrl-panel-strip-btn-width: 54px;
-        --ctrl-panel-strip-btn-wide-width: 100px;
-        --ctrl-panel-strip-select-width: 140px;
-        --ctrl-panel-strip-input-width: 160px;
-        --ctrl-panel-strip-color-width: 54px;
-        --ctrl-panel-strip-number-width: 120px;
-        --ctrl-panel-strip-gap: 12px;
-        --ctrl-panel-strip-padding: 12px;
-    }
+	#fileControls.ctrl-single-row-strip {
+		--ctrl-panel-strip-height: 70px;
+		--ctrl-panel-strip-element-height: 54px;
+		--ctrl-panel-strip-btn-width: 54px;
+		--ctrl-panel-strip-btn-wide-width: 100px;
+		--ctrl-panel-strip-select-width: 140px;
+		--ctrl-panel-strip-input-width: 160px;
+		--ctrl-panel-strip-color-width: 54px;
+		--ctrl-panel-strip-number-width: 120px;
+		--ctrl-panel-strip-gap: 12px;
+		--ctrl-panel-strip-padding: 12px;
+	}
 }
 
 @container file-controls (max-width: 600px) {
-    #fileControls.ctrl-single-row-strip {
-        --ctrl-panel-strip-height: 50px;
-        --ctrl-panel-strip-element-height: 34px;
-        --ctrl-panel-strip-btn-width: 34px;
-        --ctrl-panel-strip-btn-wide-width: 60px;
-        --ctrl-panel-strip-select-width: 100px;
-        --ctrl-panel-strip-input-width: 120px;
-        --ctrl-panel-strip-color-width: 34px;
-        --ctrl-panel-strip-number-width: 80px;
-        --ctrl-panel-strip-gap: 6px;
-        --ctrl-panel-strip-padding: 6px;
-    }
+	#fileControls.ctrl-single-row-strip {
+		--ctrl-panel-strip-height: 50px;
+		--ctrl-panel-strip-element-height: 34px;
+		--ctrl-panel-strip-btn-width: 34px;
+		--ctrl-panel-strip-btn-wide-width: 60px;
+		--ctrl-panel-strip-select-width: 100px;
+		--ctrl-panel-strip-input-width: 120px;
+		--ctrl-panel-strip-color-width: 34px;
+		--ctrl-panel-strip-number-width: 80px;
+		--ctrl-panel-strip-gap: 6px;
+		--ctrl-panel-strip-padding: 6px;
+	}
 }
 
 /* Accessibility Support */
 @media (prefers-contrast: high) {
-    .ctrl-control-panel {
-        border: 2px solid #ffffff;
-    }
+	.ctrl-control-panel {
+		border: 2px solid #ffffff;
+	}
 
-    .ctrl-btn {
-        border: 1px solid currentColor;
-    }
+	.ctrl-btn {
+		border: 1px solid currentColor;
+	}
 
-    .ctrl-custom-select,
-    .ctrl-file-input-label {
-        border-width: 2px;
-    }
+	.ctrl-custom-select,
+	.ctrl-file-input-label {
+		border-width: 2px;
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
+	* {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
 
-    .ctrl-btn :before {
-        display: none;
-    }
+	.ctrl-btn :before {
+		display: none;
+	}
 }

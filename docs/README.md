@@ -7,6 +7,7 @@ This documentation has been built using your **actual, verified functionality** 
 After examining your source code, I can confirm the following features are **actually implemented and working**:
 
 ### 🎛️ Controls Panel (Verified in `index.html` + `src/components/`)
+
 - ✅ **File Input**: `.riv` file selection with file picker
 - ✅ **Artboard Selector**: Dropdown with all available artboards
 - ✅ **Timeline Selector**: Timeline animation selection with play/pause controls
@@ -15,11 +16,13 @@ After examining your source code, I can confirm the following features are **act
 - ✅ **Animation Controls**: Play/pause buttons for timelines and state machines
 
 ### 🖼️ Canvas Panel (Verified in `index.html`)
+
 - ✅ **WebGL2 Rendering**: Using `@rive-app/webgl2` runtime
 - ✅ **Responsive Canvas**: Auto-resizing canvas element
 - ✅ **Interactive Elements**: Mouse events passed to Rive animations
 
 ### 🔍 JSON Inspector (Verified in `src/components/parser.js`)
+
 - ✅ **JSONEditor Integration**: Using `jsoneditor` library
 - ✅ **Comprehensive Parsing**: Extracts artboards, animations, state machines, ViewModels, assets
 - ✅ **Tree View**: Hierarchical display with expand/collapse
@@ -27,6 +30,7 @@ After examining your source code, I can confirm the following features are **act
 - ✅ **Multiple View Modes**: Tree, view, code, text, preview
 
 ### ⚡ Dynamic Controls (Verified in `src/components/riveControlInterface.js`)
+
 - ✅ **Auto-Generated UI**: Creates controls based on ViewModel properties and state machine inputs
 - ✅ **Boolean Controls**: Checkbox controls for true/false values
 - ✅ **Number Controls**: Number input fields for numeric values
@@ -37,6 +41,7 @@ After examining your source code, I can confirm the following features are **act
 - ✅ **Real-time Updates**: Immediate reflection in animation
 
 ### 📦 Asset Manager (Verified in `src/components/assetManager.js`)
+
 - ✅ **Asset Detection**: Automatically finds embedded images and fonts
 - ✅ **Asset Information**: Shows name, type, ID, CDN UUID, file extension
 - ✅ **Local File Replacement**: Upload files from computer with file picker
@@ -46,6 +51,7 @@ After examining your source code, I can confirm the following features are **act
 - ✅ **Expandable Interface**: Click-to-expand asset details
 
 ### 🔧 Layout Management (Verified in `src/components/goldenLayoutManager.js`)
+
 - ✅ **Golden Layout Integration**: Professional panel management
 - ✅ **Drag & Drop**: Rearrange panels by dragging tabs
 - ✅ **Panel Resizing**: Adjust sizes by dragging borders
@@ -54,6 +60,7 @@ After examining your source code, I can confirm the following features are **act
 - ✅ **Restore Bar**: Restore closed panels with component buttons
 
 ### 🐛 Debugging System (Verified in `src/utils/debugger/`)
+
 - ✅ **Global Runtime Access**: `window.riveInstanceGlobal`
 - ✅ **Modular Logging**: Configurable debug levels per module
 - ✅ **Debug Modules**: parser, controls, layout, rive, ui, state, performance
@@ -61,6 +68,7 @@ After examining your source code, I can confirm the following features are **act
 - ✅ **Error Handling**: Comprehensive error catching and reporting
 
 ### 🎮 Runtime Controls (Verified in documentation + parser)
+
 - ✅ **State Machine Control**: Programmatic input manipulation
 - ✅ **ViewModel Property Updates**: String, color, enum, number, boolean properties
 - ✅ **Asset Replacement**: Runtime image swapping
@@ -70,6 +78,7 @@ After examining your source code, I can confirm the following features are **act
 ## ❌ Features NOT Implemented (Removed from Documentation)
 
 The following features were incorrectly documented but are **NOT actually implemented**:
+
 - ❌ Speed control sliders (0.1x to 3x)
 - ❌ Keyboard shortcuts (Space, F, Ctrl+O, etc.)
 - ❌ Right-click context menus
@@ -98,6 +107,7 @@ src/
 ## 🔍 Code Verification Summary
 
 I have personally examined:
+
 - ✅ `index.html` - Confirmed all UI templates and actual controls
 - ✅ `src/components/parser.js` - Verified comprehensive Rive parsing logic
 - ✅ `src/components/assetManager.js` - Confirmed asset management functionality
@@ -134,6 +144,7 @@ This directory contains the MkDocs source files for the Rive Tester documentatio
 ## 🚀 Quick Start with VS Code Live Server
 
 ### 1. Build the Documentation
+
 ```bash
 # Option 1: Use the build script
 ./build-docs.sh
@@ -145,6 +156,7 @@ python3 -m mkdocs build -f mkdocs-local.yml
 ```
 
 ### 2. Serve with Live Server
+
 1. **Start Live Server** from your project root (right-click `index.html`)
 2. **Navigate to** `http://127.0.0.1:5501/site/` in your browser
 3. **Or directly open** `http://127.0.0.1:5501/site/index.html`
@@ -183,6 +195,7 @@ docs/
 ## 🎨 Styling
 
 The documentation uses MkDocs Material theme with custom CSS:
+
 - Dark/light mode toggle
 - Rive branding colors
 - Responsive design
@@ -198,11 +211,13 @@ The documentation uses MkDocs Material theme with custom CSS:
 ## 🐛 Troubleshooting
 
 **Live Server not working?**
+
 - Ensure you've built the documentation first
 - Check that `site/index.html` exists
 - Try refreshing VS Code and rebuilding
 
 **Missing pages warnings?**
+
 - These are normal during development
 - Create placeholder files or remove from navigation
-- Use `mkdocs build --quiet` to suppress warnings 
+- Use `mkdocs build --quiet` to suppress warnings

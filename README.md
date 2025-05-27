@@ -11,9 +11,11 @@ Interactive Rive file parser, inspector, and debugging tool built for the web.
 ## 🚀 Quick Start
 
 ### Online Version
+
 **[Launch Rive Tester →](https://ivg-design.github.io/rive_dev_playground/)**
 
 ### Local Development
+
 ```bash
 git clone https://github.com/ivg-design/rive_dev_playground.git
 cd rive_dev_playground
@@ -34,43 +36,49 @@ Open `http://localhost:8080` in your browser.
 ## ✨ Features
 
 ### 🎮 Interactive Playground
+
 - Load local `.riv` files with real-time animation playback
 - Professional IDE-like interface with dockable panels
 - WebGL2 rendering for high-performance animations
 
 ### 🔍 Deep Inspection
+
 - Analyze artboards, state machines, and ViewModels
 - Interactive JSON tree view with search and filtering
 - Complete Rive file structure exploration
 
 ### 🎛️ Runtime Controls
+
 - Auto-generated UI controls for ViewModel properties
 - Real-time property manipulation and testing
 - Support for all property types (boolean, number, enum, etc.)
 
 ### 📦 Asset Manager
+
 - View and inspect embedded assets (images, fonts)
 - Replace assets with local files or URLs in real-time
 - Asset metadata and status information
 
 ### 🐛 Debugging Tools
+
 - Global runtime access via `window.riveInstanceGlobal`
 - Modular logging system with configurable levels
 - Comprehensive error handling and debug information
 
 ### 🎨 Modern UI
+
 - Dark theme with responsive design
 - Modular CSS architecture for maintainability
 - Professional Golden Layout panel system
 
 ## 🛠️ Technical Stack
 
-| Component | Description |
-|-----------|-------------|
-| **@rive-app/webgl2** | Official Rive WebGL2 runtime |
-| **Golden Layout** | Professional dockable panel system |
-| **JSONEditor** | Interactive JSON tree viewer |
-| **MkDocs Material** | Documentation framework |
+| Component            | Description                        |
+| -------------------- | ---------------------------------- |
+| **@rive-app/webgl2** | Official Rive WebGL2 runtime       |
+| **Golden Layout**    | Professional dockable panel system |
+| **JSONEditor**       | Interactive JSON tree viewer       |
+| **MkDocs Material**  | Documentation framework            |
 
 ## 📁 Project Structure
 
@@ -105,4 +113,4 @@ rive_dev_playground/
 
 The project uses a modular CSS architecture for maintainability:
 
-- **`base.css`
+- \*\*`base.css`

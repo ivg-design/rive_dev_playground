@@ -6,84 +6,79 @@
  * to help test the deployment structure before pushing.
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { execSync } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const projectRoot = path.resolve(__dirname, '..');
+const projectRoot = path.resolve(__dirname, "..");
 
-console.log('🚀 Testing deployment structure locally...');
+console.log("🚀 Testing deployment structure locally...");
 
 // Create test deployment directory
-const testDir = path.join(projectRoot, '_test-deployment');
-const riveTestDir = path.join(testDir, 'rive-tester');
+const testDir = path.join(projectRoot, "_test-deployment");
+const riveTestDir = path.join(testDir, "rive-tester");
 
 // Clean and create directories
 if (fs.existsSync(testDir)) {
-    fs.rmSync(testDir, { recursive: true });
+	fs.rmSync(testDir, { recursive: true });
 }
 fs.mkdirSync(testDir, { recursive: true });
 fs.mkdirSync(riveTestDir, { recursive: true });
 
-console.log('📁 Created test directories');
+console.log("📁 Created test directories");
 
 // Copy files (same as GitHub Actions workflow)
-const filesToCopy = [
-    'index.html',
-    'style.css',
-    'package.json',
-    'README.md'
-];
+const filesToCopy = ["index.html", "style.css", "package.json", "README.md"];
 
-filesToCopy.forEach(file => {
-    const src = path.join(projectRoot, file);
-    const dest = path.join(riveTestDir, file);
-    if (fs.existsSync(src)) {
-        fs.copyFileSync(src, dest);
-        console.log(`✅ Copied ${file}`);
-    } else {
-        console.log(`⚠️  Warning: ${file} not found`);
-    }
+filesToCopy.forEach((file) => {
+	const src = path.join(projectRoot, file);
+	const dest = path.join(riveTestDir, file);
+	if (fs.existsSync(src)) {
+		fs.copyFileSync(src, dest);
+		console.log(`✅ Copied ${file}`);
+	} else {
+		console.log(`⚠️  Warning: ${file} not found`);
+	}
 });
 
 // Copy src directory
-const srcDir = path.join(projectRoot, 'src');
-const destSrcDir = path.join(riveTestDir, 'src');
+const srcDir = path.join(projectRoot, "src");
+const destSrcDir = path.join(riveTestDir, "src");
 if (fs.existsSync(srcDir)) {
-    fs.cpSync(srcDir, destSrcDir, { recursive: true });
-    console.log('✅ Copied src directory');
+	fs.cpSync(srcDir, destSrcDir, { recursive: true });
+	console.log("✅ Copied src directory");
 }
 
 // Copy animations directory if it exists
-const animationsDir = path.join(projectRoot, 'animations');
-const destAnimationsDir = path.join(riveTestDir, 'animations');
+const animationsDir = path.join(projectRoot, "animations");
+const destAnimationsDir = path.join(riveTestDir, "animations");
 if (fs.existsSync(animationsDir)) {
-    fs.cpSync(animationsDir, destAnimationsDir, { recursive: true });
-    console.log('✅ Copied animations directory');
+	fs.cpSync(animationsDir, destAnimationsDir, { recursive: true });
+	console.log("✅ Copied animations directory");
 }
 
 // Copy .riv files
 const files = fs.readdirSync(projectRoot);
-const rivFiles = files.filter(file => file.endsWith('.riv'));
-rivFiles.forEach(file => {
-    const src = path.join(projectRoot, file);
-    const dest = path.join(riveTestDir, file);
-    fs.copyFileSync(src, dest);
-    console.log(`✅ Copied ${file}`);
+const rivFiles = files.filter((file) => file.endsWith(".riv"));
+rivFiles.forEach((file) => {
+	const src = path.join(projectRoot, file);
+	const dest = path.join(riveTestDir, file);
+	fs.copyFileSync(src, dest);
+	console.log(`✅ Copied ${file}`);
 });
 
 // Install dependencies in test directory
-console.log('📦 Installing dependencies...');
+console.log("📦 Installing dependencies...");
 try {
-    process.chdir(riveTestDir);
-    execSync('npm install --production', { stdio: 'inherit' });
-    console.log('✅ Dependencies installed');
+	process.chdir(riveTestDir);
+	execSync("npm install --production", { stdio: "inherit" });
+	console.log("✅ Dependencies installed");
 } catch (error) {
-    console.error('❌ Error installing dependencies:', error.message);
-    process.exit(1);
+	console.error("❌ Error installing dependencies:", error.message);
+	process.exit(1);
 }
 
 // Create landing page
@@ -168,18 +163,18 @@ const landingPageContent = `<!DOCTYPE html>
 </body>
 </html>`;
 
-fs.writeFileSync(path.join(testDir, 'index.html'), landingPageContent);
-console.log('✅ Created landing page');
+fs.writeFileSync(path.join(testDir, "index.html"), landingPageContent);
+console.log("✅ Created landing page");
 
 // Return to project root
 process.chdir(projectRoot);
 
-console.log('\n🎉 Test deployment created successfully!');
+console.log("\n🎉 Test deployment created successfully!");
 console.log(`📂 Test directory: ${testDir}`);
-console.log('\n🌐 To test locally:');
-console.log('1. Start a local server in the test directory:');
+console.log("\n🌐 To test locally:");
+console.log("1. Start a local server in the test directory:");
 console.log(`   cd "${testDir}"`);
-console.log('   npx http-server -p 8080');
-console.log('2. Open http://localhost:8080 in your browser');
+console.log("   npx http-server -p 8080");
+console.log("2. Open http://localhost:8080 in your browser");
 console.log('3. Click "Launch Rive Tester" to test the app');
-console.log('\n🗑️  To clean up: rm -rf _test-deployment'); 
+console.log("\n🗑️  To clean up: rm -rf _test-deployment");

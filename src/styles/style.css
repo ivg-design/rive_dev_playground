@@ -4,84 +4,84 @@
 
 /* Artboard and State Machine Selection Controls */
 #artboardStateMachineControls {
-    display: none;
-    background-color: #333;
-    border: 1px solid #555;
-    border-radius: 5px;
-    padding: 10px;
-    margin-top: 10px;
+	display: none;
+	background-color: #333;
+	border: 1px solid #555;
+	border-radius: 5px;
+	padding: 10px;
+	margin-top: 10px;
 }
 
 /* Selection Row */
 .selection-row {
-    display: flex;
-    gap: 20px;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 15px;
+	display: flex;
+	gap: 20px;
+	align-items: center;
+	flex-wrap: wrap;
+	margin-bottom: 15px;
 }
 
 .selector-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .selector-group label {
-    color: #cccccc;
-    font-size: 0.75em;
-    font-weight: 600;
-    white-space: nowrap;
-    text-align: left;
-    line-height: 1.2;
-    letter-spacing: 0.02em;
+	color: #cccccc;
+	font-size: 0.75em;
+	font-weight: 600;
+	white-space: nowrap;
+	text-align: left;
+	line-height: 1.2;
+	letter-spacing: 0.02em;
 }
 
 #artboardSelector,
 #animationSelector,
 #stateMachineSelector {
-    padding: 8px 12px;
-    border-radius: 4px;
-    border: 1px solid #555;
-    background-color: #333;
-    color: #d4d4d4;
-    min-width: 120px;
-    font-size: 0.85em;
-    height: 36px;
-    box-sizing: border-box;
-    line-height: 1.2;
+	padding: 8px 12px;
+	border-radius: 4px;
+	border: 1px solid #555;
+	background-color: #333;
+	color: #d4d4d4;
+	min-width: 120px;
+	font-size: 0.85em;
+	height: 36px;
+	box-sizing: border-box;
+	line-height: 1.2;
 }
 
 #artboardSelector:focus,
 #animationSelector:focus,
 #stateMachineSelector:focus {
-    outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 1px rgba(74, 144, 226, 0.3);
+	outline: none;
+	border-color: #4a90e2;
+	box-shadow: 0 0 0 1px rgba(74, 144, 226, 0.3);
 }
 
 /* Playback Controls Row */
 .playback-controls-row {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-    flex-wrap: wrap;
-    padding-top: 10px;
-    border-top: 1px solid #555;
+	display: flex;
+	gap: 15px;
+	align-items: center;
+	flex-wrap: wrap;
+	padding-top: 10px;
+	border-top: 1px solid #555;
 }
 
 .control-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .control-label {
-    color: #cccccc;
-    font-size: 0.75em;
-    font-weight: 600;
-    white-space: nowrap;
-    text-align: left;
-    line-height: 1.2;
-    letter-spacing: 0.02em;
+	color: #cccccc;
+	font-size: 0.75em;
+	font-weight: 600;
+	white-space: nowrap;
+	text-align: left;
+	line-height: 1.2;
+	letter-spacing: 0.02em;
 }

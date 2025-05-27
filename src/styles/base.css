@@ -2,166 +2,166 @@
 
 html,
 body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    box-sizing: border-box;
-    background-color: #1e1e1e;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	box-sizing: border-box;
+	background-color: #1e1e1e;
 }
 
 body {
-    font-family: sans-serif;
-    background-color: #1e1e1e;
-    color: #d4d4d4;
-    height: 100vh;
-    box-sizing: border-box;
+	font-family: sans-serif;
+	background-color: #1e1e1e;
+	color: #d4d4d4;
+	height: 100vh;
+	box-sizing: border-box;
 }
 
 /* Global scrollbar reset - ensure our specific styles take precedence */
 * {
-    scrollbar-width: thin;
-    scrollbar-color: #444 #1a1a1a;
+	scrollbar-width: thin;
+	scrollbar-color: #444 #1a1a1a;
 }
 
 /* Reset any default webkit scrollbar styles */
 *::-webkit-scrollbar {
-    width: 8px;
+	width: 8px;
 }
 
 *::-webkit-scrollbar-track {
-    background: #1a1a1a;
+	background: #1a1a1a;
 }
 
 *::-webkit-scrollbar-thumb {
-    background: #444;
-    border-radius: 4px;
+	background: #444;
+	border-radius: 4px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-    background: #555;
+	background: #555;
 }
 
 /* Status message positioning */
 .log-message {
-    height: 40px;
-    line-height: 40px;
-    text-align: center;
-    background-color: #2a2a2a;
-    border-top: 1px solid #444;
-    margin: 0;
-    flex-shrink: 0;
-    z-index: 1000;
+	height: 40px;
+	line-height: 40px;
+	text-align: center;
+	background-color: #2a2a2a;
+	border-top: 1px solid #444;
+	margin: 0;
+	flex-shrink: 0;
+	z-index: 1000;
 }
 
 /* Restore Bar */
 .restore-bar {
-    width: 100%;
-    background-color: #2a2a2a;
-    border-bottom: 1px solid #444;
-    z-index: 2000;
-    transition: all 0.3s ease;
-    flex-shrink: 0;
+	width: 100%;
+	background-color: #2a2a2a;
+	border-bottom: 1px solid #444;
+	z-index: 2000;
+	transition: all 0.3s ease;
+	flex-shrink: 0;
 }
 
 .restore-bar.collapsed {
-    height: 24px;
-    overflow: hidden;
+	height: 24px;
+	overflow: hidden;
 }
 
 .restore-bar-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    flex-wrap: wrap;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	flex-wrap: wrap;
 }
 
 .restore-bar-collapsed {
-    padding: 4px 12px;
-    color: #888;
-    font-size: 0.8em;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+	padding: 4px 12px;
+	color: #888;
+	font-size: 0.8em;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
 }
 
 .restore-bar-buttons {
-    display: flex;
-    gap: 8px;
-    align-items: center;
+	display: flex;
+	gap: 8px;
+	align-items: center;
 }
 
 .docs-btn,
 .layout-reset-btn {
-    padding: 2px 8px;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 0.7em;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+	padding: 2px 8px;
+	border: none;
+	border-radius: 3px;
+	cursor: pointer;
+	font-size: 0.7em;
+	font-weight: 500;
+	transition: all 0.2s ease;
+	white-space: nowrap;
+	display: flex;
+	align-items: center;
+	gap: 4px;
 }
 
 .docs-btn {
-    background-color: #4a90e2;
-    color: white;
+	background-color: #4a90e2;
+	color: white;
 }
 
 .docs-btn:hover {
-    background-color: #357abd;
-    transform: translateY(-1px);
+	background-color: #357abd;
+	transform: translateY(-1px);
 }
 
 .layout-reset-btn {
-    background-color: #dc3545;
-    color: white;
+	background-color: #dc3545;
+	color: white;
 }
 
 .layout-reset-btn:hover {
-    background-color: #c82333;
-    transform: translateY(-1px);
+	background-color: #c82333;
+	transform: translateY(-1px);
 }
 
 .restore-label {
-    color: #cccccc;
-    font-size: 0.85em;
-    font-weight: 500;
-    white-space: nowrap;
+	color: #cccccc;
+	font-size: 0.85em;
+	font-weight: 500;
+	white-space: nowrap;
 }
 
 .restore-btn {
-    padding: 4px 12px;
-    background-color: #4a90e2;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.8em;
-    font-weight: 500;
-    transition: background-color 0.2s ease;
-    white-space: nowrap;
+	padding: 4px 12px;
+	background-color: #4a90e2;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.8em;
+	font-weight: 500;
+	transition: background-color 0.2s ease;
+	white-space: nowrap;
 }
 
 .restore-btn:hover {
-    background-color: #357abd;
-} 
+	background-color: #357abd;
+}
 /* Version display */
 .version-info {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.7);
-    color: #888;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-family: monospace;
-    z-index: 10000;
-    pointer-events: none;
-    backdrop-filter: blur(5px);
+	position: fixed;
+	bottom: 10px;
+	right: 10px;
+	background: rgba(0, 0, 0, 0.7);
+	color: #888;
+	padding: 4px 8px;
+	border-radius: 4px;
+	font-size: 0.7rem;
+	font-family: monospace;
+	z-index: 10000;
+	pointer-events: none;
+	backdrop-filter: blur(5px);
 }
