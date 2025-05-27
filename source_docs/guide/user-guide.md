@@ -44,7 +44,6 @@ The Controls panel is your main interface for file management and global setting
 - **Timeline Selector**: Select timeline animations for playback
 - **State Machine Selector**: Choose state machines to activate
 - **Play/Pause**: Control timeline animation playback
-- **Pause**: Pause timeline animations (⏸ button)
 
 ### Display Settings
 

@@ -96,7 +96,7 @@ rive_dev_playground/
 │   ├── components/         # Core components
 │   ├── styles/            # Modular CSS
 │   └── utils/             # Utility functions
-├── docs/                  # MkDocs documentation
+├── source_docs/                  # MkDocs documentation
 ├── node_modules/          # Dependencies
 ├── package.json           # Node.js configuration
 ├── mkdocs.yml            # Documentation configuration

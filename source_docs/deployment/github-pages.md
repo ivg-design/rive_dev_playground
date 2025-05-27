@@ -77,7 +77,7 @@ Based on your existing CEP documentation setup, the URLs will be:
 ```
 GitHub Pages Root
 ├── index.html                 # Landing page with tool links
-└── rive-playground/          # Rive Playground application
+└── rive-tester/          # Rive Tester application
     ├── index.html            # Main app interface
     ├── src/                  # Source modules
     │   ├── components/       # Core application components

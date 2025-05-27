@@ -13,7 +13,7 @@ A comprehensive web-based tool for parsing, inspecting, and debugging Rive anima
 
     Try the application immediately without any setup
 
-    [:octicons-arrow-right-24: Launch App](https://ivg-design.github.io/rive_dev_playground/){ .md-button .md-button--primary }
+    [:octicons-arrow-right-24: Launch App](https://ivg-design.github.io/rive-tester/rive-tester/){ .md-button .md-button--primary }
 
 - :material-download: **Local Development**
 
@@ -96,7 +96,7 @@ Dark theme, responsive design, and modular CSS architecture for professional wor
 
 ## :link: Quick Links
 
-- [:octicons-rocket-24: Launch Application](https://ivg-design.github.io/rive_dev_playground/)
+- [:octicons-rocket-24: Launch Application](https://ivg-design.github.io/rive-tester/rive-tester/)
 - [:octicons-mark-github-24: GitHub Repository](https://github.com/ivg-design/rive_dev_playground)
 - [:octicons-globe-24: Rive.app](https://rive.app)
 - [:octicons-people-24: Rive Community](https://rive.app/community)

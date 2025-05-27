@@ -61,8 +61,7 @@ The Rive Tester interface consists of five main panels:
 
 ### Basic Operations
 
-- **Play/Pause**: Use the play button or press `Space`
-- **Reset Animation**: Click stop or press `R`
+- **Play/Pause**: Use the play button in the Controls Panel
 - **Change Properties**: Use the Dynamic Controls panel
 - **Inspect Data**: Browse the JSON Inspector
 
@@ -74,9 +73,11 @@ The Rive Tester interface consists of five main panels:
 
 ## :bulb: Pro Tips
 
-!!! tip "Keyboard Shortcuts" - `Space` - Play/Pause animation - `R` - Reset animation - `F` - Toggle fullscreen canvas - `Ctrl/Cmd + O` - Open file dialog - `F1` - Open documentation
-
-!!! info "Panel Management" - **Drag tabs** to rearrange panels - **Resize panels** by dragging borders - **Close panels** and restore them via the restore bar - **Reset layout** using the reset button
+!!! info "Panel Management"
+    - **Drag tabs** to rearrange panels
+    - **Resize panels** by dragging borders
+    - **Close panels** and restore them via the restore bar
+    - **Reset layout** using the reset button
 
 !!! warning "Browser Compatibility"
 Rive Tester requires a modern browser with WebGL2 support. Chrome, Firefox, Safari, and Edge are all supported.

@@ -158,13 +158,13 @@ python3 -m mkdocs build -f mkdocs-local.yml
 ### 2. Serve with Live Server
 
 1. **Start Live Server** from your project root (right-click `index.html`)
-2. **Navigate to** `http://127.0.0.1:5501/site/` in your browser
-3. **Or directly open** `http://127.0.0.1:5501/site/index.html`
+2. **Navigate to** `http://127.0.0.1:5501/mkdocs_site/` in your browser
+3. **Or directly open** `http://127.0.0.1:5501/mkdocs_site/index.html`
 
 ## 📁 File Structure
 
 ```
-docs/
+source_docs/
 ├── index.md                    # Homepage
 ├── guide/                      # User guides
 │   ├── quick-start.md
@@ -180,7 +180,7 @@ docs/
 
 ## 🔄 Development Workflow
 
-1. **Edit** Markdown files in the `docs/` directory
+1. **Edit** Markdown files in the `source_docs/` directory
 2. **Build** using `./build-docs.sh` or VS Code task
 3. **Refresh** your browser (Live Server auto-reloads)
 4. **Repeat** as needed
@@ -213,7 +213,7 @@ The documentation uses MkDocs Material theme with custom CSS:
 **Live Server not working?**
 
 - Ensure you've built the documentation first
-- Check that `site/index.html` exists
+- Check that `mkdocs_site/index.html` exists
 - Try refreshing VS Code and rebuilding
 
 **Missing pages warnings?**
