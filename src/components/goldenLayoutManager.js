@@ -925,19 +925,28 @@ function findComponentObjectInLayout(item, componentName) {
  * Debug function to log the entire layout tree structure
  */
 function debugLayoutTree(item, depth = 0) {
+    if (!item) {
+        logger.trace('  '.repeat(depth) + 'null/undefined item');
+        return;
+    }
+    
     const indent = '  '.repeat(depth);
     const itemInfo = {
-        type: item.type,
-        componentName: item.config?.componentName,
-        title: item.config?.title,
+        type: item.type || 'unknown',
+        componentName: item.config?.componentName || 'none',
+        title: item.config?.title || 'none',
         contentItemsCount: item.contentItems?.length || 0
     };
     
-    logger.trace(`${indent}${item.type}${item.config?.componentName ? ` (${item.config.componentName})` : ''} - ${item.contentItems?.length || 0} children`);
+    logger.trace(`${indent}${item.type || 'unknown'}${item.config?.componentName ? ` (${item.config.componentName})` : ''} - ${item.contentItems?.length || 0} children`);
     
-    if (item.contentItems && item.contentItems.length > 0) {
-        item.contentItems.forEach(child => {
-            debugLayoutTree(child, depth + 1);
+    if (item.contentItems && Array.isArray(item.contentItems) && item.contentItems.length > 0) {
+        item.contentItems.forEach((child, index) => {
+            try {
+                debugLayoutTree(child, depth + 1);
+            } catch (error) {
+                logger.trace(`${indent}  [${index}] Error traversing child: ${error.message}`);
+            }
         });
     }
 }
@@ -1029,6 +1038,11 @@ function checkControlsLayoutState() {
     
     if (!goldenLayout || !goldenLayout.isInitialised) {
         logger.debug('Golden Layout not ready - skipping check');
+        return;
+    }
+
+    if (!goldenLayout.root) {
+        logger.debug('Golden Layout root not available - skipping check');
         return;
     }
 
@@ -1226,6 +1240,12 @@ function checkControlsLayoutState() {
         
         logger.debug('=== Completed controls layout state check ===');
     } catch (error) {
-        logger.error('Error checking controls layout state:', error);
+        logger.error('Error checking controls layout state:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            goldenLayoutReady: !!(goldenLayout && goldenLayout.isInitialised),
+            goldenLayoutRoot: !!goldenLayout?.root
+        });
     }
 }
