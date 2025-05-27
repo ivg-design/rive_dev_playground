@@ -1143,7 +1143,7 @@ function checkControlsLayoutState() {
             
             if (isAloneInContainer) {
                 // Controls panel is alone - apply full width mode
-                if (!controlsElement.classList.contains('ctrl-full-width-mode')) {
+                if (controlsElement && controlsElement.classList && !controlsElement.classList.contains('ctrl-full-width-mode')) {
                     logger.info('✅ APPLYING full width mode - controls is alone in container');
                     logger.debug('Container details:', {
                         type: parentContainer.type,
@@ -1157,7 +1157,7 @@ function checkControlsLayoutState() {
                     
                     // Also add class to Golden Layout item for CSS targeting
                     const controlsGLItem = controlsComponent.element?.closest('.lm_item');
-                    if (controlsGLItem) {
+                    if (controlsGLItem && controlsGLItem.classList) {
                         controlsGLItem.classList.add('ctrl-gl-full-width');
                         logger.debug('Added ctrl-gl-full-width class to Golden Layout item');
                     }
@@ -1171,7 +1171,7 @@ function checkControlsLayoutState() {
                 adjustControlsHeightConstraints(true);
             } else {
                 // Controls panel shares the container - remove full width mode
-                if (controlsElement.classList.contains('ctrl-full-width-mode')) {
+                if (controlsElement && controlsElement.classList && controlsElement.classList.contains('ctrl-full-width-mode')) {
                     logger.warn('❌ REMOVING full width mode - controls shares container');
                     logger.debug('Container details:', {
                         type: parentContainer.type,
@@ -1194,7 +1194,7 @@ function checkControlsLayoutState() {
                     
                     // Also remove class from Golden Layout item
                     const controlsGLItem = controlsComponent.element?.closest('.lm_item');
-                    if (controlsGLItem) {
+                    if (controlsGLItem && controlsGLItem.classList) {
                         controlsGLItem.classList.remove('ctrl-gl-full-width');
                         logger.debug('Removed ctrl-gl-full-width class from Golden Layout item');
                     }
@@ -1232,7 +1232,7 @@ function checkControlsLayoutState() {
         } else {
             logger.warn('No parent container found for controls component - this might indicate an unexpected layout structure');
             // If no parent container found, remove full width mode
-            if (controlsElement.classList.contains('ctrl-full-width-mode')) {
+            if (controlsElement && controlsElement.classList && controlsElement.classList.contains('ctrl-full-width-mode')) {
                 controlsElement.classList.remove('ctrl-full-width-mode');
                 logger.debug('No parent container - removed full width mode');
             }
