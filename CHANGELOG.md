@@ -1,3 +1,14 @@
+## [1.2.0] - 2025-05-27
+
+### Changes
+- feat: Create unified release and deployment workflow to fix version synchronization issues [minor]
+- fix: Resolve deprecated GitHub Actions set-output commands with modern GITHUB_OUTPUT syntax
+- fix: Fix number input text visibility in layout scale controls - numbers now display properly
+- fix: Remove browser default number input spinners that were causing secondary popup buttons
+- refactor: Disable separate semantic-release and deploy workflows in favor of unified approach
+- fix: Ensure deployment always uses correct version from semantic release process
+- docs: Update workflow documentation and improve version management process
+
 ## [1.1.2] - 2025-05-27
 
 ### Changes

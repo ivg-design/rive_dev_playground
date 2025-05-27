@@ -1,19 +1,29 @@
-name: Semantic Release
+name: Semantic Release (DISABLED - Use release-and-deploy.yml)
 
+# DISABLED: This workflow has been replaced by release-and-deploy.yml
 on:
-    push:
-        branches: [main, master]
     workflow_dispatch:
         inputs:
-            version_type:
-                description: 'Version bump type'
-                required: true
-                default: 'patch'
-                type: choice
-                options:
-                    - patch
-                    - minor
-                    - major
+            disabled:
+                description: 'This workflow is disabled'
+                required: false
+                default: 'true'
+
+# DISABLED: This workflow has been replaced by release-and-deploy.yml
+# on:
+#     push:
+#         branches: [main, master]
+#     workflow_dispatch:
+#         inputs:
+#             version_type:
+#                 description: 'Version bump type'
+#                 required: true
+#                 default: 'patch'
+#                 type: choice
+#                 options:
+#                     - patch
+#                     - minor
+#                     - major
 
 permissions:
     contents: write
