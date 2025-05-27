@@ -1,3 +1,8 @@
+## [1.2.1] - 2025-05-27
+### Changes
+- chore: remove outdated documentation files and assets from the repository[fix]\n\n- Deleted various markdown files related to user guides, debugging, runtime controls, asset management, installation, and quick start.\n- Removed associated CSS and HTML files for documentation.\n- Cleaned up the repository to streamline the documentation structure and focus on essential content.
+- refactor: rename docs/ to source_docs and docs-html/ to mkdocs_site; updated all references in scripts, configs, and workflows; ensured MkDocs and deployment workflows use the new folder names; updated changelog accordingly
+- chore: enforce consistent formatting and fix workflow input\n\n- Updated .editorconfig and .prettierrc to enforce tabs for code and spaces for YAML\n- Reformatted all files with Prettier\n- Fixed workflow_dispatch input for version_type in semantic-release.yml
 ## [Unreleased] - 2024-05-23
 
 ### Changed

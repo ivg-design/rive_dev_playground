@@ -1,6 +1,6 @@
 {
 	"name": "rive-playground",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "Interactive Rive file parser, inspector, and debugging tool",
 	"type": "module",
 	"scripts": {
