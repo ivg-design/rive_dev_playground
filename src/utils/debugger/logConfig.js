@@ -19,6 +19,7 @@ LoggerAPI.setModuleLevel('parser', LogLevel.NONE);        // More detailed parsi
 LoggerAPI.setModuleLevel('dataConnector', LogLevel.NONE); // Use TRACE level for dataConnector to debug VM binding
 LoggerAPI.setModuleLevel('controlInterface', LogLevel.NONE); // Detailed level for UI to debug control creation
 LoggerAPI.setModuleLevel('parserHandler', LogLevel.NONE);  // Normal level for handler
+LoggerAPI.setModuleLevel('goldenLayout', LogLevel.DEBUG);   // Golden Layout debugging - enabled for troubleshooting
 
 /**
  * Configure all logging from this central place

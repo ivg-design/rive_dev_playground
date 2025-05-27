@@ -10,7 +10,8 @@ const MODULES = [
     'parser',
     'parserHandler', 
     'controlInterface',
-    'dataConnector'
+    'dataConnector',
+    'goldenLayout'
 ];
 
 // Log level names and values

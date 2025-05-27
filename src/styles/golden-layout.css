@@ -62,6 +62,17 @@
     max-width: 40vw !important;
 }
 
+/* Override width constraints when controls is in full width mode */
+.lm_item.ctrl-gl-full-width {
+    max-width: none !important;
+    width: 100% !important;
+}
+
+.lm_item.ctrl-gl-full-width .lm_content {
+    max-width: none !important;
+    width: 100% !important;
+}
+
 /* Component content styling */
 #fileControls,
 #canvasComponent,

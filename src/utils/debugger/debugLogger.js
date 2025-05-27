@@ -20,6 +20,7 @@ const moduleConfig = {
     'parserHandler': LogLevel.INFO,
     'controlInterface': LogLevel.INFO,
     'dataConnector': LogLevel.INFO,
+    'goldenLayout': LogLevel.INFO,
     
     // Default for any module not specified
     'default': LogLevel.NONE

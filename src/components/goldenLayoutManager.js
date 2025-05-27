@@ -11,6 +11,7 @@ const logger = createLogger('goldenLayout');
 let goldenLayout = null;
 let jsonEditorInstance = null;
 let restoreMenuUpdateTimeout = null;
+let layoutCheckTimeout = null;
 
 /**
  * Default Golden Layout configuration for v1.5.9
@@ -312,10 +313,15 @@ export function initializeGoldenLayout() {
 
         // Handle resize events and save layout changes
         goldenLayout.on('stateChanged', () => {
+            logger.debug('🔄 Golden Layout stateChanged event triggered');
+            
             // Save layout configuration to localStorage
             if (goldenLayout.isInitialised) {
                 saveLayoutConfig(goldenLayout.toConfig());
             }
+            
+            // Check if controls panel layout state changed
+            debouncedCheckControlsLayoutState('stateChanged');
             
             // Trigger canvas resize when layout changes
             setTimeout(() => {
@@ -340,14 +346,20 @@ export function initializeGoldenLayout() {
             logger.info('Golden Layout initialized successfully');
             addRestoreMenu();
             
+            // Check initial controls layout state
+            setTimeout(() => debouncedCheckControlsLayoutState('initialization'), 100);
+            
             // Set up window resize handler for Golden Layout
             let resizeTimeout;
             const handleResize = () => {
+                logger.debug('🪟 Window resize event triggered');
                 clearTimeout(resizeTimeout);
                 resizeTimeout = setTimeout(() => {
                     if (goldenLayout && goldenLayout.updateSize) {
                         goldenLayout.updateSize();
                         logger.debug('Golden Layout size updated on window resize');
+                        // Check if controls panel layout state changed
+                        debouncedCheckControlsLayoutState('windowResize');
                     }
                 }, 100);
             };
@@ -360,48 +372,49 @@ export function initializeGoldenLayout() {
             // Set up constraints for controls panel
             setupControlsConstraints();
             
-            // Set up periodic restore menu sync to catch any missed events
-            const syncInterval = setInterval(() => {
-                if (goldenLayout && goldenLayout.isInitialised) {
-                    debouncedAddRestoreMenu();
-                } else {
-                    clearInterval(syncInterval);
-                }
-            }, 2000); // Check every 2 seconds
-            
-            // Store the interval for cleanup
-            goldenLayout._syncInterval = syncInterval;
+            // Note: Restore menu updates are handled by event listeners below
+            // No periodic sync needed as events should catch all changes
         });
 
         // Handle item destruction and creation to update restore menu
         goldenLayout.on('itemDestroyed', (item) => {
-            logger.debug('Item destroyed:', item.config);
+            logger.trace('Item destroyed:', item.config);
             debouncedAddRestoreMenu();
+            // Check if controls panel layout state changed
+            debouncedCheckControlsLayoutState('itemDestroyed');
         });
 
         // Handle component creation to update restore menu
         goldenLayout.on('componentCreated', (component) => {
             logger.info('Component created:', component.config.componentName);
             debouncedAddRestoreMenu();
+            // Check if controls panel layout state changed
+            debouncedCheckControlsLayoutState('componentCreated');
         });
 
         // Handle tab creation (when panels are restored)
         goldenLayout.on('tabCreated', (tab) => {
-            logger.debug('Tab created:', tab.contentItem.config);
+            logger.trace('Tab created:', tab.contentItem.config);
             debouncedAddRestoreMenu();
+            // Check if controls panel layout state changed
+            debouncedCheckControlsLayoutState('tabCreated');
         });
 
         // Handle stack creation (when new panel containers are created)
         goldenLayout.on('stackCreated', (stack) => {
-            logger.debug('Stack created');
+            logger.trace('Stack created');
             debouncedAddRestoreMenu();
+            // Check if controls panel layout state changed
+            debouncedCheckControlsLayoutState('stackCreated');
         });
 
         // Handle item added events (broader than just components)
         goldenLayout.on('itemCreated', (item) => {
             if (item.config && item.config.componentName) {
-                logger.debug('Item created with component:', item.config.componentName);
+                logger.trace('Item created with component:', item.config.componentName);
                 debouncedAddRestoreMenu();
+                // Check if controls panel layout state changed
+                debouncedCheckControlsLayoutState('itemCreated');
             }
         });
 
@@ -546,7 +559,7 @@ function addRestoreMenu() {
         }
     });
 
-    logger.debug(`Restore menu update: Found ${foundComponents.length} components, Missing ${missingComponents.length} components`, {
+    logger.trace(`Restore menu update: Found ${foundComponents.length} components, Missing ${missingComponents.length} components`, {
         found: foundComponents,
         missing: missingComponents
     });
@@ -762,32 +775,14 @@ function setupControlsConstraints() {
         
         const controlsComponent = findControlsComponent(goldenLayout.root);
         if (controlsComponent && controlsComponent.element) {
-            // Set minimum width constraint
+            // Set minimum width constraint only
             const element = controlsComponent.element[0] || controlsComponent.element;
             if (element) {
                 element.style.minWidth = '300px';
-                element.style.maxWidth = '40vw';
-                logger.debug('Controls constraints applied');
+                // Let CSS handle all width responsiveness
+                logger.debug('Controls minimum width constraint applied');
             }
         }
-        
-        // Add resize listener to maintain constraints
-        goldenLayout.on('stateChanged', () => {
-            const controlsComponent = findControlsComponent(goldenLayout.root);
-            if (controlsComponent && controlsComponent.element) {
-                const element = controlsComponent.element[0] || controlsComponent.element;
-                if (element) {
-                    const currentWidth = element.offsetWidth;
-                    const maxWidth = window.innerWidth * 0.4; // 40% of viewport
-                    
-                    if (currentWidth < 300) {
-                        element.style.width = '300px';
-                    } else if (currentWidth > maxWidth) {
-                        element.style.width = '40vw';
-                    }
-                }
-            }
-        });
         
     } catch (error) {
         logger.error('Error setting up controls constraints:', error);
@@ -870,15 +865,18 @@ export function destroyGoldenLayout() {
                 window.removeEventListener('resize', goldenLayout._resizeHandler);
             }
             
-            // Clear sync interval
-            if (goldenLayout._syncInterval) {
-                clearInterval(goldenLayout._syncInterval);
-            }
+            // Note: No sync interval to clear (removed for performance)
             
             // Clear any pending restore menu updates
             if (restoreMenuUpdateTimeout) {
                 clearTimeout(restoreMenuUpdateTimeout);
                 restoreMenuUpdateTimeout = null;
+            }
+            
+            // Clear any pending layout checks
+            if (layoutCheckTimeout) {
+                clearTimeout(layoutCheckTimeout);
+                layoutCheckTimeout = null;
             }
             
             goldenLayout.destroy();
@@ -889,4 +887,345 @@ export function destroyGoldenLayout() {
             logger.error('Error destroying Golden Layout:', error);
         }
     }
-} 
+}
+
+/**
+ * Find component object in layout recursively (returns the actual component, not boolean)
+ */
+function findComponentObjectInLayout(item, componentName) {
+    // Check if this item is the component we're looking for
+    if (item.config && item.config.componentName === componentName) {
+        return item;
+    }
+    
+    // Check if this item has the component type directly
+    if (item.config && item.config.type === 'component' && item.config.componentName === componentName) {
+        return item;
+    }
+    
+    // Recursively search in content items
+    if (item.contentItems && Array.isArray(item.contentItems)) {
+        for (let child of item.contentItems) {
+            const found = findComponentObjectInLayout(child, componentName);
+            if (found) {
+                return found;
+            }
+        }
+    }
+    
+    // Also check if the item has a componentName property directly
+    if (item.componentName === componentName) {
+        return item;
+    }
+    
+    return null;
+}
+
+/**
+ * Debug function to log the entire layout tree structure
+ */
+function debugLayoutTree(item, depth = 0) {
+    const indent = '  '.repeat(depth);
+    const itemInfo = {
+        type: item.type,
+        componentName: item.config?.componentName,
+        title: item.config?.title,
+        contentItemsCount: item.contentItems?.length || 0
+    };
+    
+    logger.trace(`${indent}${item.type}${item.config?.componentName ? ` (${item.config.componentName})` : ''} - ${item.contentItems?.length || 0} children`);
+    
+    if (item.contentItems && item.contentItems.length > 0) {
+        item.contentItems.forEach(child => {
+            debugLayoutTree(child, depth + 1);
+        });
+    }
+}
+
+/**
+ * Adjust height constraints for the controls panel based on layout mode
+ * @param {boolean} isFullWidth - Whether controls is in full width mode
+ */
+function adjustControlsHeightConstraints(isFullWidth) {
+    if (!goldenLayout || !goldenLayout.isInitialised) {
+        return;
+    }
+
+    try {
+        const controlsComponent = findComponentObjectInLayout(goldenLayout.root, 'controls');
+        if (!controlsComponent) {
+            logger.debug('Controls component not found for height constraint adjustment');
+            return;
+        }
+
+        // Find the stack containing the controls
+        const controlsStack = controlsComponent.parent;
+        if (!controlsStack || controlsStack.type !== 'stack') {
+            logger.debug('Controls stack not found for height constraint adjustment');
+            return;
+        }
+
+        if (isFullWidth) {
+            // In full width mode (single row), allow very small heights
+            const minHeight = 50; // Minimum for single row layout
+            
+            // Set minimum height on the stack
+            if (controlsStack.config) {
+                controlsStack.config.minItemHeight = minHeight;
+            }
+            
+            // Also set it on the Golden Layout configuration for future items
+            if (goldenLayout.config && goldenLayout.config.dimensions) {
+                goldenLayout.config.dimensions.minItemHeight = minHeight;
+            }
+            
+            logger.debug(`Adjusted controls height constraints for full width mode: minHeight = ${minHeight}px`);
+        } else {
+            // In normal mode, restore standard minimum height
+            const minHeight = 200; // Standard minimum height
+            
+            // Restore minimum height on the stack
+            if (controlsStack.config) {
+                controlsStack.config.minItemHeight = minHeight;
+            }
+            
+            // Also restore it on the Golden Layout configuration
+            if (goldenLayout.config && goldenLayout.config.dimensions) {
+                goldenLayout.config.dimensions.minItemHeight = minHeight;
+            }
+            
+            logger.debug(`Restored controls height constraints for normal mode: minHeight = ${minHeight}px`);
+        }
+    } catch (error) {
+        logger.error('Error adjusting controls height constraints:', error);
+    }
+}
+
+/**
+ * Debounced version of checkControlsLayoutState to prevent excessive calls
+ */
+function debouncedCheckControlsLayoutState(reason = 'unknown') {
+    if (layoutCheckTimeout) {
+        clearTimeout(layoutCheckTimeout);
+    }
+    layoutCheckTimeout = setTimeout(() => {
+        logger.debug(`🔍 Debounced layout check triggered by: ${reason}`);
+        checkControlsLayoutState();
+    }, 100);
+}
+
+/**
+ * Check if the controls panel is alone in its row and apply appropriate CSS class
+ */
+function checkControlsLayoutState() {
+    logger.debug('=== Starting controls layout state check ===');
+    
+    // Add call stack trace to see what triggered this check
+    if (logger.trace) {
+        const stack = new Error().stack;
+        const callerLine = stack.split('\n')[2]; // Get the caller
+        logger.trace('Called from:', callerLine?.trim());
+    }
+    
+    if (!goldenLayout || !goldenLayout.isInitialised) {
+        logger.debug('Golden Layout not ready - skipping check');
+        return;
+    }
+
+    try {
+        // Debug: Log the entire layout tree
+        logger.trace('Current layout tree:');
+        debugLayoutTree(goldenLayout.root);
+        
+        const controlsComponent = findComponentObjectInLayout(goldenLayout.root, 'controls');
+        if (!controlsComponent) {
+            logger.debug('Controls component not found in layout');
+            return;
+        }
+
+        logger.debug('Found controls component:', {
+            type: controlsComponent.type,
+            componentName: controlsComponent.config?.componentName,
+            hasParent: !!controlsComponent.parent
+        });
+
+        // Get the controls panel element
+        const controlsElement = document.getElementById('fileControls');
+        if (!controlsElement) {
+            logger.debug('Controls element not found in DOM');
+            return;
+        }
+
+        logger.debug('Found controls DOM element, current classes:', controlsElement.className);
+
+        // Find the parent container and determine if controls is "alone"
+        let currentItem = controlsComponent;
+        let parentContainer = null;
+        let traversalPath = [];
+        let isAloneInContainer = false;
+
+        // Traverse up to find the immediate parent container (stack, row, or column)
+        while (currentItem && currentItem.parent) {
+            traversalPath.push({
+                type: currentItem.type,
+                componentName: currentItem.config?.componentName,
+                parentType: currentItem.parent?.type
+            });
+            
+            // Check if we found a meaningful parent container
+            if (currentItem.parent.type === 'row' || currentItem.parent.type === 'column') {
+                parentContainer = currentItem.parent;
+                logger.debug('Found parent container:', {
+                    type: parentContainer.type,
+                    contentItemsCount: parentContainer.contentItems.length,
+                    contentItems: parentContainer.contentItems.map(item => ({
+                        type: item.type,
+                        componentName: item.config?.componentName,
+                        title: item.config?.title
+                    }))
+                });
+                break;
+            }
+            currentItem = currentItem.parent;
+        }
+
+        logger.debug('Traversal path to find container:', traversalPath);
+
+        if (parentContainer) {
+            if (parentContainer.type === 'row') {
+                // Controls is in a row - check if it's alone in that row
+                isAloneInContainer = parentContainer.contentItems.length === 1;
+                logger.info(`Controls in ROW - alone: ${isAloneInContainer}`);
+            } else if (parentContainer.type === 'column') {
+                // Controls is in a column - check if it's the only "significant" item
+                // In this case, if controls is in its own stack and there are other items,
+                // we need to determine if it should be considered "alone"
+                
+                // Find the stack containing controls
+                const controlsStack = controlsComponent.parent;
+                if (controlsStack && controlsStack.type === 'stack') {
+                    // Check if controls is the only component in its stack
+                    const aloneInStack = controlsStack.contentItems.length === 1;
+                    
+                    // Check if this stack takes up significant space in the column
+                    // For now, we'll consider it "alone" if it's in its own stack
+                    // and the stack is a direct child of the column
+                    isAloneInContainer = aloneInStack && controlsStack.parent === parentContainer;
+                    
+                    logger.info(`Controls in COLUMN via STACK - alone in stack: ${aloneInStack}, stack is direct child: ${controlsStack.parent === parentContainer}, considered alone: ${isAloneInContainer}`);
+                }
+            }
+            
+            logger.info(`Controls layout analysis:`, {
+                parentContainerType: parentContainer.type,
+                siblingCount: parentContainer.contentItems.length,
+                isAloneInContainer: isAloneInContainer,
+                siblings: parentContainer.contentItems.map(item => ({
+                    type: item.type,
+                    componentName: item.config?.componentName,
+                    title: item.config?.title
+                }))
+            });
+            
+            if (isAloneInContainer) {
+                // Controls panel is alone - apply full width mode
+                if (!controlsElement.classList.contains('ctrl-full-width-mode')) {
+                    logger.info('✅ APPLYING full width mode - controls is alone in container');
+                    logger.debug('Container details:', {
+                        type: parentContainer.type,
+                        siblingCount: parentContainer.contentItems.length,
+                        containerDimensions: parentContainer.element ? {
+                            width: parentContainer.element[0]?.offsetWidth || 'unknown',
+                            height: parentContainer.element[0]?.offsetHeight || 'unknown'
+                        } : 'no element'
+                    });
+                    controlsElement.classList.add('ctrl-full-width-mode');
+                    
+                    // Also add class to Golden Layout item for CSS targeting
+                    const controlsGLItem = controlsComponent.element?.closest('.lm_item');
+                    if (controlsGLItem) {
+                        controlsGLItem.classList.add('ctrl-gl-full-width');
+                        logger.debug('Added ctrl-gl-full-width class to Golden Layout item');
+                    }
+                    
+                    // Let CSS handle width in full width mode
+                } else {
+                    logger.debug('Controls panel already has full width mode applied');
+                }
+                
+                // Remove height constraints for full width mode (single row layout)
+                adjustControlsHeightConstraints(true);
+            } else {
+                // Controls panel shares the container - remove full width mode
+                if (controlsElement.classList.contains('ctrl-full-width-mode')) {
+                    logger.warn('❌ REMOVING full width mode - controls shares container');
+                    logger.debug('Container details:', {
+                        type: parentContainer.type,
+                        siblingCount: parentContainer.contentItems.length,
+                        siblings: parentContainer.contentItems.map(item => ({
+                            type: item.type,
+                            componentName: item.config?.componentName,
+                            title: item.config?.title,
+                            dimensions: item.element ? {
+                                width: item.element[0]?.offsetWidth || 'unknown',
+                                height: item.element[0]?.offsetHeight || 'unknown'
+                            } : 'no element'
+                        })),
+                        containerDimensions: parentContainer.element ? {
+                            width: parentContainer.element[0]?.offsetWidth || 'unknown',
+                            height: parentContainer.element[0]?.offsetHeight || 'unknown'
+                        } : 'no element'
+                    });
+                    controlsElement.classList.remove('ctrl-full-width-mode');
+                    
+                    // Also remove class from Golden Layout item
+                    const controlsGLItem = controlsComponent.element?.closest('.lm_item');
+                    if (controlsGLItem) {
+                        controlsGLItem.classList.remove('ctrl-gl-full-width');
+                        logger.debug('Removed ctrl-gl-full-width class from Golden Layout item');
+                    }
+                    
+                    // Restore width constraints for normal mode
+                    const element = controlsComponent.element?.[0] || controlsComponent.element;
+                    if (element) {
+                        element.style.maxWidth = '40vw';
+                        element.style.width = '';
+                        logger.debug('Restored width constraints for normal mode on element:', element);
+                        
+                        // Also restore constraints on parent elements
+                        const parentItem = element.closest('.lm_item');
+                        if (parentItem) {
+                            parentItem.style.maxWidth = '40vw';
+                            parentItem.style.width = '';
+                            logger.debug('Restored width constraints on parent lm_item');
+                        }
+                        
+                        // Restore constraints on lm_content wrapper
+                        const contentWrapper = element.closest('.lm_content');
+                        if (contentWrapper && contentWrapper !== element) {
+                            contentWrapper.style.maxWidth = '40vw';
+                            contentWrapper.style.width = '';
+                            logger.debug('Restored width constraints on lm_content wrapper');
+                        }
+                    }
+                } else {
+                    logger.debug('Controls panel already in shared container mode');
+                }
+                
+                // Restore height constraints for normal mode
+                adjustControlsHeightConstraints(false);
+            }
+        } else {
+            logger.warn('No parent container found for controls component - this might indicate an unexpected layout structure');
+            // If no parent container found, remove full width mode
+            if (controlsElement.classList.contains('ctrl-full-width-mode')) {
+                controlsElement.classList.remove('ctrl-full-width-mode');
+                logger.debug('No parent container - removed full width mode');
+            }
+        }
+        
+        logger.debug('=== Completed controls layout state check ===');
+    } catch (error) {
+        logger.error('Error checking controls layout state:', error);
+    }
+}

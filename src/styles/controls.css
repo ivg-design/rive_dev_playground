@@ -20,13 +20,23 @@
 #fileControls {
     container-type: size;
     container-name: file-controls;
-    
+
     /* Base variables needed for calculations */
-    --panel-content-padding: 12px; /* 6px padding × 2 sides */
-    --section-padding: 16px; /* 8px padding × 2 per section */
+    --panel-content-padding: 12px;
+    /* 6px padding × 2 sides */
+    --section-padding: 16px;
+    /* 8px padding × 2 per section */
     --section-gap-base: 6px;
     --control-gap-base: 6px;
-    
+
+    /* Header height variables */
+    --panel-header-height: 0px;
+    /* Default: hidden */
+    --section-header-height: 0px;
+    /* Default: hidden */
+    --section-header-margin: 0px;
+    /* Default: no margin */
+
     /* Fallback variables for browsers that don't support container queries */
     --ctrl-panel-btn-height: 34px;
     --ctrl-panel-btn-width: 40px;
@@ -85,8 +95,10 @@
 /* Panel Header */
 .ctrl-panel-header {
     background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    padding: 24px 32px;
+    padding: 10px 32px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    height: auto;
+    /* Fixed height: 24px top + 24px bottom + ~40px content */
 }
 
 .ctrl-panel-title {
@@ -95,12 +107,13 @@
     color: #f1f5f9;
     display: flex;
     align-items: center;
-    gap: 12px;
+    /* gap: 12px; */
 }
 
 .ctrl-panel-title i {
     color: #3b82f6;
     font-size: 1.3rem;
+    margin-right: 15px;
 }
 
 /* Hide title at small sizes */
@@ -108,11 +121,26 @@
     .ctrl-panel-header {
         display: none;
     }
+
+    #fileControls {
+        --panel-header-height: 0px;
+    }
 }
 
 @container file-controls (max-height: 450px) {
     .ctrl-panel-header {
         display: none;
+    }
+
+    #fileControls {
+        --panel-header-height: 0px;
+    }
+}
+
+/* When header is visible, set the height variable */
+@container file-controls (min-width: 401px) and (min-height: 451px) {
+    #fileControls {
+        --panel-header-height: 88px;
     }
 }
 
@@ -159,6 +187,19 @@
     .ctrl-background-section {
         grid-column: 1;
         grid-row: 5;
+    }
+
+    /* Override for full width mode */
+    #fileControls.ctrl-full-width-mode .ctrl-panel-content {
+        display: flex !important;
+        flex-direction: row !important;
+        grid-template-columns: unset !important;
+        grid-template-rows: unset !important;
+    }
+
+    #fileControls.ctrl-full-width-mode .ctrl-background-section {
+        grid-column: unset !important;
+        grid-row: unset !important;
     }
 }
 
@@ -217,6 +258,8 @@
     .ctrl-section-header {
         display: block;
         margin-bottom: 4px;
+        height: 24px;
+        /* Fixed height: 20px content + 4px margin */
     }
 
     .ctrl-section-header h3 {
@@ -232,6 +275,12 @@
     .ctrl-section-header i {
         color: #3b82f6;
         font-size: 0.7rem;
+    }
+
+    #fileControls {
+        --section-header-height: 24px;
+        /* 20px + 4px margin */
+        --section-header-margin: 4px;
     }
 }
 
@@ -269,7 +318,7 @@
     flex: 1;
 }
 
-.ctrl-file-input{
+.ctrl-file-input {
     display: none;
 }
 
@@ -472,7 +521,10 @@
 }
 
 /* Additional Font Awesome support for different icon classes */
-.fas, .far, .fal, .fab {
+.fas,
+.far,
+.fal,
+.fab {
     font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free", "Font Awesome 5 Pro", "FontAwesome" !important;
     font-weight: 900 !important;
     font-style: normal !important;
@@ -483,7 +535,10 @@
 }
 
 /* Ensure Font Awesome pseudo-elements work properly */
-.fas::before, .far::before, .fal::before, .fab::before {
+.fas::before,
+.far::before,
+.fal::before,
+.fab::before {
     font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free", "Font Awesome 5 Pro", "FontAwesome" !important;
     font-weight: 900 !important;
     display: inline-block !important;
@@ -526,15 +581,20 @@
         --ctrl-panel-total-rows: 7;
         /* Single column: 1+1+1+1+3 rows */
         --ctrl-panel-total-sections: 5;
-        --ctrl-panel-section-headers-space: 0px;
-        /* No headers in compact */
-        --ctrl-panel-base-height: calc(100cqh - var(--panel-content-padding));
-        --ctrl-panel-section-space: calc(var(--section-padding) * var(--ctrl-panel-total-sections));
-        --ctrl-panel-gap-space: calc(var(--section-gap-base) * 4);
-        /* 4 gaps between 5 sections */
-        --ctrl-panel-available-height: calc(var(--ctrl-panel-base-height) - var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) - var(--ctrl-panel-section-headers-space) - 30px);
+        --ctrl-panel-section-headers-total-space: calc(var(--section-header-height) * var(--ctrl-panel-total-sections));
+        /* Headers are hidden in compact, so this will be 0 */
+        --ctrl-panel-base-height: calc(100cqh - var(--panel-header-height));
+        --ctrl-panel-content-padding: 12px;
+        /* 6px padding × 2 sides = 12px total */
+        --ctrl-panel-section-space: calc(16px * var(--ctrl-panel-total-sections));
+        /* 8px padding × 2 sides × 5 sections = 16px × 5 */
+        --ctrl-panel-gap-space: calc(6px * 4);
+        /* 4 gaps between 5 sections (6px each in narrow layout) */
+        --ctrl-panel-background-internal-gaps: calc(var(--control-gap-base) * 2);
+        /* 2 gaps between 3 rows in background section */
+        --ctrl-panel-available-height: calc(var(--ctrl-panel-base-height) - var(--ctrl-panel-content-padding) - var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) - var(--ctrl-panel-section-headers-total-space) - var(--ctrl-panel-background-internal-gaps) - 20px);
         --ctrl-panel-row-height: calc(var(--ctrl-panel-available-height) / var(--ctrl-panel-total-rows));
-        --ctrl-panel-section-gap: var(--section-gap-base);
+        --ctrl-panel-section-gap: 6px;
         --ctrl-panel-control-gap: var(--control-gap-base);
 
         /* Element Heights */
@@ -561,22 +621,28 @@
         --ctrl-panel-total-rows: 12;
         /* Single column with vertical layout: 2+2+2+2+4 rows */
         --ctrl-panel-total-sections: 5;
-        --ctrl-panel-section-headers-space: 25px;
-        /* Headers visible in tall layout (5 sections × 5px margin each) */
-        --ctrl-panel-base-height: calc(100cqh - var(--panel-content-padding) - 20px);
-        --ctrl-panel-section-space: calc(var(--section-padding) * var(--ctrl-panel-total-sections));
-        --ctrl-panel-gap-space: calc(var(--section-gap-base) * 4);
-        --ctrl-panel-available-height: calc(var(--ctrl-panel-base-height) - var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) - var(--ctrl-panel-section-headers-space) - 10px);
+        --ctrl-panel-section-headers-total-space: calc(var(--section-header-height) * var(--ctrl-panel-total-sections));
+        /* Headers visible in tall layout (5 sections × 24px each) */
+        --ctrl-panel-base-height: calc(100cqh - var(--panel-header-height));
+        --ctrl-panel-content-padding: 12px;
+        /* 6px padding × 2 sides = 12px total */
+        --ctrl-panel-section-space: calc(16px * var(--ctrl-panel-total-sections));
+        /* 8px padding × 2 sides × 5 sections = 16px × 5 */
+        --ctrl-panel-gap-space: calc(6px * 4);
+        /* 4 gaps between 5 sections (6px each in narrow+tall layout) */
+        --ctrl-panel-background-internal-gaps: calc(8px * 2);
+        /* 2 gaps between 3 rows in background section (8px each in tall layout) */
+        --ctrl-panel-available-height: calc(var(--ctrl-panel-base-height) - var(--ctrl-panel-content-padding) - var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) - var(--ctrl-panel-section-headers-total-space) - var(--ctrl-panel-background-internal-gaps) - 50px);
         --ctrl-panel-row-height: calc(var(--ctrl-panel-available-height) / var(--ctrl-panel-total-rows));
-        --ctrl-panel-section-gap: var(--section-gap-base);
+        --ctrl-panel-section-gap: 6px;
         --ctrl-panel-control-gap: 8px;
 
         /* Element Heights */
-        --ctrl-panel-btn-height: clamp(28px, var(--ctrl-panel-row-height), 80px);
-        --ctrl-panel-select-height: clamp(28px, var(--ctrl-panel-row-height), 80px);
-        --ctrl-panel-input-height: clamp(28px, var(--ctrl-panel-row-height), 80px);
-        --ctrl-panel-color-input-height: clamp(28px, var(--ctrl-panel-row-height), 80px);
-        --ctrl-panel-number-input-height: clamp(28px, var(--ctrl-panel-row-height), 80px);
+        --ctrl-panel-btn-height: clamp(32px, var(--ctrl-panel-row-height), 80px);
+        --ctrl-panel-select-height: clamp(32px, var(--ctrl-panel-row-height), 80px);
+        --ctrl-panel-input-height: clamp(32px, var(--ctrl-panel-row-height), 80px);
+        --ctrl-panel-color-input-height: clamp(32px, var(--ctrl-panel-row-height), 80px);
+        --ctrl-panel-number-input-height: clamp(32px, var(--ctrl-panel-row-height), 80px);
 
         /* Element Widths - Full width in vertical layout */
         --ctrl-panel-section-width: calc(100cqw - var(--panel-content-padding) - var(--section-padding));
@@ -589,64 +655,74 @@
 }
 
 /* 3. WIDE + COMPACT: Width ≥ 768px, Height < 700px */
-@container file-controls (min-width: 768px) and (max-height: 699px) {
+@container file-controls (min-width: 768px) and (max-width: 1199px) and (max-height: 699px) {
     #fileControls {
 
-        --ctrl-panel-total-rows: 7;
-        /* Two column: 1+1+1+1+3 rows */
+        --ctrl-panel-total-rows: 3;
+        /* Two column grid: 3 rows total (1+1+1) */
         --ctrl-panel-total-sections: 5;
         /* But arranged in 2x2 + 1 spanning grid */
-        --ctrl-panel-section-headers-space: 0px;
-        /* No headers in compact */
-        --ctrl-panel-base-height: calc(100cqh - var(--panel-content-padding) - 20px);
-        --ctrl-panel-section-space: calc(var(--section-padding) * var(--ctrl-panel-total-sections));
+        --ctrl-panel-section-headers-total-space: calc(var(--section-header-height) * var(--ctrl-panel-total-sections));
+        /* Headers are hidden in compact, so this will be 0 */
+        --ctrl-panel-base-height: calc(100cqh - var(--panel-header-height));
+        --ctrl-panel-content-padding: 24px;
+        /* 12px padding × 2 sides = 24px total */
+        --ctrl-panel-section-space: calc(24px * var(--ctrl-panel-total-sections));
+        /* 12px padding × 2 sides × 5 sections = 24px × 5 */
         --ctrl-panel-gap-space: calc(8px * 2);
         /* 2 row gaps in grid */
-        --ctrl-panel-available-height: calc(var(--ctrl-panel-base-height) - var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) - var(--ctrl-panel-section-headers-space) - 10px);
+        --ctrl-panel-background-internal-gaps: calc(8px * 2);
+        /* 2 gaps between 3 rows in background section (8px each in wide layout) */
+        --ctrl-panel-available-height: calc(var(--ctrl-panel-base-height) - var(--ctrl-panel-content-padding) - var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) - var(--ctrl-panel-section-headers-total-space) - var(--ctrl-panel-background-internal-gaps) - 20px);
         --ctrl-panel-row-height: calc(var(--ctrl-panel-available-height) / var(--ctrl-panel-total-rows));
         --ctrl-panel-section-gap: 8px;
         --ctrl-panel-control-gap: 8px;
 
         /* Element Heights */
-        --ctrl-panel-btn-height: clamp(34px, var(--ctrl-panel-row-height), 80px);
-        --ctrl-panel-select-height: clamp(34px, var(--ctrl-panel-row-height), 80px);
-        --ctrl-panel-input-height: clamp(34px, var(--ctrl-panel-row-height), 80px);
-        --ctrl-panel-color-input-height: clamp(34px, var(--ctrl-panel-row-height), 80px);
-        --ctrl-panel-number-input-height: clamp(34px, var(--ctrl-panel-row-height), 80px);
+        --ctrl-panel-btn-height: clamp(36px, var(--ctrl-panel-row-height), 90px);
+        --ctrl-panel-select-height: clamp(36px, var(--ctrl-panel-row-height), 90px);
+        --ctrl-panel-input-height: clamp(36px, var(--ctrl-panel-row-height), 90px);
+        --ctrl-panel-color-input-height: clamp(36px, var(--ctrl-panel-row-height), 90px);
+        --ctrl-panel-number-input-height: clamp(36px, var(--ctrl-panel-row-height), 90px);
 
         /* Element Widths - Calculated for wide container (two columns) */
         --ctrl-panel-section-width: calc((100cqw - var(--panel-content-padding) - var(--section-gap-base)) / 2 - var(--section-padding));
-        --ctrl-panel-btn-width: clamp(35px, calc(var(--ctrl-panel-section-width) * 0.18), 50px);
-        --ctrl-panel-btn-wide-width: clamp(70px, calc(var(--ctrl-panel-section-width) * 0.40), 100px);
-        --ctrl-panel-button-group-width: clamp(70px, calc(var(--ctrl-panel-section-width) * 0.40), 100px);
-        --ctrl-panel-button-group-gap: 6px;
-        --ctrl-panel-number-increment-width: clamp(70px, calc(var(--ctrl-panel-section-width) * 0.35), 95px);
+        --ctrl-panel-btn-width: clamp(40px, calc(var(--ctrl-panel-section-width) * 0.20), 60px);
+        --ctrl-panel-btn-wide-width: clamp(80px, calc(var(--ctrl-panel-section-width) * 0.45), 120px);
+        --ctrl-panel-button-group-width: clamp(80px, calc(var(--ctrl-panel-section-width) * 0.45), 120px);
+        --ctrl-panel-button-group-gap: 8px;
+        --ctrl-panel-number-increment-width: clamp(80px, calc(var(--ctrl-panel-section-width) * 0.40), 110px);
     }
 }
 
 /* 4. WIDE + TALL: Width ≥ 768px, Height ≥ 700px */
-@container file-controls (min-width: 768px) and (min-height: 700px) {
+@container file-controls (min-width: 768px) and (max-width: 1199px) and (min-height: 700px) {
     #fileControls {
 
         --ctrl-panel-total-rows: 12;
         /* Two column with vertical layout: 2+2+2+2+4 rows */
         --ctrl-panel-total-sections: 5;
-        --ctrl-panel-section-headers-space: 25px;
-        /* Headers visible in tall layout (5 sections × 5px margin each) */
-        --ctrl-panel-base-height: calc(100cqh - var(--panel-content-padding) - 20px);
-        --ctrl-panel-section-space: calc(var(--section-padding) * var(--ctrl-panel-total-sections));
+        --ctrl-panel-section-headers-total-space: calc(var(--section-header-height) * var(--ctrl-panel-total-sections));
+        /* Headers visible in tall layout (5 sections × 24px each) */
+        --ctrl-panel-base-height: calc(100cqh - var(--panel-header-height));
+        --ctrl-panel-content-padding: 24px;
+        /* 12px padding × 2 sides = 24px total */
+        --ctrl-panel-section-space: calc(24px * var(--ctrl-panel-total-sections));
+        /* 12px padding × 2 sides × 5 sections = 24px × 5 */
         --ctrl-panel-gap-space: calc(8px * 2);
-        --ctrl-panel-available-height: calc(var(--ctrl-panel-base-height) - var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) - var(--ctrl-panel-section-headers-space) - 10px);
+        --ctrl-panel-background-internal-gaps: calc(8px * 2);
+        /* 2 gaps between 3 rows in background section (8px each in wide+tall layout) */
+        --ctrl-panel-available-height: calc(var(--ctrl-panel-base-height) - var(--ctrl-panel-content-padding) - var(--ctrl-panel-section-space) - var(--ctrl-panel-gap-space) - var(--ctrl-panel-section-headers-total-space) - var(--ctrl-panel-background-internal-gaps) - 20px);
         --ctrl-panel-row-height: calc(var(--ctrl-panel-available-height) / var(--ctrl-panel-total-rows));
         --ctrl-panel-section-gap: 8px;
         --ctrl-panel-control-gap: 8px;
 
         /* Element Heights */
-        --ctrl-panel-btn-height: clamp(30px, var(--ctrl-panel-row-height), 90px);
-        --ctrl-panel-select-height: clamp(30px, var(--ctrl-panel-row-height), 90px);
-        --ctrl-panel-input-height: clamp(30px, var(--ctrl-panel-row-height), 90px);
-        --ctrl-panel-color-input-height: clamp(30px, var(--ctrl-panel-row-height), 90px);
-        --ctrl-panel-number-input-height: clamp(30px, var(--ctrl-panel-row-height), 90px);
+        --ctrl-panel-btn-height: clamp(34px, var(--ctrl-panel-row-height), 90px);
+        --ctrl-panel-select-height: clamp(34px, var(--ctrl-panel-row-height), 90px);
+        --ctrl-panel-input-height: clamp(34px, var(--ctrl-panel-row-height), 90px);
+        --ctrl-panel-color-input-height: clamp(34px, var(--ctrl-panel-row-height), 90px);
+        --ctrl-panel-number-input-height: clamp(34px, var(--ctrl-panel-row-height), 90px);
 
         /* Element Widths - Full width in vertical layout */
         --ctrl-panel-section-width: calc((100cqw - var(--panel-content-padding) - var(--section-gap-base)) / 2 - var(--section-padding));
@@ -654,7 +730,274 @@
         --ctrl-panel-btn-wide-width: 100%;
         --ctrl-panel-button-group-width: 100%;
         --ctrl-panel-button-group-gap: 8px;
-        --ctrl-panel-number-increment-width: clamp(70px, calc(var(--ctrl-panel-section-width) * 0.35), 95px);
+        --ctrl-panel-number-increment-width: clamp(80px, calc(var(--ctrl-panel-section-width) * 0.40), 110px);
+    }
+}
+
+/* 5. FULL WIDTH MODE: Any width (when controls panel is alone in row) */
+/* Use !important to override container query breakpoints */
+#fileControls.ctrl-full-width-mode {
+    /* Fixed dimensions */
+    --ctrl-panel-strip-height: 50px !important;
+    --ctrl-panel-strip-padding: 8px !important;
+    --ctrl-panel-strip-gap: 8px !important;
+    --ctrl-panel-strip-element-height: 34px !important;
+
+    /* Fixed button size - all buttons same width as play button */
+    --ctrl-panel-strip-btn-width: 38px !important;
+    --ctrl-panel-strip-btn-height: 34px !important;
+
+    /* Fixed element sizes */
+    --ctrl-panel-strip-color-width: calc(var(--ctrl-panel-strip-btn-width) * 2) !important;
+    /* 2x button width = 76px */
+    --ctrl-panel-strip-number-width: calc(var(--ctrl-panel-strip-btn-width) * 2) !important;
+    /* 2x button width = 76px */
+    --ctrl-panel-strip-number-increment-width: calc(var(--ctrl-panel-strip-number-width) * 0.5) !important;
+    /* 50% of number input = 38px */
+
+    /* Calculate space taken by fixed elements */
+    --ctrl-panel-strip-total-buttons: 5;
+    /* Section1: 1 clear btn, Section2: 1, Section3: 2, Section4: 1, Section5: 0 = 5 buttons total */
+    --ctrl-panel-strip-total-dropdowns: 6;
+    /* Section1: 1 file input, Section2: 1, Section3: 1, Section4: 1, Section5: 2 = 6 dropdowns total */
+    --ctrl-panel-strip-total-sections: 5;
+    /* 5 sections */
+    --ctrl-panel-strip-total-gaps-between-sections: calc(var(--ctrl-panel-strip-gap) * 4);
+    /* 4 gaps between 5 sections = 32px */
+    --ctrl-panel-strip-total-panel-padding: calc(var(--ctrl-panel-strip-padding) * 2);
+    /* Panel content left + right padding = 16px */
+    --ctrl-panel-strip-total-section-padding: 0px;
+    /* Sections have no padding in full width mode */
+
+    /* Internal gaps within sections (4px between elements) */
+    --ctrl-panel-strip-section1-gaps: 4px;
+    /* 1 gap: file input + clear btn */
+    --ctrl-panel-strip-section2-gaps: 4px;
+    /* 1 gap: btn + dropdown */
+    --ctrl-panel-strip-section3-gaps: 8px;
+    /* 2 gaps: btn + btn + dropdown */
+    --ctrl-panel-strip-section4-gaps: 4px;
+    /* 1 gap: btn + dropdown */
+    --ctrl-panel-strip-section5-gaps: 12px;
+    /* 3 gaps: color + number + dropdown + dropdown */
+    --ctrl-panel-strip-total-internal-gaps: calc(var(--ctrl-panel-strip-section1-gaps) + var(--ctrl-panel-strip-section2-gaps) + var(--ctrl-panel-strip-section3-gaps) + var(--ctrl-panel-strip-section4-gaps) + var(--ctrl-panel-strip-section5-gaps));
+    /* 32px total */
+
+    /* Fixed space calculation */
+    --ctrl-panel-strip-buttons-space: calc(var(--ctrl-panel-strip-btn-width) * var(--ctrl-panel-strip-total-buttons));
+    /* 5 * 38px = 190px */
+    --ctrl-panel-strip-color-number-space: calc(var(--ctrl-panel-strip-color-width) + var(--ctrl-panel-strip-number-width));
+    /* 76px + 76px = 152px */
+    --ctrl-panel-strip-fixed-space: calc(var(--ctrl-panel-strip-buttons-space) + var(--ctrl-panel-strip-color-number-space) + var(--ctrl-panel-strip-total-gaps-between-sections) + var(--ctrl-panel-strip-total-panel-padding) + var(--ctrl-panel-strip-total-internal-gaps));
+    /* 190 + 152 + 32 + 16 + 32 = 422px */
+
+    /* Available space for dropdowns */
+    --ctrl-panel-strip-available-for-dropdowns: calc(100cqw - var(--ctrl-panel-strip-fixed-space) - 10px);
+    /* Total width - fixed space - 10px safety margin */
+    --ctrl-panel-strip-dropdown-width: calc(var(--ctrl-panel-strip-available-for-dropdowns) / var(--ctrl-panel-strip-total-dropdowns));
+    /* Divide remaining space by 6 dropdowns */
+
+    /* Apply calculated widths */
+    --ctrl-panel-strip-select-width: var(--ctrl-panel-strip-dropdown-width) !important;
+    --ctrl-panel-strip-input-width: var(--ctrl-panel-strip-dropdown-width) !important;
+    /* File input acts like a dropdown */
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-control-panel {
+    /* Force single row layout */
+    height: var(--ctrl-panel-strip-height);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-panel-header {
+    /* Hide header in full width mode */
+    display: none !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-panel-content {
+    /* Single row flex layout - override all container queries */
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: var(--ctrl-panel-strip-gap) !important;
+    padding: var(--ctrl-panel-strip-padding) !important;
+    height: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    /* Override grid layout from container queries */
+    grid-template-columns: unset !important;
+    grid-template-rows: unset !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-control-section {
+    /* Inline sections */
+    flex-shrink: 0 !important;
+    height: var(--ctrl-panel-strip-element-height) !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-section-header {
+    /* Hide section headers */
+    display: none !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-control-row {
+    /* Inline controls */
+    flex-direction: row !important;
+    gap: 4px !important;
+    height: 100% !important;
+    align-items: center !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-background-controls-compact {
+    /* Inline background controls */
+    flex-direction: row !important;
+    gap: 4px !important;
+    height: 100% !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-row-1,
+#fileControls.ctrl-full-width-mode .ctrl-row-2,
+#fileControls.ctrl-full-width-mode .ctrl-row-3 {
+    /* Inline rows */
+    flex-direction: row !important;
+    gap: 4px !important;
+    height: var(--ctrl-panel-strip-element-height) !important;
+}
+
+/* Full width mode element sizing - ALL buttons same width */
+#fileControls.ctrl-full-width-mode .ctrl-btn {
+    height: var(--ctrl-panel-strip-element-height) !important;
+    width: var(--ctrl-panel-strip-btn-width) !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-btn-wide {
+    width: var(--ctrl-panel-strip-btn-width) !important;
+    /* Same as regular buttons */
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-custom-select {
+    height: var(--ctrl-panel-strip-element-height) !important;
+    width: var(--ctrl-panel-strip-select-width) !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-file-input-label,
+#fileControls.ctrl-full-width-mode .file-selected-indicator {
+    height: var(--ctrl-panel-strip-element-height) !important;
+    width: var(--ctrl-panel-strip-input-width) !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-color-input {
+    height: var(--ctrl-panel-strip-element-height) !important;
+    width: var(--ctrl-panel-strip-color-width) !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-number-input-container {
+    height: var(--ctrl-panel-strip-element-height) !important;
+    width: var(--ctrl-panel-strip-number-width) !important;
+    flex-shrink: 0 !important;
+}
+
+/* Button groups - each button same size as individual buttons */
+#fileControls.ctrl-full-width-mode .ctrl-button-group {
+    gap: 4px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-button-group .ctrl-btn {
+    width: var(--ctrl-panel-strip-btn-width) !important;
+    /* Each button same size as play button */
+}
+
+/* Ensure all individual buttons use the same width */
+#fileControls.ctrl-full-width-mode .ctrl-file-section .ctrl-btn,
+#fileControls.ctrl-full-width-mode .ctrl-animation-section .ctrl-btn,
+#fileControls.ctrl-full-width-mode .ctrl-state-machine-section .ctrl-btn {
+    width: var(--ctrl-panel-strip-btn-width) !important;
+}
+
+/* Number input increment buttons - 50% of number input width */
+#fileControls.ctrl-full-width-mode .ctrl-number-increment-buttons {
+    width: var(--ctrl-panel-strip-number-increment-width) !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-number-input {
+    padding-right: calc(var(--ctrl-panel-strip-number-increment-width) + 8px) !important;
+    text-align: center !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-select-wrapper {
+    width: var(--ctrl-panel-strip-select-width) !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-file-input-wrapper {
+    width: var(--ctrl-panel-strip-input-width) !important;
+    flex-shrink: 0 !important;
+}
+
+/* Compact file picker text in full width mode */
+#fileControls.ctrl-full-width-mode .ctrl-file-text {
+    display: none !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-file-input-label::after {
+    content: "File" !important;
+    font-weight: 500;
+    color: #e2e8f0;
+}
+
+#fileControls.ctrl-full-width-mode .file-selected-indicator #selectedFileName {
+    max-width: calc(var(--ctrl-panel-strip-input-width) - 60px) !important;
+}
+
+#fileControls.ctrl-full-width-mode .ctrl-color-picker-half,
+#fileControls.ctrl-full-width-mode .ctrl-number-input-half {
+    width: auto !important;
+    flex: none !important;
+}
+
+/* Full width mode responsive adjustments */
+@container file-controls (min-width: 1200px) {
+    #fileControls.ctrl-full-width-mode {
+        --ctrl-panel-strip-height: 70px !important;
+        --ctrl-panel-strip-element-height: 54px !important;
+        --ctrl-panel-strip-btn-width: 54px !important;
+        --ctrl-panel-strip-gap: 12px !important;
+        --ctrl-panel-strip-padding: 12px !important;
+        /* Let calculated widths handle dropdowns */
+        --ctrl-panel-strip-color-width: calc(var(--ctrl-panel-strip-btn-width) * 2) !important;
+        --ctrl-panel-strip-number-width: calc(var(--ctrl-panel-strip-btn-width) * 2) !important;
+    }
+}
+
+@container file-controls (max-width: 600px) {
+    #fileControls.ctrl-full-width-mode {
+        --ctrl-panel-strip-height: 50px !important;
+        --ctrl-panel-strip-element-height: 34px !important;
+        --ctrl-panel-strip-btn-width: 34px !important;
+        --ctrl-panel-strip-gap: 6px !important;
+        --ctrl-panel-strip-padding: 6px !important;
+        /* Let calculated widths handle dropdowns */
+        --ctrl-panel-strip-color-width: calc(var(--ctrl-panel-strip-btn-width) * 2) !important;
+        --ctrl-panel-strip-number-width: calc(var(--ctrl-panel-strip-btn-width) * 2) !important;
+    }
+
+    /* Override container query layouts for full width mode */
+    #fileControls.ctrl-full-width-mode .ctrl-panel-content {
+        display: flex !important;
+        flex-direction: row !important;
+        grid-template-columns: unset !important;
+        grid-template-rows: unset !important;
     }
 }
 
@@ -884,18 +1227,27 @@
 @container file-controls (min-height: 700px) {
     .ctrl-row-1 {
         flex-direction: column;
-        gap: clamp(2px, calc(var(--ctrl-panel-row-height) * 0.1), 6px);
-        /* Height will be set by container query variables - no doubling */
+        gap: var(--ctrl-panel-control-gap);
+        height: calc(var(--ctrl-panel-row-height) * 2 + var(--ctrl-panel-control-gap)) !important;
+        /* 2 row heights + internal gap between the 2 elements */
     }
 
     .ctrl-color-picker-half,
     .ctrl-number-input-half {
         width: 100%;
-        height: var(--ctrl-panel-color-input-height);
+        height: var(--ctrl-panel-row-height);
+        flex: none;
+        /* Prevent flex growth */
     }
 
     .ctrl-number-input {
         padding: 0 var(--ctrl-panel-number-increment-width) 0 8px;
+    }
+
+    /* Ensure other rows maintain single row height */
+    .ctrl-row-2,
+    .ctrl-row-3 {
+        height: var(--ctrl-panel-row-height) !important;
     }
 }
 
@@ -1001,6 +1353,179 @@
 
 .ctrl-number-increment-btn:hover {
     background: rgba(59, 130, 246, 1);
+}
+
+/* ===== SINGLE ROW CONTROL STRIP LAYOUT ===== */
+/* When controls panel is alone in its Golden Layout row */
+
+#fileControls.ctrl-single-row-strip {
+    /* Override container query variables for single row layout */
+    --ctrl-panel-strip-height: 60px;
+    --ctrl-panel-strip-padding: 8px;
+    --ctrl-panel-strip-gap: 8px;
+    --ctrl-panel-strip-element-height: 44px;
+    --ctrl-panel-strip-btn-width: 44px;
+    --ctrl-panel-strip-btn-wide-width: 80px;
+    --ctrl-panel-strip-select-width: 120px;
+    --ctrl-panel-strip-input-width: 140px;
+    --ctrl-panel-strip-color-width: 44px;
+    --ctrl-panel-strip-number-width: 100px;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-control-panel {
+    /* Force single row layout */
+    height: var(--ctrl-panel-strip-height);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-panel-header {
+    /* Hide header in strip mode */
+    display: none !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-panel-content {
+    /* Single row flex layout */
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: var(--ctrl-panel-strip-gap) !important;
+    padding: var(--ctrl-panel-strip-padding) !important;
+    height: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-control-section {
+    /* Inline sections */
+    flex-shrink: 0 !important;
+    height: var(--ctrl-panel-strip-element-height) !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-section-header {
+    /* Hide section headers */
+    display: none !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-control-row {
+    /* Inline controls */
+    flex-direction: row !important;
+    gap: 4px !important;
+    height: 100% !important;
+    align-items: center !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-background-controls-compact {
+    /* Inline background controls */
+    flex-direction: row !important;
+    gap: 4px !important;
+    height: 100% !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-row-1,
+#fileControls.ctrl-single-row-strip .ctrl-row-2,
+#fileControls.ctrl-single-row-strip .ctrl-row-3 {
+    /* Inline rows */
+    flex-direction: row !important;
+    gap: 4px !important;
+    height: var(--ctrl-panel-strip-element-height) !important;
+}
+
+/* Strip mode element sizing */
+#fileControls.ctrl-single-row-strip .ctrl-btn {
+    height: var(--ctrl-panel-strip-element-height) !important;
+    width: var(--ctrl-panel-strip-btn-width) !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-btn-wide {
+    width: var(--ctrl-panel-strip-btn-wide-width) !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-custom-select {
+    height: var(--ctrl-panel-strip-element-height) !important;
+    width: var(--ctrl-panel-strip-select-width) !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-file-input-label,
+#fileControls.ctrl-single-row-strip .file-selected-indicator {
+    height: var(--ctrl-panel-strip-element-height) !important;
+    width: var(--ctrl-panel-strip-input-width) !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-color-input {
+    height: var(--ctrl-panel-strip-element-height) !important;
+    width: var(--ctrl-panel-strip-color-width) !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-number-input-container {
+    height: var(--ctrl-panel-strip-element-height) !important;
+    width: var(--ctrl-panel-strip-number-width) !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-button-group {
+    width: var(--ctrl-panel-strip-btn-wide-width) !important;
+    gap: 4px !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-button-group .ctrl-btn {
+    width: calc((var(--ctrl-panel-strip-btn-wide-width) - 4px) / 2) !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-select-wrapper {
+    width: var(--ctrl-panel-strip-select-width) !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-file-input-wrapper {
+    width: var(--ctrl-panel-strip-input-width) !important;
+    flex-shrink: 0 !important;
+}
+
+#fileControls.ctrl-single-row-strip .ctrl-color-picker-half,
+#fileControls.ctrl-single-row-strip .ctrl-number-input-half {
+    width: auto !important;
+    flex: none !important;
+}
+
+/* Strip mode responsive adjustments */
+@container file-controls (min-width: 1200px) {
+    #fileControls.ctrl-single-row-strip {
+        --ctrl-panel-strip-height: 70px;
+        --ctrl-panel-strip-element-height: 54px;
+        --ctrl-panel-strip-btn-width: 54px;
+        --ctrl-panel-strip-btn-wide-width: 100px;
+        --ctrl-panel-strip-select-width: 140px;
+        --ctrl-panel-strip-input-width: 160px;
+        --ctrl-panel-strip-color-width: 54px;
+        --ctrl-panel-strip-number-width: 120px;
+        --ctrl-panel-strip-gap: 12px;
+        --ctrl-panel-strip-padding: 12px;
+    }
+}
+
+@container file-controls (max-width: 600px) {
+    #fileControls.ctrl-single-row-strip {
+        --ctrl-panel-strip-height: 50px;
+        --ctrl-panel-strip-element-height: 34px;
+        --ctrl-panel-strip-btn-width: 34px;
+        --ctrl-panel-strip-btn-wide-width: 60px;
+        --ctrl-panel-strip-select-width: 100px;
+        --ctrl-panel-strip-input-width: 120px;
+        --ctrl-panel-strip-color-width: 34px;
+        --ctrl-panel-strip-number-width: 80px;
+        --ctrl-panel-strip-gap: 6px;
+        --ctrl-panel-strip-padding: 6px;
+    }
 }
 
 /* Accessibility Support */
