@@ -48,6 +48,9 @@
 		<link rel="stylesheet" href="src/styles/dynamic-controls.css" />
 		<link rel="stylesheet" href="src/styles/canvas.css" />
 		<link rel="stylesheet" href="src/styles/asset-manager.css" />
+		<link rel="stylesheet" href="src/styles/event-console.css" />
+		<link rel="stylesheet" href="src/styles/toggle-switch.css" />
+		<link rel="stylesheet" href="src/styles/help-popup.css" />
 	</head>
 
 	<body class="jsoneditor-dark">
@@ -184,7 +187,6 @@
 										class="ctrl-btn ctrl-btn-success"
 										id="toggleTimelineBtn"
 									>
-										<i class="fas fa-play"></i>
 									</button>
 									<button
 										class="ctrl-btn ctrl-btn-warning"
@@ -222,7 +224,6 @@
 									class="ctrl-btn ctrl-btn-success ctrl-btn-wide"
 									id="toggleStateMachineBtn"
 								>
-									<i class="fas fa-play"></i>
 								</button>
 							</div>
 						</section>
@@ -395,6 +396,19 @@
 							Load a Rive file to view and manage embedded assets
 						</p>
 					</div>
+				</div>
+			</div>
+
+			<!-- Event Console Template -->
+			<div id="eventConsoleTemplate">
+				<div class="event-console-panel">
+					<div class="event-console-header">
+						<div class="event-console-title">Event Console</div>
+						<button id="clearEventConsoleBtn" class="event-console-clear">
+							Clear
+						</button>
+					</div>
+					<div id="eventConsoleContent" class="event-console-content"></div>
 				</div>
 			</div>
 		</div>

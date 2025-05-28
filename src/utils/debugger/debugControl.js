@@ -12,6 +12,7 @@ const MODULES = [
 	"controlInterface",
 	"dataConnector",
 	"goldenLayout",
+	"eventMapper",
 ];
 
 // Log level names and values
@@ -93,11 +94,16 @@ function saveDebugSettings() {
 			JSON.stringify(currentLevels),
 		);
 
-		// Save global enabled state (we'll track this separately)
-		// For now, we'll assume it's enabled if any module is above NONE
-		const globalLevelSelect = document.getElementById("debug-all-level");
-		if (globalLevelSelect) {
-			localStorage.setItem(STORAGE_KEYS.DEBUG_GLOBAL_ENABLED, "true");
+		// Save global enabled state - we need to track this properly
+		const globalEnabled = LoggerAPI.isEnabled();
+		localStorage.setItem(
+			STORAGE_KEYS.DEBUG_GLOBAL_ENABLED,
+			globalEnabled.toString(),
+		);
+
+		// Only log if global logging is enabled
+		if (LoggerAPI.isEnabled()) {
+			console.log(`🐛 [DEBUG CONTROL] Settings saved - Global: ${globalEnabled}, Modules:`, currentLevels);
 		}
 	} catch (e) {
 		console.warn("Failed to save debug settings to localStorage:", e);
@@ -108,15 +114,15 @@ function saveDebugSettings() {
  * Creates and injects the debug control panel into the DOM
  */
 export function initDebugControls() {
-	// Load saved settings first
+	// Load saved settings first (silently)
 	loadDebugSettings();
 
-	// Initialize UI if it was enabled
+	// Initialize UI if it was enabled (silently)
 	if (debugControlsEnabled) {
 		createDebugControlsUI();
 	}
 
-	// Extend existing global helper (from debugQuickSet.js)
+	// Extend existing global helper (from debugQuickSet.js) - silently
 	if (window.debugHelper) {
 		// Extend existing object
 		Object.assign(window.debugHelper, {
@@ -126,6 +132,9 @@ export function initDebugControls() {
 			isEnabled: () => debugControlsEnabled,
 			clearSettings: clearDebugSettings,
 			currentSettings: getCurrentSettings,
+			test: testDebugSystem,
+			// Add direct access to LoggerAPI
+			api: LoggerAPI,
 		});
 	} else {
 		// Create new object if it doesn't exist
@@ -136,6 +145,9 @@ export function initDebugControls() {
 			isEnabled: () => debugControlsEnabled,
 			clearSettings: clearDebugSettings,
 			currentSettings: getCurrentSettings,
+			test: testDebugSystem,
+			// Add direct access to LoggerAPI
+			api: LoggerAPI,
 		};
 	}
 }
@@ -298,17 +310,28 @@ function createDebugControlsUI() {
 	document
 		.getElementById("debug-enable-all")
 		.addEventListener("click", () => {
+			if (LoggerAPI.isEnabled()) {
+				console.log("🐛 [DEBUG CONTROL] Enabling all logging globally");
+			}
 			LoggerAPI.enable(true);
 			updateStatus("Logging enabled globally");
 			saveDebugSettings();
+			if (LoggerAPI.isEnabled()) {
+				console.log("🐛 [DEBUG CONTROL] Global logging enabled - all modules will now log according to their levels");
+			}
 		});
 
 	document
 		.getElementById("debug-disable-all")
 		.addEventListener("click", () => {
+			if (LoggerAPI.isEnabled()) {
+				console.log("🐛 [DEBUG CONTROL] Disabling all logging globally");
+			}
 			LoggerAPI.enable(false);
 			updateStatus("Logging disabled globally");
 			saveDebugSettings();
+			// Note: After this point, LoggerAPI.isEnabled() will be false, so no more logging
+			console.log("🐛 [DEBUG CONTROL] Global logging disabled - no modules will log regardless of their levels");
 		});
 
 	document
@@ -317,29 +340,54 @@ function createDebugControlsUI() {
 			const level = parseInt(
 				document.getElementById("debug-all-level").value,
 			);
-			LoggerAPI.setAllLevels(level);
-			// Update all module dropdowns to reflect the change
+			const levelName = getLevelName(level);
+			
+			if (LoggerAPI.isEnabled()) {
+				console.log(`🐛 [DEBUG CONTROL] Setting all modules to level: ${levelName} (${level})`);
+			}
+
 			MODULES.forEach((module) => {
-				document.getElementById(`debug-level-${module}`).value = level;
+				LoggerAPI.setModuleLevel(module, level);
+				const moduleSelect = document.getElementById(
+					`debug-level-${module}`,
+				);
+				if (moduleSelect) {
+					moduleSelect.value = level.toString();
+				}
 			});
-			updateStatus(`All modules set to ${getLevelName(level)}`);
+
+			updateStatus(`All modules set to ${levelName}`);
 			saveDebugSettings();
+			
+			if (LoggerAPI.isEnabled()) {
+				console.log(`🐛 [DEBUG CONTROL] All modules now set to ${levelName} level`);
+			}
 		});
 
 	// Module-specific controls
 	MODULES.forEach((module) => {
-		document
-			.getElementById(`debug-set-${module}`)
-			.addEventListener("click", () => {
-				const level = parseInt(
-					document.getElementById(`debug-level-${module}`).value,
+		const setBtn = document.getElementById(`debug-set-${module}`);
+		if (setBtn) {
+			setBtn.addEventListener("click", () => {
+				const levelSelect = document.getElementById(
+					`debug-level-${module}`,
 				);
+				const level = parseInt(levelSelect.value);
+				const levelName = getLevelName(level);
+				
+				if (LoggerAPI.isEnabled()) {
+					console.log(`🐛 [DEBUG CONTROL] Setting module '${module}' to level: ${levelName} (${level})`);
+				}
+
 				LoggerAPI.setModuleLevel(module, level);
-				updateStatus(
-					`Module '${module}' set to ${getLevelName(level)}`,
-				);
+				updateStatus(`${module} set to ${levelName}`);
 				saveDebugSettings();
+				
+				if (LoggerAPI.isEnabled()) {
+					console.log(`🐛 [DEBUG CONTROL] Module '${module}' now set to ${levelName} level`);
+				}
 			});
+		}
 	});
 
 	// Set initial selected values based on saved configuration
@@ -418,6 +466,27 @@ function loadSavedUISettings() {
 }
 
 /**
+ * Tests the debug system by sending test messages to all modules
+ */
+function testDebugSystem() {
+	// Import the createLogger function to test
+	import('./debugLogger.js').then(({ createLogger }) => {
+		MODULES.forEach((module) => {
+			const logger = createLogger(module);
+			
+			// Test all log levels
+			logger.error(`Test ERROR message from ${module}`);
+			logger.warn(`Test WARN message from ${module}`);
+			logger.info(`Test INFO message from ${module}`);
+			logger.debug(`Test DEBUG message from ${module}`);
+			logger.trace(`Test TRACE message from ${module}`);
+		});
+	}).catch((e) => {
+		console.error("🧪 [DEBUG TEST] Failed to import debugLogger:", e);
+	});
+}
+
+/**
  * Clears all debug settings from localStorage
  */
 function clearDebugSettings() {
@@ -425,7 +494,18 @@ function clearDebugSettings() {
 		Object.values(STORAGE_KEYS).forEach((key) => {
 			localStorage.removeItem(key);
 		});
-		updateStatus("Debug settings cleared");
+
+		// Reset to defaults
+		debugControlsEnabled = false;
+		LoggerAPI.enable(true); // Default to enabled
+		MODULES.forEach((module) => {
+			LoggerAPI.setModuleLevel(module, LogLevel.INFO); // Default level
+		});
+
+		// Show feedback when user explicitly clears settings
+		if (LoggerAPI.isEnabled()) {
+			console.log("🐛 [DEBUG CONTROL] All debug settings cleared from localStorage");
+		}
 	} catch (e) {
 		console.warn("Failed to clear debug settings:", e);
 	}
@@ -438,66 +518,69 @@ function clearDebugSettings() {
 function getCurrentSettings() {
 	const settings = {
 		debugControlsEnabled: debugControlsEnabled,
+		globalEnabled: LoggerAPI.isEnabled(), // Get actual current state
 		modules: {},
 	};
 
 	try {
-		// Get saved levels from localStorage
-		const savedLevels = localStorage.getItem(STORAGE_KEYS.DEBUG_LEVELS);
-		if (savedLevels) {
-			const levels = JSON.parse(savedLevels);
+		// Get actual current levels from LoggerAPI
+		const currentLevels = LoggerAPI.getAllLevels();
+		
+		MODULES.forEach((module) => {
+			const actualLevel = LoggerAPI.getModuleLevel(module);
+			const levelName = getLevelName(actualLevel);
+			settings.modules[module] = {
+				level: actualLevel,
+				levelName: levelName,
+			};
+		});
 
-			MODULES.forEach((module) => {
-				const level =
-					levels[module] !== undefined
-						? levels[module]
-						: LogLevel.NONE;
-				const levelName = getLevelName(level);
-				settings.modules[module] = {
-					level: level,
-					levelName: levelName,
-				};
-			});
-		} else {
-			// No saved settings, show defaults (NONE)
-			MODULES.forEach((module) => {
-				settings.modules[module] = {
-					level: LogLevel.NONE,
-					levelName: "NONE",
-				};
-			});
-		}
-
-		// Also get from UI if available
+		// Also get from UI if available for comparison
 		if (debugControlsEnabled && debugControlsContainer) {
 			MODULES.forEach((module) => {
-				const levelSelect = document.getElementById(
-					`debug-level-${module}`,
-				);
+				const levelSelect = document.getElementById(`debug-level-${module}`);
 				if (levelSelect) {
 					const uiLevel = parseInt(levelSelect.value);
-					const uiLevelName = getLevelName(uiLevel);
-					settings.modules[module].uiLevel = uiLevel;
-					settings.modules[module].uiLevelName = uiLevelName;
+					const actualLevel = settings.modules[module].level;
+					if (uiLevel !== actualLevel) {
+						settings.modules[module].mismatch = true;
+						settings.modules[module].uiLevel = uiLevel;
+						settings.modules[module].uiLevelName = getLevelName(uiLevel);
+					}
 				}
 			});
 		}
 
-		// Display in a nice format
-		console.log("\n🐛 Current Debug Settings:");
-		console.log("=========================");
-		console.log(
-			`Debug Controls: ${debugControlsEnabled ? "✅ Enabled" : "❌ Disabled"}`,
-		);
-		console.log("\nModule Settings:");
+		// Show detailed output when user explicitly requests current settings
+		if (LoggerAPI.isEnabled()) {
+			console.log("\n🐛 Current Debug Settings:");
+			console.log("=========================");
+			console.log(
+				`Debug Controls Panel: ${debugControlsEnabled ? "Enabled" : "Disabled"}`,
+			);
+			console.log(
+				`Global Logging: ${settings.globalEnabled ? "Enabled" : "Disabled"}`,
+			);
 
-		Object.entries(settings.modules).forEach(([module, config]) => {
-			const levelDisplay = config.uiLevelName
-				? `${config.levelName} (UI: ${config.uiLevelName})`
-				: config.levelName;
-			console.log(`  ${module.padEnd(15)} : ${levelDisplay}`);
-		});
-		console.log("=========================\n");
+			console.log("\nModule Settings:");
+			MODULES.forEach((module) => {
+				const moduleSettings = settings.modules[module];
+				const mismatchWarning = moduleSettings.mismatch ? " ⚠️" : "";
+				const levelDisplay = moduleSettings.mismatch 
+					? `${moduleSettings.levelName} (UI: ${moduleSettings.uiLevelName})`
+					: moduleSettings.levelName;
+				console.log(`  ${module.padEnd(15)} : ${levelDisplay}${mismatchWarning}`);
+			});
+
+			console.log("\n💡 Tips:");
+			console.log("  - Use debugHelper.enable() to show debug controls");
+			console.log("  - Use debugHelper.disable() to hide debug controls");
+			console.log("  - Use debugHelper.test() to test all modules");
+			console.log("  - Set levels to NONE to stop all messages for that module");
+			console.log("  - Global disable overrides all module settings");
+			console.log("  - ⚠️ indicates UI/actual level mismatch - click 'Set' button to sync");
+			console.log("=========================\n");
+		}
 
 		return settings;
 	} catch (e) {
@@ -516,6 +599,6 @@ try {
 	} else {
 		document.addEventListener("DOMContentLoaded", initDebugControls);
 	}
-} catch (e) {
-	console.error("Failed to initialize debug controls:", e);
+} catch (error) {
+	// Silently handle initialization errors
 }

@@ -21,18 +21,6 @@
 - chore: remove outdated documentation files and assets from the repository[fix]\n\n- Deleted various markdown files related to user guides, debugging, runtime controls, asset management, installation, and quick start.\n- Removed associated CSS and HTML files for documentation.\n- Cleaned up the repository to streamline the documentation structure and focus on essential content.
 - refactor: rename docs/ to source_docs and docs-html/ to mkdocs_site; updated all references in scripts, configs, and workflows; ensured MkDocs and deployment workflows use the new folder names; updated changelog accordingly
 - chore: enforce consistent formatting and fix workflow input\n\n- Updated .editorconfig and .prettierrc to enforce tabs for code and spaces for YAML\n- Reformatted all files with Prettier\n- Fixed workflow_dispatch input for version_type in semantic-release.yml
-## [Unreleased] - 2024-05-23
-
-### Changed
-- Enforced consistent code formatting: tabs (4 spaces) for code, 2 spaces for YAML files
-- Reformatted all project files using Prettier
-- Fixed GitHub Actions workflow: added `version_type` input to `semantic-release.yml` for correct context access
-- General documentation and config improvements
-- Renamed documentation source folder from `docs/` to `source_docs/`
-- Renamed generated documentation site from `docs-html/` to `mkdocs_site/`
-- Updated all scripts, configuration, and workflow files to reference the new folder names
-- Ensured MkDocs and deployment workflows use the new paths
-
 ## [1.2.0] - 2025-05-27
 
 ### Changes
@@ -111,3 +99,174 @@ All notable changes to this project will be documented in this file.
 - Enhance index.html layout and parser.js functionality. Updated index.html to improve user interface with additional controls for Rive file parsing, including file selection and calibration inputs. Refactored parser.js to introduce a new runOriginalClientParser function for better handling of Rive instances and file paths. Improved error handling and logging throughout the parser modules for enhanced debugging and maintainability.
 - Refactor vmBlueprintAnalyzer and vmInstancePropertyValueExtractor for improved property analysis and value extraction. Enhanced analyzeBlueprintFromDefinition to include nested ViewModel properties and added generateBlueprintFingerprint function. Updated extractVmInstancePropertyValue to utilize dedicated value getters for better clarity and maintainability.
 - initial commit for a rive parser and testing environment
+
+## [Unreleased] - 2025-01-XX
+
+### Added
+- **JSON Editor Enhancements**
+  - Added save functionality to JSON Inspector with downloadable JSON files
+  - JSON files are saved with Rive filename in format: `{rivefilename}_parsed-data_{timestamp}.json`
+  - Added professional header to JSON Inspector panel with save button
+  - Implemented proper error handling for save operations
+  - Enhanced filename detection from file input and UI display elements
+
+- **Enhanced Debug Control System**
+  - Added comprehensive console logging for all debug control actions
+  - Implemented `debugHelper.test()` function to test all debug modules with sample messages
+  - Added `debugHelper.currentSettings()` with enhanced status reporting showing actual vs UI state
+  - Exposed `debugHelper.api` for direct access to LoggerAPI methods
+  - Added real-time mismatch detection between UI settings and actual logger state
+  - Implemented proper initialization logging with available commands list
+  - Added global enabled state tracking and display
+
+- **Debug Control Panel Improvements**
+  - Enhanced Enable All/Disable All buttons with proper console feedback
+  - Fixed "Set All Levels" functionality to properly update all module dropdowns
+  - Added individual module setting with detailed console logging
+  - Implemented proper state synchronization between UI and LoggerAPI
+  - Added status messages in debug panel with auto-clear functionality
+
+- **LoggerAPI Enhancements**
+  - Added `isEnabled()` method to get current global enabled state
+  - Added `getModuleLevel(moduleName)` to get current level for specific modules
+  - Added `getAllLevels()` method to retrieve all current module levels
+  - Enhanced module level setting with proper validation and logging
+  - Improved global enable/disable functionality with immediate effect
+
+- **Comprehensive Rive Event Logging System**
+  - Added master toggle for enabling/disabling all event logging
+  - Implemented separate toggles for different event categories:
+    - Custom Events (user-defined events from Rive files)
+    - State Change Events (state transitions, input changes, ViewModel properties)
+    - Nested ViewModel Events (property changes in nested ViewModels)
+    - Playback Events (Play, Pause, Stop, Loop)
+    - System Events (Load, LoadError)
+  - Event Console panel with terminal-style interface (black background, green text)
+  - Real-time event streaming with latest messages on top
+  - Event throttling and emergency shutdown to prevent browser crashes
+  - Comprehensive event formatting with timestamps and detailed information
+  - Help system with popup modal explaining all event types
+  - Persistent settings saved to localStorage
+
+- **Beautiful Toggle Switch UI**
+  - Replaced checkboxes with modern red/green gradient toggle switches
+  - Master toggle (larger) for main event logging control
+  - Compact toggles for sub-options
+  - Smooth animations with hover effects and accessibility support
+
+- **Enhanced Event Console**
+  - Terminal-style interface with monospaced font
+  - Auto-scroll to keep latest events visible
+  - Clear button functionality
+  - Message limiting (100 entries) for performance
+  - Styled scrollbar for better UX
+  - Event console clears on page reload
+  - Disabled/enabled status messages
+
+- **Advanced ViewModel Event Monitoring**
+  - Enhanced VM name detection with actual instance names and blueprint names
+  - Support for nested ViewModel property change tracking
+  - Full VM path tracking for complex nested structures
+  - Context-aware event logging with VM metadata
+
+- **Improved Control Interface**
+  - All control panel sections (State Machine Controls, VM sections) start closed on load
+  - Consistent styling across all Dynamic Controls sections
+  - Better organization and visual hierarchy
+
+### Fixed
+- **Event Console Initialization**
+  - Fixed event console flicker on initialization
+  - Moved event console state initialization to Golden Layout component factory
+  - Ensured proper initial message display based on saved settings
+  - Removed conflicting initialization logic from riveControlInterface.js
+  - Reduced initialization timeout from 100ms to 50ms for faster display
+
+- **Debug Control System Issues**
+  - Fixed Enable All/Disable All buttons not working properly
+  - Fixed missing console logging for debug control actions
+  - Fixed setting all levels to NONE not stopping debug messages
+  - Fixed disconnect between UI state and actual LoggerAPI state
+  - Fixed localStorage persistence for global enabled state
+  - Fixed module level synchronization between UI dropdowns and actual settings
+  - Fixed debug panel status messages not displaying properly
+
+- **Debug System Functionality**
+  - Fixed LoggerAPI global enable/disable not being properly tracked
+  - Fixed module level getters not being available for status checking
+  - Fixed debug controls initialization not providing user feedback
+  - Fixed mismatch detection between saved settings and runtime state
+  - Fixed test function import issues and error handling
+
+- **Play Button Icons**
+  - Play/pause/stop buttons now maintain persistent triangle (▶️) and stop (⏹️) icons
+  - Button states properly synchronize with Rive playback events
+  - Icons no longer get replaced with text during state changes
+  - Proper event listener synchronization for timeline and state machine playback
+
+- **Event Console Improvements**
+  - Removed distracting blinking cursor from terminal interface
+  - Event console properly clears on page reload
+  - Clear button functionality works correctly
+  - Latest events appear at top (newest pushes older events down)
+
+- **Code Cleanup**
+  - Removed all nested artboard event monitoring code (non-functional)
+  - Removed nested artboard toggle switch from UI
+  - Removed frame events toggle (high frequency events)
+  - Removed nested artboard references from help popup
+  - Cleaned up localStorage handling for removed features
+
+### Improved
+- **JSON Editor User Experience**
+  - Reduced font size from 14px to 11px for more compact display
+  - Reduced indentation from 2 to 1 space for more compact display
+  - Better space utilization in JSON Inspector panel
+  - Improved readability for large JSON structures
+
+- **Event System Performance**
+  - Added event throttling (100ms minimum between same event types)
+  - Maximum 50 events per second limit
+  - Emergency shutdown at 200 events to prevent browser crashes
+  - Automatic recovery after emergency shutdown
+  - Better memory management for event storage
+
+- **User Experience**
+  - Help system with professional popup modal design
+  - Responsive design for help popup
+  - Keyboard shortcuts (Escape to close popups)
+  - Better visual feedback for all interactions
+  - Improved accessibility with focus states
+
+- **Developer Experience**
+  - Enhanced debugging capabilities with structured event logging
+  - Better error handling and recovery
+  - Comprehensive event categorization and filtering
+  - Detailed event metadata for troubleshooting
+
+### Technical Improvements
+- **Event Mapping System**
+  - Complete event type mappings based on C++ bindings
+  - Proper event categorization and color coding
+  - Support for all Rive event types with proper formatting
+  - Enhanced event data extraction and processing
+
+- **State Management**
+  - Improved localStorage persistence for all settings
+  - Better state synchronization between UI and Rive runtime
+  - Proper cleanup of event listeners and intervals
+  - Enhanced error recovery and fallback handling
+  - Better separation of concerns between Golden Layout and control interface
+  - Eliminated race conditions in event console initialization
+
+### Removed
+- **Nested Artboard Event Monitoring**
+  - Removed non-functional nested artboard event detection
+  - Removed related UI toggles and help documentation
+  - Cleaned up associated code and localStorage entries
+  - Simplified event processing pipeline
+
+- **Frame Events Toggle**
+  - Removed high-frequency frame events toggle
+  - Removed associated help documentation
+  - Simplified event filtering logic

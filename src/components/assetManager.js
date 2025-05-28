@@ -380,6 +380,25 @@ function setupAssetItemEventListeners(assetItem, asset, assetName, index) {
 }
 
 /**
+ * Log an asset-related event to the Rive event system
+ * @param {string} eventType - The type of asset event
+ * @param {Object} eventData - The event data
+ */
+function logAssetEvent(eventType, eventData) {
+	// Check if the Rive event logging system is available
+	if (window.logRiveEvent && typeof window.logRiveEvent === 'function') {
+		try {
+			window.logRiveEvent(eventType, eventData);
+			logger.debug(`[EVENT] Logged asset event: ${eventType}`, eventData);
+		} catch (error) {
+			logger.warn(`[EVENT] Failed to log asset event: ${eventType}`, error);
+		}
+	} else {
+		logger.debug(`[EVENT] Rive event logging not available for asset event: ${eventType}`);
+	}
+}
+
+/**
  * Handle file replacement for an asset
  * @param {Event} event - The file input change event
  * @param {Object} asset - The asset object
@@ -413,9 +432,26 @@ function handleFileReplacement(event, asset, assetName, index) {
 
 		// Update UI to show replacement status
 		updateAssetStatus(index, "file", file.name);
+
+		// Log asset event
+		logAssetEvent("AssetFileReplacement", {
+			assetName: assetName,
+			assetType: getAssetType(asset),
+			fileName: file.name,
+			fileSize: file.size,
+			fileType: file.type,
+			fileLastModified: file.lastModified,
+		});
 	} catch (error) {
 		logger.error(`[FILE_REPLACE] Error replacing asset with file:`, error);
 		showAssetError(index, "Failed to load local file");
+
+		// Log asset event
+		logAssetEvent("AssetFileReplacementError", {
+			assetName: assetName,
+			assetType: getAssetType(asset),
+			error: error.message,
+		});
 	}
 }
 
@@ -445,9 +481,23 @@ function handleUrlReplacement(url, asset, assetName, index) {
 
 		// Update UI to show replacement status
 		updateAssetStatus(index, "url", url);
+
+		// Log asset event
+		logAssetEvent("AssetUrlReplacement", {
+			assetName: assetName,
+			assetType: getAssetType(asset),
+			url: url,
+		});
 	} catch (error) {
 		logger.error(`[URL_REPLACE] Error replacing asset with URL:`, error);
 		showAssetError(index, "Invalid URL or failed to load");
+
+		// Log asset event
+		logAssetEvent("AssetUrlReplacementError", {
+			assetName: assetName,
+			assetType: getAssetType(asset),
+			error: error.message,
+		});
 	}
 }
 
@@ -505,6 +555,17 @@ function substituteImage(name, url) {
 				logger.info(
 					`[SUBSTITUTE] Successfully replaced asset "${name}"`,
 				);
+
+				// Log asset event
+				logAssetEvent("AssetImageSubstitution", {
+					assetName: name,
+					assetType: getAssetType(asset),
+					imageSize: {
+						width: img.width,
+						height: img.height,
+					},
+					imageFormat: img.format,
+				});
 			} else {
 				throw new Error("Asset does not support setRenderImage");
 			}
@@ -521,6 +582,13 @@ function substituteImage(name, url) {
 				index++;
 			}
 			showAssetError(index, error.message);
+
+			// Log asset event
+			logAssetEvent("AssetImageSubstitutionError", {
+				assetName: name,
+				assetType: getAssetType(asset),
+				error: error.message,
+			});
 		});
 }
 
@@ -534,11 +602,21 @@ function handleAssetReset(asset, assetName, index) {
 	logger.info(`[RESET] Resetting asset "${assetName}" to original`);
 
 	try {
-		// For now, we don't have a direct reset method in the Rive API
-		// This would need to be implemented by reloading the original asset
-		logger.warn(
-			"[RESET] Asset reset functionality not yet implemented - would require reloading the Rive file",
-		);
+		// Reset the asset to its original embedded version
+		if (asset && asset.setRenderImage) {
+			// Passing null to setRenderImage should reset to the original embedded asset
+			asset.setRenderImage(null);
+			logger.info(`[RESET] Successfully reset asset "${assetName}" to original embedded version`);
+			
+			// Log asset reset event
+			logAssetEvent("AssetReset", {
+				assetName: assetName,
+				assetType: getAssetType(asset),
+				resetMethod: "setRenderImage(null)"
+			});
+		} else {
+			logger.warn(`[RESET] Asset "${assetName}" does not support setRenderImage - cannot reset`);
+		}
 
 		// Update UI
 		updateAssetStatus(index, "embedded", "Original");
@@ -559,9 +637,23 @@ function handleAssetReset(asset, assetName, index) {
 				logger.debug("[RESET] Cleared URL input");
 			}
 		}
+
+		// Log asset event
+		logAssetEvent("AssetReset", {
+			assetName: assetName,
+			assetType: getAssetType(asset),
+			resetMethod: "setRenderImage(null)"
+		});
 	} catch (error) {
 		logger.error(`[RESET] Error resetting asset:`, error);
 		showAssetError(index, "Failed to reset asset");
+		
+		// Log asset reset error event
+		logAssetEvent("AssetResetError", {
+			assetName: assetName,
+			assetType: getAssetType(asset),
+			error: error.message
+		});
 	}
 }
 
@@ -595,6 +687,13 @@ function showAssetInfo(asset, assetName, index) {
 	alert(detailsText);
 
 	logger.info(`Asset info for "${assetName}":`, details);
+
+	// Log asset event
+	logAssetEvent("AssetInfo", {
+		assetName: assetName,
+		assetType: assetType,
+		assetDetails: details,
+	});
 }
 
 /**
@@ -654,6 +753,12 @@ function showAssetError(index, message) {
 
 	// Could also show a temporary error message in the UI
 	logger.error(`Asset ${index} error: ${message}`);
+
+	// Log asset event
+	logAssetEvent("AssetError", {
+		assetIndex: index,
+		errorMessage: message,
+	});
 }
 
 /**

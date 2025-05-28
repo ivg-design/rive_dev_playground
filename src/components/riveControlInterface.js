@@ -5,8 +5,16 @@
  */
 
 import { processDataForControls } from "./dataToControlConnector.js";
-import { createLogger } from "../utils/debugger/debugLogger.js";
+import { createLogger, LoggerAPI } from "../utils/debugger/debugLogger.js";
 import { setAssetMap } from "./assetManager.js";
+import { 
+	formatRiveEvent, 
+	shouldLogEvent,
+	getEventCategoryColor 
+} from "../utils/riveEventMapper.js";
+
+// Expose LoggerAPI globally for debugging
+window.LoggerAPI = LoggerAPI;
 
 // Create a logger for this module
 const logger = createLogger("controlInterface");
@@ -17,6 +25,24 @@ let parsedRiveData = null;
 let dynamicControlsInitialized = false;
 let structuredControlData = null; // Will store the processed data from dataToControlConnector
 let uiUpdateInterval = null; // <<< ADDED: For polling interval ID
+// Event logging configuration
+let displayRiveEvents = false; // Track whether to display Rive events in status bar - DEFAULT OFF
+let logCustomEvents = false; // Track whether to log custom Rive events - DEFAULT OFF
+let logStateChangeEvents = false; // Track whether to log state change events - DEFAULT OFF
+let logNestedViewModelEvents = false; // Track whether to log nested ViewModel events - DEFAULT OFF
+let logPlaybackEvents = false; // Track whether to log playback events (Play, Pause, Stop, Loop) - DEFAULT OFF
+let logSystemEvents = false; // Track whether to log system events - DEFAULT OFF
+let logFrameEvents = false; // Track whether to log frame-level events (Draw, Advance) - DEFAULT OFF
+let eventConsoleMessages = []; // Store event console messages
+
+// Event throttling to prevent browser crashes
+let eventThrottleMap = new Map(); // Track last event time by type
+const EVENT_THROTTLE_MS = 100; // Minimum time between same event types
+const MAX_EVENTS_PER_SECOND = 50; // Maximum events per second
+const EMERGENCY_SHUTDOWN_THRESHOLD = 200; // Emergency shutdown if events exceed this
+let eventCount = 0;
+let eventCountResetTime = Date.now();
+let emergencyShutdown = false;
 
 // Store the Rive engine reference globally if needed, or pass it around
 // For simplicity, assuming window.rive is available as in other files.
@@ -68,12 +94,284 @@ function simpleFmt(val) {
 }
 
 function handleConstructorStateChange(sm, st) {
-	logger.debug("CONSTRUCTOR onStateChange Fired");
+	logger.debug("onStateChange Fired");
 	logger.debug("SM:", simpleFmt(sm));
 	logger.debug("ST:", simpleFmt(st));
+	
+	// Log the state change event
+	logRiveEvent("StateChange", { 
+		stateMachine: simpleFmt(sm), 
+		state: simpleFmt(st) 
+	});
+	
 	// Call updateControlsFromRive() to sync UI based on state machine changes.
-	logger.debug("CONSTRUCTOR onStateChange: Calling updateControlsFromRive()");
+	logger.debug("onStateChange: Calling updateControlsFromRive()");
 	updateControlsFromRive();
+}
+
+/**
+ * Logs a Rive event to both status bar and event console if enabled
+ * @param {string} eventType - The type of Rive event
+ * @param {Object} eventData - The event data object
+ */
+function logRiveEvent(eventType, eventData) {
+	if (!displayRiveEvents || emergencyShutdown) return;
+	
+	// Event throttling to prevent browser crashes
+	const now = Date.now();
+	
+	// Reset event count every second
+	if (now - eventCountResetTime > 1000) {
+		eventCount = 0;
+		eventCountResetTime = now;
+		// Reset emergency shutdown after 5 seconds
+		if (emergencyShutdown && (now - eventCountResetTime) > 5000) {
+			emergencyShutdown = false;
+			logger.warn("[controlInterface] Event logging re-enabled after emergency shutdown");
+		}
+	}
+	
+	// Emergency shutdown if events are completely out of control
+	if (eventCount >= EMERGENCY_SHUTDOWN_THRESHOLD) {
+		emergencyShutdown = true;
+		logger.error("[controlInterface] EMERGENCY SHUTDOWN: Too many events detected, disabling event logging");
+		displayRiveEvents = false; // Also disable the main toggle
+		// Update the checkbox
+		const checkbox = document.getElementById("displayRiveEventsCheckbox");
+		if (checkbox) checkbox.checked = false;
+		return;
+	}
+	
+	// Check if we're exceeding the maximum events per second
+	if (eventCount >= MAX_EVENTS_PER_SECOND) {
+		return;
+	}
+	
+	// Throttle specific event types
+	const eventKey = `${eventType}_${JSON.stringify(eventData)}`;
+	const lastEventTime = eventThrottleMap.get(eventKey);
+	if (lastEventTime && (now - lastEventTime) < EVENT_THROTTLE_MS) {
+		return;
+	}
+	eventThrottleMap.set(eventKey, now);
+	
+	// Clean up old throttle entries (keep only last 100)
+	if (eventThrottleMap.size > 100) {
+		const entries = Array.from(eventThrottleMap.entries());
+		entries.sort((a, b) => b[1] - a[1]); // Sort by time, newest first
+		eventThrottleMap.clear();
+		entries.slice(0, 50).forEach(([key, time]) => {
+			eventThrottleMap.set(key, time);
+		});
+	}
+	
+	eventCount++;
+	
+	// Check if this event type should be logged using the mapper
+	if (!shouldLogEvent(eventType, logCustomEvents, logStateChangeEvents, logNestedViewModelEvents, logPlaybackEvents, logSystemEvents, logFrameEvents, eventData)) {
+		return;
+	}
+	
+	// Format the event using the comprehensive mapper
+	const formattedEvent = formatRiveEvent(eventType, eventData, structuredControlData);
+	
+	// Add to event console at the beginning (latest on top)
+	eventConsoleMessages.unshift(formattedEvent.consoleMessage);
+	
+	// Limit console messages to last 100 entries
+	if (eventConsoleMessages.length > 100) {
+		eventConsoleMessages.pop();
+	}
+	
+	// Update event console if it exists
+	updateEventConsole();
+	
+	// Display in status bar
+	const statusMessageDiv = document.getElementById("statusMessage");
+	if (statusMessageDiv) {
+		statusMessageDiv.textContent = formattedEvent.statusMessage;
+		
+		// Clear the message after 3 seconds
+		setTimeout(() => {
+			if (statusMessageDiv.textContent.includes(formattedEvent.statusMessage)) {
+				statusMessageDiv.textContent = "Ready";
+			}
+		}, 3000);
+	}
+	
+	// Log detailed information for debugging
+	logger.debug(`[Event] ${formattedEvent.detailedMessage}`);
+}
+
+/**
+ * Updates the event console display with scrolling text support
+ */
+function updateEventConsole() {
+	const consoleElement = document.getElementById('eventConsoleContent');
+	if (consoleElement) {
+		// Clear existing content
+		consoleElement.innerHTML = '';
+		
+		// Create structured HTML for each message
+		eventConsoleMessages.forEach(message => {
+			const messageDiv = document.createElement('div');
+			messageDiv.className = 'event-message';
+			
+			// Extract timestamp and text
+			const timestampMatch = message.match(/^\[([^\]]+)\]/);
+			const timestamp = timestampMatch ? timestampMatch[1] : '';
+			const text = timestampMatch ? message.substring(timestampMatch[0].length + 1) : message;
+			
+			// Create timestamp element
+			const timestampSpan = document.createElement('span');
+			timestampSpan.className = 'event-timestamp';
+			timestampSpan.textContent = `[${timestamp}]`;
+			
+			// Create text element
+			const textDiv = document.createElement('div');
+			textDiv.className = 'event-text';
+			
+			const textContent = document.createElement('span');
+			textContent.className = 'event-text-content';
+			textContent.textContent = text;
+			
+			textDiv.appendChild(textContent);
+			
+			// Check if text is too long and needs scrolling
+			setTimeout(() => {
+				const containerWidth = textDiv.offsetWidth;
+				const textWidth = textContent.offsetWidth;
+				
+				if (textWidth > containerWidth) {
+					textDiv.classList.add('scrolling');
+				}
+			}, 10);
+			
+			messageDiv.appendChild(timestampSpan);
+			messageDiv.appendChild(textDiv);
+			consoleElement.appendChild(messageDiv);
+		});
+		
+		// Keep scroll at top since latest messages are at the top
+		consoleElement.scrollTop = 0;
+	}
+}
+
+/**
+ * Clears the event console
+ */
+function clearEventConsole() {
+	eventConsoleMessages.length = 0;
+	updateEventConsole();
+	logger.info("[controlInterface] Event console cleared");
+}
+
+// Expose the clear function globally for the Golden Layout component
+window.clearEventConsole = clearEventConsole;
+
+// Expose the logRiveEvent function globally for other modules
+window.logRiveEvent = logRiveEvent;
+
+/**
+ * Emergency reset function for event system
+ */
+function resetEventSystem() {
+	emergencyShutdown = false;
+	eventCount = 0;
+	eventCountResetTime = Date.now();
+	eventThrottleMap.clear();
+	eventConsoleMessages.length = 0;
+	updateEventConsole();
+	logger.info("[controlInterface] Event system reset");
+}
+
+// Expose reset function globally
+window.resetEventSystem = resetEventSystem;
+
+/**
+ * Shows the event logging help popup
+ */
+function showEventLoggingHelp() {
+	// Remove existing popup if any
+	const existingPopup = document.getElementById('eventLoggingHelpPopup');
+	if (existingPopup) {
+		existingPopup.remove();
+	}
+
+	// Create popup overlay
+	const overlay = document.createElement('div');
+	overlay.id = 'eventLoggingHelpPopup';
+	overlay.className = 'help-popup-overlay';
+	
+	// Create popup content
+	const popup = document.createElement('div');
+	popup.className = 'help-popup';
+	
+	popup.innerHTML = `
+		<div class="help-popup-header">
+			<h3>🎯 Rive Event Logging Help</h3>
+			<button class="help-popup-close" id="closeHelpPopup">&times;</button>
+		</div>
+		<div class="help-popup-content">
+			<p><strong>Events are displayed in the status bar and logged to the Event Console panel.</strong></p>
+			
+			<div class="help-section">
+				<h4>🎨 Custom Events</h4>
+				<p>User-defined events from your Rive file. These are events you create in the Rive editor.</p>
+			</div>
+			
+			<div class="help-section">
+				<h4>🔄 State Change Events</h4>
+				<p>Include state transitions, input value changes, and ViewModel property changes in the main artboard.</p>
+			</div>
+			
+			<div class="help-section">
+				<h4>🏗️ Nested ViewModel Events</h4>
+				<p>Track property changes in nested ViewModels within your Rive file.</p>
+			</div>
+			
+			<div class="help-section">
+				<h4>▶️ Playback Events</h4>
+				<p>Include Play, Pause, Stop, and Loop events for animations and state machines.</p>
+			</div>
+			
+			<div class="help-section">
+				<h4>⚙️ System Events</h4>
+				<p>Include Load and LoadError events from the Rive runtime.</p>
+			</div>
+			
+			<div class="help-tip">
+				<strong>💡 Tip:</strong> Use the Event Console panel to view detailed event logs with timestamps and full event data.
+			</div>
+		</div>
+	`;
+	
+	overlay.appendChild(popup);
+	document.body.appendChild(overlay);
+	
+	// Add event listeners
+	const closeBtn = popup.querySelector('#closeHelpPopup');
+	const closePopup = () => {
+		overlay.remove();
+	};
+	
+	closeBtn.addEventListener('click', closePopup);
+	overlay.addEventListener('click', (e) => {
+		if (e.target === overlay) {
+			closePopup();
+		}
+	});
+	
+	// Close on Escape key
+	const handleKeyDown = (e) => {
+		if (e.key === 'Escape') {
+			closePopup();
+			document.removeEventListener('keydown', handleKeyDown);
+		}
+	};
+	document.addEventListener('keydown', handleKeyDown);
+	
+	logger.info("[controlInterface] Event logging help popup displayed");
 }
 
 /**
@@ -185,9 +483,10 @@ function findSmartEnumMatches(propertyName, allEnums) {
 /**
  * Creates a control element for a specific property with direct reference to the live input
  * @param {Object} property The property object with name, type, and liveProperty reference
+ * @param {Object} vmContext Optional context about the ViewModel this property belongs to
  * @return {HTMLElement} The control element
  */
-function createControlForProperty(property) {
+function createControlForProperty(property, vmContext = null) {
 	if (!property) {
 		logger.warn("Cannot create control: Invalid property");
 		return null;
@@ -225,6 +524,17 @@ function createControlForProperty(property) {
 							newValue,
 						);
 						liveProperty.value = newValue;
+						
+						// Log ViewModel property change
+						logRiveEvent("ViewModelPropertyChanged", {
+							property: name,
+							type: type,
+							value: newValue,
+							viewModel: vmContext?.instanceName || vmContext?.blueprintName || "ViewModel",
+							vmPath: vmContext?.path || "ViewModel",
+							isNested: vmContext?.isNested || false,
+							blueprintName: vmContext?.blueprintName
+						});
 					});
 				}
 				break;
@@ -244,6 +554,17 @@ function createControlForProperty(property) {
 							newValue,
 						);
 						liveProperty.value = newValue;
+						
+						// Log ViewModel property change
+						logRiveEvent("ViewModelPropertyChanged", {
+							property: name,
+							type: type,
+							value: newValue,
+							viewModel: vmContext?.instanceName || vmContext?.blueprintName || "ViewModel",
+							vmPath: vmContext?.path || "ViewModel",
+							isNested: vmContext?.isNested || false,
+							blueprintName: vmContext?.blueprintName
+						});
 					});
 				}
 				break;
@@ -263,6 +584,17 @@ function createControlForProperty(property) {
 							newValue,
 						);
 						liveProperty.value = newValue;
+						
+						// Log ViewModel property change
+						logRiveEvent("ViewModelPropertyChanged", {
+							property: name,
+							type: type,
+							value: newValue,
+							viewModel: vmContext?.instanceName || vmContext?.blueprintName || "ViewModel",
+							vmPath: vmContext?.path || "ViewModel",
+							isNested: vmContext?.isNested || false,
+							blueprintName: vmContext?.blueprintName
+						});
 					});
 				}
 				break;
@@ -286,6 +618,17 @@ function createControlForProperty(property) {
 							newValue,
 						);
 						liveProperty.value = newValue;
+						
+						// Log ViewModel property change
+						logRiveEvent("ViewModelPropertyChanged", {
+							property: name,
+							type: type,
+							value: ctrl.value, // Use hex value for display
+							viewModel: vmContext?.instanceName || vmContext?.blueprintName || "ViewModel",
+							vmPath: vmContext?.path || "ViewModel",
+							isNested: vmContext?.isNested || false,
+							blueprintName: vmContext?.blueprintName
+						});
 					});
 				}
 				break;
@@ -486,6 +829,17 @@ function createControlForProperty(property) {
 							newValue,
 						);
 						liveProperty.value = newValue;
+						
+						// Log ViewModel property change
+						logRiveEvent("ViewModelPropertyChanged", {
+							property: name,
+							type: type,
+							value: newValue,
+							viewModel: vmContext?.instanceName || vmContext?.blueprintName || "ViewModel",
+							vmPath: vmContext?.path || "ViewModel",
+							isNested: vmContext?.isNested || false,
+							blueprintName: vmContext?.blueprintName
+						});
 					});
 				}
 				break;
@@ -510,6 +864,17 @@ function createControlForProperty(property) {
 								liveProperty.value = oldValue;
 							}, 100);
 						}
+						
+						// Log ViewModel property change
+						logRiveEvent("ViewModelPropertyChanged", {
+							property: name,
+							type: type,
+							value: "triggered",
+							viewModel: vmContext?.instanceName || vmContext?.blueprintName || "ViewModel",
+							vmPath: vmContext?.path || "ViewModel",
+							isNested: vmContext?.isNested || false,
+							blueprintName: vmContext?.blueprintName
+						});
 					});
 				}
 				break;
@@ -531,8 +896,88 @@ function createControlForProperty(property) {
 export function initDynamicControls(parsedDataFromHandler) {
 	logger.info(
 		"Initializing dynamic controls with parsed data:",
-		parsedDataFromHandler,
+		parsedDataFromHandler
 	);
+
+	// Clear event console on page reload/initialization
+	eventConsoleMessages.length = 0;
+	updateEventConsole();
+	logger.debug("[controlInterface] Event console cleared on initialization");
+
+	// Load saved event logging settings FIRST before setting any console messages
+	try {
+		const savedDisplayEvents = localStorage.getItem("riveDisplayEvents");
+		if (savedDisplayEvents !== null) {
+			displayRiveEvents = JSON.parse(savedDisplayEvents);
+			logger.debug(
+				`[controlInterface] Loaded saved event display setting: ${displayRiveEvents}`
+			);
+		}
+
+		const savedLogCustomEvents = localStorage.getItem(
+			"riveLogCustomEvents"
+		);
+		if (savedLogCustomEvents !== null) {
+			logCustomEvents = JSON.parse(savedLogCustomEvents);
+			logger.debug(
+				`[controlInterface] Loaded saved custom events setting: ${logCustomEvents}`
+			);
+		}
+
+		const savedLogStateChangeEvents = localStorage.getItem(
+			"riveLogStateChangeEvents"
+		);
+		if (savedLogStateChangeEvents !== null) {
+			logStateChangeEvents = JSON.parse(savedLogStateChangeEvents);
+			logger.debug(
+				`[controlInterface] Loaded saved state change events setting: ${logStateChangeEvents}`
+			);
+		}
+
+		const savedLogNestedViewModelEvents = localStorage.getItem(
+			"riveLogNestedViewModelEvents"
+		);
+		if (savedLogNestedViewModelEvents !== null) {
+			logNestedViewModelEvents = JSON.parse(
+				savedLogNestedViewModelEvents
+			);
+			logger.debug(
+				`[controlInterface] Loaded saved nested ViewModel events setting: ${logNestedViewModelEvents}`
+			);
+		}
+
+		const savedLogPlaybackEvents = localStorage.getItem(
+			"riveLogPlaybackEvents"
+		);
+		if (savedLogPlaybackEvents !== null) {
+			logPlaybackEvents = JSON.parse(savedLogPlaybackEvents);
+			logger.debug(
+				`[controlInterface] Loaded saved playback events setting: ${logPlaybackEvents}`
+			);
+		}
+
+		const savedLogSystemEvents = localStorage.getItem('riveLogSystemEvents');
+		if (savedLogSystemEvents !== null) {
+			logSystemEvents = JSON.parse(savedLogSystemEvents);
+			logger.debug(`[controlInterface] Loaded saved system events setting: ${logSystemEvents}`);
+		}
+
+		const savedLogFrameEvents = localStorage.getItem("riveLogFrameEvents");
+		if (savedLogFrameEvents !== null) {
+			logFrameEvents = JSON.parse(savedLogFrameEvents);
+			logger.debug(
+				`[controlInterface] Loaded saved frame events setting: ${logFrameEvents}`
+			);
+		}
+	} catch (e) {
+		logger.warn(
+			"[controlInterface] Error loading saved event logging settings:",
+			e
+		);
+	}
+
+	// Note: Event console initialization is now handled by Golden Layout component factory
+	// to prevent timing conflicts and flicker
 
 	// Clear previous instance and polling interval
 	if (riveInstance && typeof riveInstance.cleanup === "function") {
@@ -557,7 +1002,7 @@ export function initDynamicControls(parsedDataFromHandler) {
 		} catch (e) {
 			logger.warn(
 				"[controlInterface] Error cleaning up global Rive instance:",
-				e,
+				e
 			);
 		}
 		window.riveInstanceGlobal = null;
@@ -575,15 +1020,15 @@ export function initDynamicControls(parsedDataFromHandler) {
 	structuredControlData = null;
 
 	logger.debug(
-		"[controlInterface] State reset complete, initializing with new data",
+		"[controlInterface] State reset complete, initializing with new data"
 	);
 
 	const controlsContainer = document.getElementById(
-		"dynamicControlsContainer",
+		"dynamicControlsContainer"
 	);
 	if (!controlsContainer) {
 		logger.error(
-			"Dynamic controls container #dynamicControlsContainer not found. Cannot initialize.",
+			"Dynamic controls container #dynamicControlsContainer not found. Cannot initialize."
 		);
 		return;
 	}
@@ -592,7 +1037,7 @@ export function initDynamicControls(parsedDataFromHandler) {
 
 	if (!parsedDataFromHandler || !parsedDataFromHandler.defaultElements) {
 		logger.info(
-			"[controlInterface] No parsed data provided. Showing empty state.",
+			"[controlInterface] No parsed data provided. Showing empty state."
 		);
 		controlsContainer.innerHTML = "<p>Please Load a Rive File</p>";
 		return;
@@ -600,7 +1045,7 @@ export function initDynamicControls(parsedDataFromHandler) {
 
 	if (!RiveEngine) {
 		logger.error(
-			"Rive engine (window.rive) not available. Cannot create Rive instance.",
+			"Rive engine (window.rive) not available. Cannot create Rive instance."
 		);
 		controlsContainer.innerHTML =
 			"<p>Error: Rive engine not available.</p>";
@@ -610,7 +1055,7 @@ export function initDynamicControls(parsedDataFromHandler) {
 	const canvas = document.getElementById("rive-canvas");
 	if (!canvas) {
 		logger.error(
-			"Canvas element 'rive-canvas' not found. Cannot create Rive instance.",
+			"Canvas element 'rive-canvas' not found. Cannot create Rive instance."
 		);
 		controlsContainer.innerHTML = "<p>Error: Canvas element not found.</p>";
 		return;
@@ -625,7 +1070,7 @@ export function initDynamicControls(parsedDataFromHandler) {
 
 	if (!src || !artboardName) {
 		logger.error(
-			"[controlInterface] Missing src or artboardName. Cannot create Rive instance.",
+			"[controlInterface] Missing src or artboardName. Cannot create Rive instance."
 		);
 		if (controlsContainer)
 			controlsContainer.innerHTML =
@@ -641,11 +1086,11 @@ export function initDynamicControls(parsedDataFromHandler) {
 			smToPlay = availableSMs[0];
 		}
 		logger.info(
-			`[controlInterface] Selected state machine to play: ${smToPlay}`,
+			`[controlInterface] Selected state machine to play: ${smToPlay}`
 		);
 	} else {
 		logger.info(
-			"[controlInterface] No state machines found in parsed data to autoplay.",
+			"[controlInterface] No state machines found in parsed data to autoplay."
 		);
 	}
 
@@ -683,7 +1128,7 @@ export function initDynamicControls(parsedDataFromHandler) {
 	} catch (e) {
 		logger.error(
 			"[controlInterface] Error during Rive instance construction:",
-			e,
+			e
 		);
 		if (controlsContainer)
 			controlsContainer.innerHTML = `<p>Error constructing Rive: ${e.toString()}</p>`;
@@ -693,7 +1138,7 @@ export function initDynamicControls(parsedDataFromHandler) {
 
 	if (!riveInstance || typeof riveInstance.on !== "function") {
 		logger.error(
-			"Newly created Rive instance is invalid or does not have .on method",
+			"Newly created Rive instance is invalid or does not have .on method"
 		);
 		if (controlsContainer)
 			controlsContainer.innerHTML =
@@ -702,7 +1147,7 @@ export function initDynamicControls(parsedDataFromHandler) {
 	}
 
 	logger.info(
-		"[controlInterface] New Rive instance constructed. Setting up Load/LoadError listeners.",
+		"[controlInterface] New Rive instance constructed. Setting up Load/LoadError listeners."
 	);
 	const EventType = RiveEngine.EventType;
 
@@ -714,7 +1159,7 @@ export function initDynamicControls(parsedDataFromHandler) {
 		} catch (e_resize) {
 			console.error(
 				"[controlInterface] onLoad ERROR during resize:",
-				e_resize,
+				e_resize
 			);
 			if (controlsContainer)
 				controlsContainer.innerHTML =
@@ -725,22 +1170,22 @@ export function initDynamicControls(parsedDataFromHandler) {
 		// Check for ViewModel existence after load and autoBind
 		if (!riveInstance.viewModelInstance && !parsedViewModelName) {
 			logger.info(
-				"[controlInterface] No ViewModel instance found after load and no default VM name parsed.",
+				"[controlInterface] No ViewModel instance found after load and no default VM name parsed."
 			);
 			// structuredControlData will likely be minimal or null
 		} else if (riveInstance.viewModelInstance) {
 			logger.info(
-				"[controlInterface] ViewModel instance found on Rive instance after load.",
+				"[controlInterface] ViewModel instance found on Rive instance after load."
 			);
 		} else if (parsedViewModelName) {
 			logger.warn(
-				`[controlInterface] Parsed default ViewModel name was '${parsedViewModelName}', but no viewModelInstance found after load.`,
+				`[controlInterface] Parsed default ViewModel name was '${parsedViewModelName}', but no viewModelInstance found after load.`
 			);
 		}
 
 		structuredControlData = processDataForControls(
 			parsedRiveData,
-			riveInstance,
+			riveInstance
 		);
 
 		if (
@@ -748,7 +1193,7 @@ export function initDynamicControls(parsedDataFromHandler) {
 			(riveInstance.viewModelInstance || parsedViewModelName)
 		) {
 			logger.error(
-				"[controlInterface] Failed to process data, but a ViewModel was expected/found.",
+				"[controlInterface] Failed to process data, but a ViewModel was expected/found."
 			);
 		}
 
@@ -762,11 +1207,11 @@ export function initDynamicControls(parsedDataFromHandler) {
 				? smToPlay[0]
 				: smToPlay; // Use the actual SM name we tried to play
 			const smControl = structuredControlData.stateMachineControls.find(
-				(sm) => sm.name === targetSMName,
+				(sm) => sm.name === targetSMName
 			);
 			if (smControl && smControl.inputs) {
 				const diagramEnterInput = smControl.inputs.find(
-					(input) => input.name === "Diagram Enter",
+					(input) => input.name === "Diagram Enter"
 				);
 				if (
 					diagramEnterInput &&
@@ -774,7 +1219,7 @@ export function initDynamicControls(parsedDataFromHandler) {
 					diagramEnterInput.liveInput.value !== false
 				) {
 					logger.info(
-						`[controlInterface] Programmatically setting '${targetSMName} -> Diagram Enter' to false.`,
+						`[controlInterface] Programmatically setting '${targetSMName} -> Diagram Enter' to false.`
 					);
 					diagramEnterInput.liveInput.value = false;
 				}
@@ -787,16 +1232,19 @@ export function initDynamicControls(parsedDataFromHandler) {
 		// Note: Window resize listener is now handled by riveParserHandler.js
 		// to avoid conflicts and ensure proper coordination
 
+		// Set up ViewModel event monitoring
+		setupViewModelEventMonitoring();
+
 		// Expose this Rive instance to the window for debugging
 		window.riveInstanceGlobal = riveInstance;
 		logger.info(
-			"[controlInterface] Rive instance exposed as window.riveInstanceGlobal for console debugging.",
+			"[controlInterface] Rive instance exposed as window.riveInstanceGlobal for console debugging."
 		);
 
 		// Initialize Asset Manager with the asset map
 		try {
 			logger.info(
-				`[controlInterface] Initializing Asset Manager with ${assetMap.size} captured assets`,
+				`[controlInterface] Initializing Asset Manager with ${assetMap.size} captured assets`
 			);
 			setAssetMap(assetMap);
 
@@ -805,19 +1253,19 @@ export function initDynamicControls(parsedDataFromHandler) {
 				.then(({ initializeAssetManager }) => {
 					initializeAssetManager(riveInstance);
 					logger.info(
-						"[controlInterface] Asset Manager initialized with Rive instance",
+						"[controlInterface] Asset Manager initialized with Rive instance"
 					);
 				})
 				.catch((error) => {
 					logger.error(
 						"[controlInterface] Error importing Asset Manager:",
-						error,
+						error
 					);
 				});
 		} catch (error) {
 			logger.error(
 				"[controlInterface] Error initializing Asset Manager:",
-				error,
+				error
 			);
 		}
 	});
@@ -825,7 +1273,7 @@ export function initDynamicControls(parsedDataFromHandler) {
 	riveInstance.on(EventType.LoadError, (err) => {
 		logger.error("Rive EventType.LoadError fired:", err);
 		if (controlsContainer)
-			controlsContainer.innerHTML = `<p>Error loading Rive animation (LoadError event): ${err.toString()}</p>`;
+			controlsContainer.innerHTML = `<p>Error loading Rive file: ${err.toString()}</p>`;
 		riveInstance = null; // Clear the instance
 		dynamicControlsInitialized = false;
 	});
@@ -874,6 +1322,7 @@ function setupEventListeners() {
 				"[controlInterface] RIVE JS EVENT: StateChanged Fired",
 				event,
 			);
+			logRiveEvent("StateChanged", event);
 			updateControlsFromRive();
 		});
 	}
@@ -883,6 +1332,7 @@ function setupEventListeners() {
 				"[controlInterface] RIVE JS EVENT: ValueChanged Fired",
 				event,
 			);
+			logRiveEvent("ValueChanged", event);
 			updateControlsFromRive();
 		});
 	}
@@ -892,11 +1342,157 @@ function setupEventListeners() {
 				"[controlInterface] RIVE JS EVENT: RiveEvent (Custom) Fired",
 				event,
 			);
+			logRiveEvent("RiveEvent", event);
 			// We might want to call updateControlsFromRive() here too if custom events can alter VM/SM Input states
 			// updateControlsFromRive();
 		});
 	}
+	
+	// Add listeners for other common Rive events
+	if (EventType.Play) {
+		riveInstance.on(EventType.Play, (event) => {
+			logger.debug(
+				"[controlInterface] RIVE JS EVENT: Play Fired",
+				event,
+			);
+			logRiveEvent("Play", event);
+			
+			// Synchronize button states with Rive events
+			if (window.riveControlInterface) {
+				// Check if this is a timeline or state machine play event
+				const animationName = event.data?.name || event.name;
+				if (animationName === window.riveControlInterface.currentTimeline) {
+					window.riveControlInterface.isTimelinePlaying = true;
+					window.riveControlInterface.updateTimelineButtons();
+				}
+				if (animationName === window.riveControlInterface.currentStateMachine) {
+					window.riveControlInterface.isStateMachineRunning = true;
+					window.riveControlInterface.updateStateMachineButtons();
+				}
+			}
+		});
+	}
+	if (EventType.Pause) {
+		riveInstance.on(EventType.Pause, (event) => {
+			logger.debug(
+				"[controlInterface] RIVE JS EVENT: Pause Fired",
+				event,
+			);
+			logRiveEvent("Pause", event);
+			
+			// Synchronize button states with Rive events
+			if (window.riveControlInterface) {
+				const animationName = event.data?.name || event.name;
+				if (animationName === window.riveControlInterface.currentTimeline) {
+					window.riveControlInterface.isTimelinePlaying = false;
+					window.riveControlInterface.updateTimelineButtons();
+				}
+			}
+		});
+	}
+	if (EventType.Stop) {
+		riveInstance.on(EventType.Stop, (event) => {
+			logger.debug(
+				"[controlInterface] RIVE JS EVENT: Stop Fired",
+				event,
+			);
+			logRiveEvent("Stop", event);
+			
+			// Synchronize button states with Rive events
+			if (window.riveControlInterface) {
+				const animationName = event.data?.name || event.name;
+				if (animationName === window.riveControlInterface.currentTimeline) {
+					window.riveControlInterface.isTimelinePlaying = false;
+					window.riveControlInterface.updateTimelineButtons();
+				}
+				if (animationName === window.riveControlInterface.currentStateMachine) {
+					window.riveControlInterface.isStateMachineRunning = false;
+					window.riveControlInterface.updateStateMachineButtons();
+				}
+			}
+		});
+	}
+	if (EventType.Loop) {
+		riveInstance.on(EventType.Loop, (event) => {
+			logger.debug(
+				"[controlInterface] RIVE JS EVENT: Loop Fired",
+				event,
+			);
+			logRiveEvent("Loop", event);
+		});
+	}
+	if (EventType.Load) {
+		riveInstance.on(EventType.Load, (event) => {
+			logger.debug(
+				"[controlInterface] RIVE JS EVENT: Load Fired",
+				event,
+			);
+			logRiveEvent("Load", event);
+		});
+	}
+	if (EventType.LoadError) {
+		riveInstance.on(EventType.LoadError, (event) => {
+			logger.debug(
+				"[controlInterface] RIVE JS EVENT: LoadError Fired",
+				event,
+			);
+			logRiveEvent("LoadError", event);
+		});
+	}
+	// Frame events are disabled by default due to high frequency
+	// Only enable if explicitly requested
+	if (logFrameEvents) {
+		if (EventType.Draw) {
+			riveInstance.on(EventType.Draw, (event) => {
+				logger.debug(
+					"[controlInterface] RIVE JS EVENT: Draw Fired",
+					event,
+				);
+				logRiveEvent("Draw", event);
+			});
+		}
+		if (EventType.Advance) {
+			riveInstance.on(EventType.Advance, (event) => {
+				logger.debug(
+					"[controlInterface] RIVE JS EVENT: Advance Fired",
+					event,
+				);
+				logRiveEvent("Advance", event);
+			});
+		}
+	}
 	// Any other specific events from Rive docs can be added here if needed.
+}
+
+/**
+ * Sets up monitoring for ViewModel property changes (including nested ViewModels)
+ * Now using a safer approach that monitors through UI controls
+ */
+function setupViewModelEventMonitoring() {
+	if (!riveInstance || !riveInstance.viewModelInstance) {
+		logger.debug("[controlInterface] No ViewModel instance available for monitoring");
+		return;
+	}
+
+	logger.info("[controlInterface] Setting up safe ViewModel event monitoring");
+	
+	// Instead of monitoring all properties directly, we'll monitor through the UI controls
+	// This prevents infinite loops and only captures actual user interactions
+	setupViewModelUIMonitoring();
+}
+
+
+
+
+
+/**
+ * Sets up ViewModel monitoring through UI controls (safer approach)
+ * This monitors when users interact with ViewModel controls rather than all property changes
+ */
+function setupViewModelUIMonitoring() {
+	// We'll add event listeners to the ViewModel controls after they're created
+	// This happens in the createControlForProperty function
+	logger.debug("[controlInterface] ViewModel UI monitoring will be set up when controls are created");
 }
 
 /**
@@ -930,6 +1526,265 @@ function buildControlsUI() {
 	const mainTitle = document.createElement("h3");
 	mainTitle.textContent = "Live Rive Controls";
 	controlsContainer.appendChild(mainTitle);
+
+	// Add Rive Event Logging section
+	const eventLoggingSection = document.createElement("details");
+	eventLoggingSection.className = "control-section";
+	eventLoggingSection.open = false;
+
+	const eventLoggingSummary = document.createElement("summary");
+	eventLoggingSummary.innerHTML = `
+		Rive Event Logging
+		<button class="help-button" id="eventLoggingHelpBtn" title="Help">
+			<span>?</span>
+		</button>
+	`;
+	eventLoggingSection.appendChild(eventLoggingSummary);
+
+	// Main enable/disable toggle
+	const eventDisplayRow = document.createElement("div");
+	eventDisplayRow.className = "toggle-row";
+	
+	const eventToggle = document.createElement("label");
+	eventToggle.className = "toggle-switch master-toggle";
+	eventToggle.innerHTML = `
+		<input type="checkbox" id="displayRiveEventsCheckbox" ${displayRiveEvents ? 'checked' : ''}>
+		<span class="toggle-slider"></span>
+	`;
+	
+	const eventCheckbox = eventToggle.querySelector('input');
+	eventCheckbox.addEventListener("change", () => {
+		displayRiveEvents = eventCheckbox.checked;
+		logger.info(`[controlInterface] Rive event logging ${displayRiveEvents ? 'enabled' : 'disabled'}`);
+		
+		// Save the setting to localStorage
+		try {
+			localStorage.setItem('riveDisplayEvents', JSON.stringify(displayRiveEvents));
+		} catch (e) {
+			logger.warn("[controlInterface] Error saving event logging settings:", e);
+		}
+		
+		// Clear console and show disabled message when turning off
+		if (!displayRiveEvents) {
+			// Clear the event console messages
+			eventConsoleMessages.length = 0;
+			
+			// Update event console with disabled message
+			const consoleElement = document.getElementById('eventConsoleContent');
+			if (consoleElement) {
+				consoleElement.innerHTML = '<div class="event-disabled-message">🚫 Event logging is disabled</div>';
+			}
+			
+			logger.info("[controlInterface] Event console cleared - logging disabled");
+		} else {
+			// When re-enabling, clear the disabled message
+			const consoleElement = document.getElementById('eventConsoleContent');
+			if (consoleElement) {
+				consoleElement.innerHTML = '<div class="event-enabled-message">✅ Event logging enabled - waiting for events...</div>';
+			}
+			
+			logger.info("[controlInterface] Event logging re-enabled");
+		}
+		
+		// Show a brief confirmation in status bar
+		const statusMessageDiv = document.getElementById("statusMessage");
+		if (statusMessageDiv) {
+			statusMessageDiv.textContent = `🔧 Rive event logging ${displayRiveEvents ? 'enabled' : 'disabled'}`;
+			setTimeout(() => {
+				if (statusMessageDiv.textContent.includes('event logging')) {
+					statusMessageDiv.textContent = "Ready";
+				}
+			}, 2000);
+		}
+	});
+
+	const eventLabel = document.createElement("label");
+	eventLabel.htmlFor = "displayRiveEventsCheckbox";
+	eventLabel.className = "toggle-label";
+	eventLabel.textContent = "Enable Event Logging";
+
+	eventDisplayRow.appendChild(eventToggle);
+	eventDisplayRow.appendChild(eventLabel);
+	eventLoggingSection.appendChild(eventDisplayRow);
+
+	// Custom Events toggle
+	const customEventsRow = document.createElement("div");
+	customEventsRow.className = "toggle-row";
+	
+	const customEventsToggle = document.createElement("label");
+	customEventsToggle.className = "toggle-switch compact";
+	customEventsToggle.innerHTML = `
+		<input type="checkbox" id="logCustomEventsCheckbox" ${logCustomEvents ? 'checked' : ''}>
+		<span class="toggle-slider"></span>
+	`;
+	
+	const customEventsCheckbox = customEventsToggle.querySelector('input');
+	customEventsCheckbox.addEventListener("change", () => {
+		logCustomEvents = customEventsCheckbox.checked;
+		logger.info(`[controlInterface] Custom event logging ${logCustomEvents ? 'enabled' : 'disabled'}`);
+		
+		// Save the setting to localStorage
+		try {
+			localStorage.setItem('riveLogCustomEvents', JSON.stringify(logCustomEvents));
+		} catch (e) {
+			logger.warn("[controlInterface] Error saving custom events setting:", e);
+		}
+	});
+
+	const customEventsLabel = document.createElement("label");
+	customEventsLabel.htmlFor = "logCustomEventsCheckbox";
+	customEventsLabel.className = "toggle-label";
+	customEventsLabel.textContent = "Log Custom Events";
+
+	customEventsRow.appendChild(customEventsToggle);
+	customEventsRow.appendChild(customEventsLabel);
+	eventLoggingSection.appendChild(customEventsRow);
+
+	// State Change Events toggle
+	const stateChangeEventsRow = document.createElement("div");
+	stateChangeEventsRow.className = "toggle-row";
+	
+	const stateChangeEventsToggle = document.createElement("label");
+	stateChangeEventsToggle.className = "toggle-switch compact";
+	stateChangeEventsToggle.innerHTML = `
+		<input type="checkbox" id="logStateChangeEventsCheckbox" ${logStateChangeEvents ? 'checked' : ''}>
+		<span class="toggle-slider"></span>
+	`;
+	
+	const stateChangeEventsCheckbox = stateChangeEventsToggle.querySelector('input');
+	stateChangeEventsCheckbox.addEventListener("change", () => {
+		logStateChangeEvents = stateChangeEventsCheckbox.checked;
+		logger.info(`[controlInterface] State change event logging ${logStateChangeEvents ? 'enabled' : 'disabled'}`);
+		
+		// Save the setting to localStorage
+		try {
+			localStorage.setItem('riveLogStateChangeEvents', JSON.stringify(logStateChangeEvents));
+		} catch (e) {
+			logger.warn("[controlInterface] Error saving state change events setting:", e);
+		}
+	});
+
+	const stateChangeEventsLabel = document.createElement("label");
+	stateChangeEventsLabel.htmlFor = "logStateChangeEventsCheckbox";
+	stateChangeEventsLabel.className = "toggle-label";
+	stateChangeEventsLabel.textContent = "Log State Change Events";
+
+	stateChangeEventsRow.appendChild(stateChangeEventsToggle);
+	stateChangeEventsRow.appendChild(stateChangeEventsLabel);
+	eventLoggingSection.appendChild(stateChangeEventsRow);
+
+	// Nested ViewModel Events toggle
+	const nestedViewModelEventsRow = document.createElement("div");
+	nestedViewModelEventsRow.className = "toggle-row";
+	
+	const nestedViewModelEventsToggle = document.createElement("label");
+	nestedViewModelEventsToggle.className = "toggle-switch compact";
+	nestedViewModelEventsToggle.innerHTML = `
+		<input type="checkbox" id="logNestedViewModelEventsCheckbox" ${logNestedViewModelEvents ? 'checked' : ''}>
+		<span class="toggle-slider"></span>
+	`;
+	
+	const nestedViewModelEventsCheckbox = nestedViewModelEventsToggle.querySelector('input');
+	nestedViewModelEventsCheckbox.addEventListener("change", () => {
+		logNestedViewModelEvents = nestedViewModelEventsCheckbox.checked;
+		logger.info(`[controlInterface] Nested ViewModel event logging ${logNestedViewModelEvents ? 'enabled' : 'disabled'}`);
+		
+		// Save the setting to localStorage
+		try {
+			localStorage.setItem('riveLogNestedViewModelEvents', JSON.stringify(logNestedViewModelEvents));
+		} catch (e) {
+			logger.warn("[controlInterface] Error saving nested ViewModel events setting:", e);
+		}
+	});
+
+	const nestedViewModelEventsLabel = document.createElement("label");
+	nestedViewModelEventsLabel.htmlFor = "logNestedViewModelEventsCheckbox";
+	nestedViewModelEventsLabel.className = "toggle-label";
+	nestedViewModelEventsLabel.textContent = "Log Nested ViewModel Events";
+
+	nestedViewModelEventsRow.appendChild(nestedViewModelEventsToggle);
+	nestedViewModelEventsRow.appendChild(nestedViewModelEventsLabel);
+	eventLoggingSection.appendChild(nestedViewModelEventsRow);
+
+	// Playback Events toggle
+	const playbackEventsRow = document.createElement("div");
+	playbackEventsRow.className = "toggle-row";
+	
+	const playbackEventsToggle = document.createElement("label");
+	playbackEventsToggle.className = "toggle-switch compact";
+	playbackEventsToggle.innerHTML = `
+		<input type="checkbox" id="logPlaybackEventsCheckbox" ${logPlaybackEvents ? 'checked' : ''}>
+		<span class="toggle-slider"></span>
+	`;
+	
+	const playbackEventsCheckbox = playbackEventsToggle.querySelector('input');
+	playbackEventsCheckbox.addEventListener("change", () => {
+		logPlaybackEvents = playbackEventsCheckbox.checked;
+		logger.info(`[controlInterface] Playback event logging ${logPlaybackEvents ? 'enabled' : 'disabled'}`);
+		
+		// Save the setting to localStorage
+		try {
+			localStorage.setItem('riveLogPlaybackEvents', JSON.stringify(logPlaybackEvents));
+		} catch (e) {
+			logger.warn("[controlInterface] Error saving playback events setting:", e);
+		}
+	});
+
+	const playbackEventsLabel = document.createElement("label");
+	playbackEventsLabel.htmlFor = "logPlaybackEventsCheckbox";
+	playbackEventsLabel.className = "toggle-label";
+	playbackEventsLabel.textContent = "Log Playback Events";
+
+	playbackEventsRow.appendChild(playbackEventsToggle);
+	playbackEventsRow.appendChild(playbackEventsLabel);
+	eventLoggingSection.appendChild(playbackEventsRow);
+
+	// System Events toggle
+	const systemEventsRow = document.createElement("div");
+	systemEventsRow.className = "toggle-row";
+	
+	const systemEventsToggle = document.createElement("label");
+	systemEventsToggle.className = "toggle-switch compact";
+	systemEventsToggle.innerHTML = `
+		<input type="checkbox" id="logSystemEventsCheckbox" ${logSystemEvents ? 'checked' : ''}>
+		<span class="toggle-slider"></span>
+	`;
+	
+	const systemEventsCheckbox = systemEventsToggle.querySelector('input');
+	systemEventsCheckbox.addEventListener("change", () => {
+		logSystemEvents = systemEventsCheckbox.checked;
+		logger.info(`[controlInterface] System event logging ${logSystemEvents ? 'enabled' : 'disabled'}`);
+		
+		// Save the setting to localStorage
+		try {
+			localStorage.setItem('riveLogSystemEvents', JSON.stringify(logSystemEvents));
+		} catch (e) {
+			logger.warn("[controlInterface] Error saving system events setting:", e);
+		}
+	});
+
+	const systemEventsLabel = document.createElement("label");
+	systemEventsLabel.htmlFor = "logSystemEventsCheckbox";
+	systemEventsLabel.className = "toggle-label";
+	systemEventsLabel.textContent = "Log System Events";
+
+	systemEventsRow.appendChild(systemEventsToggle);
+	systemEventsRow.appendChild(systemEventsLabel);
+	eventLoggingSection.appendChild(systemEventsRow);
+
+	// Add help button event listener
+	setTimeout(() => {
+		const helpBtn = document.getElementById("eventLoggingHelpBtn");
+		if (helpBtn) {
+			helpBtn.addEventListener("click", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				showEventLoggingHelp();
+			});
+		}
+	}, 100);
+
+	controlsContainer.appendChild(eventLoggingSection);
 
 	// Add header with active information
 	const infoDiv = document.createElement("div");
@@ -1012,7 +1867,7 @@ function buildControlsUI() {
 function buildStateMachineControls(container, stateMachines) {
 	const smSection = document.createElement("details");
 	smSection.className = "control-section";
-	smSection.open = true;
+	smSection.open = false;
 
 	const smSummary = document.createElement("summary");
 	smSummary.textContent = "State Machine Controls";
@@ -1098,7 +1953,7 @@ function buildViewModelControls(container, viewModels, parentPath = "") {
 		// logger.debug(`Building controls for VM: ${vm.instanceName} (Path: ${currentVmPath})`);
 		const vmDetails = document.createElement("details");
 		vmDetails.className = "control-section"; // Use the same class as top-level sections
-		vmDetails.open = true;
+		vmDetails.open = false;
 
 		const vmSummary = document.createElement("summary");
 		vmSummary.textContent = `VM: ${vm.instanceName} ${vm.blueprintName ? `(${vm.blueprintName})` : ""}`;
@@ -1109,7 +1964,13 @@ function buildViewModelControls(container, viewModels, parentPath = "") {
 			// logger.debug(`Adding ${vm.properties.length} properties for ${vm.instanceName}`);
 			vm.properties.forEach((prop) => {
 				const propPath = `${currentVmPath}/${prop.name}`;
-				const ctrl = createControlForProperty(prop); // createControlForProperty doesn't need the path
+				const vmContext = {
+					instanceName: vm.instanceName,
+					blueprintName: vm.blueprintName,
+					path: currentVmPath,
+					isNested: parentPath !== ""
+				};
+				const ctrl = createControlForProperty(prop, vmContext);
 				if (ctrl) {
 					vmDetails.appendChild(
 						makeRow(prop.name, ctrl, prop.type, propPath),
@@ -1166,7 +2027,13 @@ function buildNestedViewModelControls(
 		if (vm.properties && vm.properties.length > 0) {
 			vm.properties.forEach((prop) => {
 				const propPath = `${currentVmPath}/${prop.name}`;
-				const ctrl = createControlForProperty(prop);
+				const vmContext = {
+					instanceName: vm.instanceName,
+					blueprintName: vm.blueprintName || vm.instanceName,
+					path: currentVmPath,
+					isNested: true
+				};
+				const ctrl = createControlForProperty(prop, vmContext);
 				if (ctrl) {
 					nestedDetails.appendChild(
 						makeRow(prop.name, ctrl, prop.type, propPath),
@@ -1423,6 +2290,16 @@ class RiveControlInterface {
 		this.scaleUpBtn = document.getElementById("scaleUpBtn");
 		this.scaleDownBtn = document.getElementById("scaleDownBtn");
 
+		// Initialize button symbols and states
+		if (this.playTimelineBtn) {
+			this.playTimelineBtn.innerHTML = "▶";
+			this.playTimelineBtn.setAttribute("data-state", "stopped");
+		}
+		if (this.playStateMachineBtn) {
+			this.playStateMachineBtn.innerHTML = "▶";
+			this.playStateMachineBtn.setAttribute("data-state", "stopped");
+		}
+
 		// State management
 		this.state = {
 			fileLoaded: false,
@@ -1632,8 +2509,15 @@ class RiveControlInterface {
 				return;
 			}
 
+			// Ensure we have access to the Rive engine
+			const riveEngine = window.rive;
+			if (!riveEngine) {
+				this.showNotification("Rive engine not available", "error");
+				return;
+			}
+
 			// Create new Rive instance
-			this.riveInstance = new rive.Rive({
+			this.riveInstance = new riveEngine.Rive({
 				buffer: arrayBuffer,
 				canvas: canvas,
 				autoplay: false,
@@ -1830,9 +2714,9 @@ class RiveControlInterface {
 
 	updateTimelineButtons() {
 		if (this.playTimelineBtn) {
-			this.playTimelineBtn.textContent = this.isTimelinePlaying
-				? "Stop"
-				: "Play";
+			// Use flat Unicode symbols instead of emoji
+			const icon = this.isTimelinePlaying ? "■" : "▶";
+			this.playTimelineBtn.innerHTML = icon;
 			this.playTimelineBtn.setAttribute(
 				"data-state",
 				this.isTimelinePlaying ? "playing" : "stopped",
@@ -1877,13 +2761,14 @@ class RiveControlInterface {
 				this.state.stateMachineRunning = true;
 
 				this.updateStateMachineButtons();
-				this.resetLoadingState(this.playStateMachineBtn, "Stop");
 				this.showNotification(
 					`State machine "${this.currentStateMachine}" started`,
 					"success",
 				);
 			} catch (error) {
-				this.resetLoadingState(this.playStateMachineBtn, "Play");
+				this.isStateMachineRunning = false;
+				this.state.stateMachineRunning = false;
+				this.updateStateMachineButtons();
 				this.showNotification(
 					`Failed to start state machine: ${error.message}`,
 					"error",
@@ -1913,9 +2798,9 @@ class RiveControlInterface {
 
 	updateStateMachineButtons() {
 		if (this.playStateMachineBtn) {
-			this.playStateMachineBtn.textContent = this.isStateMachineRunning
-				? "Stop"
-				: "Play";
+			// Use flat Unicode symbols instead of emoji
+			const icon = this.isStateMachineRunning ? "■" : "▶";
+			this.playStateMachineBtn.innerHTML = icon;
 			this.playStateMachineBtn.setAttribute(
 				"data-state",
 				this.isStateMachineRunning ? "playing" : "stopped",
@@ -2036,35 +2921,42 @@ class RiveControlInterface {
 		if (!this.riveInstance) return;
 
 		try {
+			// Ensure we have access to the Rive engine
+			const riveEngine = window.rive;
+			if (!riveEngine) {
+				console.warn("Rive engine not available");
+				return;
+			}
+
 			// Map string values to Rive enums
 			const fitMap = {
-				contain: rive.Fit.Contain,
-				cover: rive.Fit.Cover,
-				fill: rive.Fit.Fill,
-				fitWidth: rive.Fit.FitWidth,
-				fitHeight: rive.Fit.FitHeight,
-				scaleDown: rive.Fit.ScaleDown,
-				none: rive.Fit.None,
-				layout: rive.Fit.Layout,
+				contain: riveEngine.Fit.Contain,
+				cover: riveEngine.Fit.Cover,
+				fill: riveEngine.Fit.Fill,
+				fitWidth: riveEngine.Fit.FitWidth,
+				fitHeight: riveEngine.Fit.FitHeight,
+				scaleDown: riveEngine.Fit.ScaleDown,
+				none: riveEngine.Fit.None,
+				layout: riveEngine.Fit.Layout,
 			};
 
 			const alignmentMap = {
-				center: rive.Alignment.Center,
-				topLeft: rive.Alignment.TopLeft,
-				topCenter: rive.Alignment.TopCenter,
-				topRight: rive.Alignment.TopRight,
-				centerLeft: rive.Alignment.CenterLeft,
-				centerRight: rive.Alignment.CenterRight,
-				bottomLeft: rive.Alignment.BottomLeft,
-				bottomCenter: rive.Alignment.BottomCenter,
-				bottomRight: rive.Alignment.BottomRight,
+				center: riveEngine.Alignment.Center,
+				topLeft: riveEngine.Alignment.TopLeft,
+				topCenter: riveEngine.Alignment.TopCenter,
+				topRight: riveEngine.Alignment.TopRight,
+				centerLeft: riveEngine.Alignment.CenterLeft,
+				centerRight: riveEngine.Alignment.CenterRight,
+				bottomLeft: riveEngine.Alignment.BottomLeft,
+				bottomCenter: riveEngine.Alignment.BottomCenter,
+				bottomRight: riveEngine.Alignment.BottomRight,
 			};
 
 			// Create layout configuration
 			const layoutConfig = {
-				fit: fitMap[this.state.fitMode] || rive.Fit.Contain,
+				fit: fitMap[this.state.fitMode] || riveEngine.Fit.Contain,
 				alignment:
-					alignmentMap[this.state.alignment] || rive.Alignment.Center,
+					alignmentMap[this.state.alignment] || riveEngine.Alignment.Center,
 			};
 
 			// Add layout scale factor if using Layout fit mode
@@ -2073,7 +2965,7 @@ class RiveControlInterface {
 			}
 
 			// Apply fit mode and alignment
-			this.riveInstance.layout = new rive.Layout(layoutConfig);
+			this.riveInstance.layout = new riveEngine.Layout(layoutConfig);
 
 			// Apply background color
 			const canvas = document.getElementById("rive-canvas");
@@ -2099,7 +2991,13 @@ class RiveControlInterface {
 	resetLoadingState(button, originalText) {
 		if (button) {
 			button.disabled = false;
-			button.textContent = originalText;
+			// Check if this is a play/stop button and use flat Unicode symbols
+			if (button.id === "toggleTimelineBtn" || button.id === "toggleStateMachineBtn") {
+				const icon = originalText === "Stop" ? "■" : "▶";
+				button.innerHTML = icon;
+			} else {
+				button.textContent = originalText;
+			}
 			button.style.opacity = "1";
 		}
 	}

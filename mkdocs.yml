@@ -90,7 +90,9 @@ nav:
       - Asset Manager: guide/asset-manager.md
   - Advanced:
       - Debugging: advanced/debugging.md
+      - Debugger Fixes: advanced/debugger-fixes.md
       - Runtime Controls: advanced/runtime-controls.md
+      - Event Mapper: advanced/event-mapper.md
   - Development:
       - Versioning: development/versioning.md
   - Deployment:

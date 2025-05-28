@@ -222,6 +222,15 @@ export const LoggerAPI = {
 		defaultLogger.info(`Logging ${enabled ? "enabled" : "disabled"}`);
 	},
 
+	// Get current global enabled state
+	isEnabled: () => config.enabled,
+
+	// Get current module level
+	getModuleLevel: (moduleName) => moduleConfig[moduleName] || moduleConfig.default || config.defaultLevel,
+
+	// Get all current module levels
+	getAllLevels: () => ({ ...moduleConfig }),
+
 	// Configure the logger system
 	configure: configureLogger,
 

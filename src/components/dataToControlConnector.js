@@ -571,7 +571,8 @@ export function processDataForControls(parsedData, riveInstance) {
 	// IMPORTANT: Move the default ViewModel name log to be the absolute last thing
 	if (mainViewModelInstance) {
 		const vmName = mainViewModelInstance.name || " ";
-		console.dir(mainViewModelInstance);
+		// Use logger instead of console.dir and respect global logging state
+		logger.debug("ViewModelInstance details:", mainViewModelInstance);
 		const vmSourceInfo = activeViewModelName || "Default Instance";
 		// Add timeout to ensure this is the absolute last log (with longer delay)
 		setTimeout(() => {

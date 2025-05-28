@@ -1,0 +1,256 @@
+/* ===== EVENT CONSOLE STYLES ===== */
+
+/* Event Console Container */
+#eventConsoleContainer,
+#eventConsoleComponent {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	background-color: #000000;
+	color: #00ff41;
+	font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+/* Event Console Panel Styling */
+.event-console-panel {
+	background: #000000;
+	color: #00ff41;
+	font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+	font-size: 13px;
+	line-height: 1.4;
+	padding: 0;
+	margin: 0;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+/* Compact Header */
+.event-console-header {
+	background: #1a1a1a;
+	border-bottom: 1px solid #333;
+	padding: 6px 12px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-shrink: 0;
+	min-height: 32px;
+}
+
+.event-console-title {
+	color: #00ff41;
+	font-size: 14px;
+	font-weight: bold;
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.event-console-title::before {
+	content: '>_';
+	font-size: 12px;
+}
+
+/* Clear Button */
+.event-console-clear {
+	background: transparent;
+	border: 1px solid #00ff41;
+	color: #00ff41;
+	padding: 4px 8px;
+	font-size: 11px;
+	font-family: inherit;
+	cursor: pointer;
+	border-radius: 3px;
+	transition: all 0.2s ease;
+}
+
+.event-console-clear:hover {
+	background: #00ff41;
+	color: #000000;
+}
+
+/* Content Area with Scrollbar */
+.event-console-content {
+	flex: 1;
+	padding: 8px 5px;
+	overflow-y: auto;
+	overflow-x: hidden;
+	background: #000000;
+	box-sizing: border-box;
+	
+	/* Force scrollbar to always show */
+	scrollbar-width: thin;
+	scrollbar-color: #444 #1a1a1a;
+	
+	/* Ensure proper height calculation for flex */
+	min-height: 0;
+	max-height: 100%;
+}
+
+/* Webkit scrollbar styling */
+.event-console-content::-webkit-scrollbar {
+	width: 8px;
+}
+
+.event-console-content::-webkit-scrollbar-track {
+	background: #1a1a1a;
+	border-radius: 4px;
+}
+
+.event-console-content::-webkit-scrollbar-thumb {
+	background: #444;
+	border-radius: 4px;
+	border: 1px solid #000000;
+}
+
+.event-console-content::-webkit-scrollbar-thumb:hover {
+	background: #666;
+}
+
+/* Ensure consistent font sizing for all content */
+.event-console-content * {
+	font-size: 11px !important;
+	font-family: 'Courier New', 'Monaco', 'Menlo', monospace !important;
+	line-height: 1.3 !important;
+}
+
+/* Event message styling with scrolling text */
+.event-message {
+	display: flex;
+	align-items: center;
+	margin-bottom: 1px;
+	height: 14px;
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+.event-timestamp {
+	flex-shrink: 0;
+	margin-right: 8px;
+	color: #666;
+	font-size: 11px;
+}
+
+.event-text {
+	flex: 1;
+	overflow: hidden;
+	white-space: nowrap;
+	position: relative;
+}
+
+.event-text-content {
+	display: inline-block;
+	white-space: nowrap;
+	animation: none;
+}
+
+/* Scrolling animation for long text */
+.event-text.scrolling .event-text-content {
+	animation: scroll-text 8s linear infinite;
+}
+
+@keyframes scroll-text {
+	0% { transform: translateX(0); }
+	20% { transform: translateX(0); }
+	80% { transform: translateX(calc(-100% + 100px)); }
+	100% { transform: translateX(calc(-100% + 100px)); }
+}
+
+
+
+/* Empty state */
+.event-console-content:empty::before {
+	content: 'Event console ready... Waiting for events.';
+	color: #666;
+	font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.event-console-header {
+		padding: 4px 8px;
+	}
+	
+	.event-console-content {
+		padding: 6px 8px;
+		font-size: 12px;
+	}
+	
+	.event-console-content * {
+		font-size: 12px !important;
+	}
+}
+
+/* Event status messages */
+.event-disabled-message,
+.event-enabled-message {
+	padding: 16px;
+	text-align: center;
+	font-family: 'Courier New', Monaco, Menlo, monospace;
+	font-size: 0.9rem;
+	font-weight: 500;
+	border-radius: 4px;
+	margin: 8px;
+}
+
+.event-disabled-message {
+	background: rgba(220, 38, 38, 0.1);
+	color: #fca5a5;
+	border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.event-enabled-message {
+	background: rgba(5, 150, 105, 0.1);
+	color: #6ee7b7;
+	border: 1px solid rgba(5, 150, 105, 0.3);
+}
+
+/* Event message styling */
+.event-message {
+	margin-bottom: 2px;
+	color: #00ff41;
+}
+
+.event-message.error {
+	color: #ff4444;
+}
+
+.event-message.warning {
+	color: #ffaa00;
+}
+
+.event-message.info {
+	color: #44aaff;
+}
+
+/* Event category color coding (subtle background highlights) */
+.event-console-content .event-lifecycle {
+	background-color: rgba(76, 175, 80, 0.1);
+}
+
+.event-console-content .event-error {
+	background-color: rgba(244, 67, 54, 0.1);
+}
+
+.event-console-content .event-playback {
+	background-color: rgba(33, 150, 243, 0.1);
+}
+
+.event-console-content .event-frame {
+	background-color: rgba(255, 152, 0, 0.1);
+}
+
+.event-console-content .event-state {
+	background-color: rgba(156, 39, 176, 0.1);
+}
+
+.event-console-content .event-custom {
+	background-color: rgba(0, 188, 212, 0.1);
+}
+
+.event-console-content .event-system {
+	background-color: rgba(96, 125, 139, 0.1);
+} 

@@ -78,14 +78,15 @@ const defaultLayoutConfig = {
 							type: "component",
 							componentName: "dynamicControls",
 							title: "Dynamic Controls",
-							width: 20,
+							width: 25,
 						},
 						{
 							type: "component",
 							componentName: "assetManager",
 							title: "Asset Manager",
-							width: 20,
+							width: 15,
 						},
+						// Event Console panel removed from default layout - will be available in restore menu
 					],
 				},
 			],
@@ -290,6 +291,75 @@ const componentFactories = {
 			logger.error("Error creating assetManager component:", error);
 		}
 	},
+
+	eventConsole: function (container, componentState) {
+		try {
+			const template = document.getElementById("eventConsoleTemplate");
+			if (!template) {
+				logger.error("eventConsoleTemplate not found");
+				return;
+			}
+
+			const content = template.cloneNode(true);
+			content.style.display = "block";
+			content.id = "eventConsoleComponent";
+
+			// Get the DOM element from jQuery wrapper
+			const element = container.getElement();
+			if (element && element.length > 0) {
+				element[0].appendChild(content);
+			} else if (element && element.appendChild) {
+				element.appendChild(content);
+			}
+
+			// Initialize the event console with proper state
+			setTimeout(() => {
+				// Load saved event logging settings to determine initial state
+				let displayRiveEvents = false; // Default
+				try {
+					const savedDisplayEvents = localStorage.getItem("riveDisplayEvents");
+					if (savedDisplayEvents !== null) {
+						displayRiveEvents = JSON.parse(savedDisplayEvents);
+					}
+				} catch (e) {
+					logger.warn("Error loading saved event display setting:", e);
+				}
+
+				// Set initial console message based on settings
+				const consoleContent = content.querySelector("#eventConsoleContent");
+				if (consoleContent) {
+					if (displayRiveEvents) {
+						consoleContent.innerHTML = '<div class="event-enabled-message">✅ Event logging enabled - waiting for events...</div>';
+						logger.debug("[goldenLayout] Event console initialized in enabled state");
+					} else {
+						consoleContent.innerHTML = '<div class="event-disabled-message">🚫 Event logging is disabled</div>';
+						logger.debug("[goldenLayout] Event console initialized in disabled state");
+					}
+				}
+
+				// Set up clear button functionality
+				const clearBtn = content.querySelector("#clearEventConsoleBtn");
+				if (clearBtn) {
+					clearBtn.addEventListener("click", () => {
+						// Clear the event console messages
+						if (window.clearEventConsole) {
+							window.clearEventConsole();
+						} else {
+							// Fallback: clear the content directly
+							const consoleContent = content.querySelector("#eventConsoleContent");
+							if (consoleContent) {
+								consoleContent.textContent = "Event console cleared.";
+							}
+						}
+					});
+				}
+			}, 50); // Reduced timeout for faster initialization
+
+			logger.info("Event Console component created");
+		} catch (error) {
+			logger.error("Error creating eventConsole component:", error);
+		}
+	},
 };
 
 /**
@@ -334,6 +404,10 @@ export function initializeGoldenLayout() {
 		goldenLayout.registerComponent(
 			"assetManager",
 			componentFactories.assetManager,
+		);
+		goldenLayout.registerComponent(
+			"eventConsole",
+			componentFactories.eventConsole,
 		);
 
 		logger.info("All components registered successfully");
@@ -485,6 +559,11 @@ function initializeJSONEditor(container) {
 		modes: ["tree", "view", "code", "text", "preview"],
 		search: true,
 		enableTransform: false,
+		// Use API configuration for compact display instead of CSS overrides
+		indentation: 1, // Use 2 spaces for indentation (more compact than default 4)
+		escapeControlCharacters: false, // Don't escape control characters for more compact display
+		escapeUnicodeCharacters: false, // Don't escape unicode for more compact display
+		// Configure the editor for more compact tree view
 		onNodeName: function ({ path, type, size, value }) {
 			if (type === "object") {
 				if (value && typeof value === "object" && size > 0) {
@@ -502,16 +581,12 @@ function initializeJSONEditor(container) {
 						}
 					}
 				}
-				return undefined;
-			}
-			if (type === "array") {
-				return `Array [${size}]`;
 			}
 			return undefined;
 		},
 		onError: function (err) {
-			logger.error("JSONEditor Error:", err.toString());
-		},
+			logger.error("JSONEditor error:", err);
+		}
 	};
 
 	try {
@@ -519,20 +594,172 @@ function initializeJSONEditor(container) {
 			message: "Please select a Rive file to parse.",
 		});
 
-		// Force resize after initialization
+		// Add save button to the menu after JSONEditor is created
 		setTimeout(() => {
-			if (
-				jsonEditorInstance &&
-				typeof jsonEditorInstance.resize === "function"
-			) {
-				jsonEditorInstance.resize();
+			const menu = container.querySelector('.jsoneditor-menu');
+			if (menu) {
+				// Create save button
+				const saveButton = document.createElement('button');
+				saveButton.className = 'jsoneditor-save-button';
+				saveButton.disabled = true; // Start disabled
+				saveButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 20" fill="currentColor">
+					<path fill-rule="evenodd" d="M7.219 5h2.1V3h-2.1v2zM4.2 16h12.6v-2H4.2v2zm0-4h12.6v-2H4.2v2zm14.7 6H2.1V6.837l2.1-2V8h12.6V2h2.1v16zM6.3 2.837 7.179 2H14.7v4H6.3V2.837zM20.966 0H6.3v.008L4.208 2H4.2v.008L.008 6H0v14h21V0h-.034z"/>
+				</svg>`;
+				saveButton.title = 'Save JSON to file (disabled - no data loaded)';
+				saveButton.addEventListener('click', () => {
+					if (!saveButton.disabled) {
+						saveJSONToFile();
+					}
+				});
+				
+				// Store reference to the save button for enabling/disabling
+				container._saveButton = saveButton;
+				
+				// Insert at the beginning of the menu
+				menu.insertBefore(saveButton, menu.firstChild);
+				logger.info("Save button added to JSONEditor menu (initially disabled)");
+			} else {
+				logger.warn("JSONEditor menu not found for save button");
 			}
-		}, 100);
+		}, 200);
 
-		logger.info("JSONEditor initialized in Golden Layout");
+		logger.info("JSONEditor initialized successfully");
 	} catch (error) {
 		logger.error("Error initializing JSONEditor:", error);
 	}
+}
+
+/**
+ * Get the current Rive filename (without extension)
+ */
+function getCurrentRiveFilename() {
+	// Try to get filename from the file input
+	const fileInput = document.getElementById("riveFilePicker");
+	if (fileInput && fileInput.files && fileInput.files[0]) {
+		const filename = fileInput.files[0].name;
+		// Remove the .riv extension
+		return filename.replace(/\.riv$/i, '');
+	}
+	
+	// Fallback: try to get from the selected file name display
+	const selectedFileName = document.getElementById("selectedFileName");
+	if (selectedFileName && selectedFileName.textContent && selectedFileName.textContent !== "No file selected") {
+		const filename = selectedFileName.textContent;
+		return filename.replace(/\.riv$/i, '');
+	}
+	
+	// Final fallback
+	return "rive-file";
+}
+
+/**
+ * Generate filename for JSON export
+ */
+function generateJSONFilename() {
+	const riveFilename = getCurrentRiveFilename();
+	const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+	return `${riveFilename}_parsed-data_${timestamp}.json`;
+}
+
+/**
+ * Save JSON data to file
+ */
+function saveJSONToFile() {
+	if (!jsonEditorInstance) {
+		logger.warn("No JSONEditor instance available for saving");
+		return;
+	}
+
+	try {
+		// Get the JSON data from the editor
+		const jsonData = jsonEditorInstance.get();
+		
+		// Check if there's actually data to save
+		if (!jsonData || (typeof jsonData === 'object' && Object.keys(jsonData).length === 0)) {
+			logger.warn("No data available to save");
+			if (window.alert) {
+				alert("No data available to save. Please load a Rive file first.");
+			}
+			return;
+		}
+		
+		// Convert to formatted JSON string
+		const jsonString = JSON.stringify(jsonData, null, 2);
+		
+		// Check if the browser supports the File System Access API for better UX
+		if ('showSaveFilePicker' in window) {
+			// Use the modern File System Access API
+			saveWithFileSystemAPI(jsonString);
+		} else {
+			// Fallback to traditional download method
+			saveWithDownloadLink(jsonString);
+		}
+		
+		logger.info("JSON save initiated successfully");
+	} catch (error) {
+		logger.error("Error saving JSON data:", error);
+		
+		// Show user-friendly error message
+		if (window.alert) {
+			alert("Error saving JSON data. Please check the console for details.");
+		}
+	}
+}
+
+/**
+ * Save using the modern File System Access API (Chrome 86+)
+ */
+async function saveWithFileSystemAPI(jsonString) {
+	try {
+		const defaultFilename = generateJSONFilename();
+		
+		const fileHandle = await window.showSaveFilePicker({
+			suggestedName: defaultFilename,
+			types: [{
+				description: 'JSON files',
+				accept: { 'application/json': ['.json'] }
+			}]
+		});
+		
+		const writable = await fileHandle.createWritable();
+		await writable.write(jsonString);
+		await writable.close();
+		
+		logger.info("JSON data saved successfully using File System Access API");
+	} catch (error) {
+		if (error.name === 'AbortError') {
+			logger.info("Save operation cancelled by user");
+		} else {
+			logger.error("Error with File System Access API, falling back to download:", error);
+			saveWithDownloadLink(jsonString);
+		}
+	}
+}
+
+/**
+ * Save using traditional download link method (fallback)
+ */
+function saveWithDownloadLink(jsonString) {
+	// Create a blob with the JSON data
+	const blob = new Blob([jsonString], { type: 'application/json' });
+	
+	// Create a download link
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement('a');
+	link.href = url;
+	
+	// Use the new filename format
+	link.download = generateJSONFilename();
+	
+	// Trigger download
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+	
+	// Clean up the URL object
+	URL.revokeObjectURL(url);
+	
+	logger.info("JSON data saved successfully using download link method");
 }
 
 /**
@@ -542,6 +769,18 @@ export function updateJSONEditor(data) {
 	if (jsonEditorInstance) {
 		try {
 			jsonEditorInstance.set(data || {});
+			
+			// Enable/disable save button based on data availability
+			const container = jsonEditorInstance.container;
+			const saveButton = container._saveButton;
+			if (saveButton) {
+				const hasData = data && Object.keys(data).length > 0;
+				saveButton.disabled = !hasData;
+				saveButton.title = hasData 
+					? 'Save JSON to file' 
+					: 'Save JSON to file (disabled - no data loaded)';
+				logger.debug(`Save button ${hasData ? 'enabled' : 'disabled'} based on data availability`);
+			}
 		} catch (error) {
 			logger.error("Error updating JSONEditor:", error);
 		}
@@ -593,6 +832,7 @@ function addRestoreMenu() {
 		"dynamicControls",
 		"jsonInspector",
 		"assetManager",
+		"eventConsole",
 	];
 	const missingComponents = [];
 	const foundComponents = [];
@@ -649,6 +889,14 @@ function addRestoreMenu() {
                 `,
 					)
 					.join("")}
+                <div class="restore-bar-buttons" style="margin-left: auto;">
+                    <button class="docs-btn" id="docsBtn" title="View Documentation">
+                        📚 Docs
+                    </button>
+                    <button class="layout-reset-btn" id="layoutResetBtn" title="Reset Layout to Default">
+                        🔄 Reset Layout
+                    </button>
+                </div>
             </div>
         `;
 
@@ -661,7 +909,7 @@ function addRestoreMenu() {
 		});
 	}
 
-	// Add event listener for documentation button
+	// Add event listeners for documentation and reset buttons (works for both cases)
 	const docsBtn = bar.querySelector("#docsBtn");
 	if (docsBtn) {
 		docsBtn.addEventListener("click", () => {
@@ -669,7 +917,6 @@ function addRestoreMenu() {
 		});
 	}
 
-	// Add event listener for layout reset button
 	const resetBtn = bar.querySelector("#layoutResetBtn");
 	if (resetBtn) {
 		resetBtn.addEventListener("click", () => {
@@ -742,6 +989,7 @@ function getComponentDisplayName(componentName) {
 		dynamicControls: "Dynamic Controls",
 		jsonInspector: "Rive Parser",
 		assetManager: "Asset Manager",
+		eventConsole: "Event Console",
 	};
 	return names[componentName] || componentName;
 }

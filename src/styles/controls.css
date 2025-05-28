@@ -1210,15 +1210,13 @@
 		--ctrl-panel-strip-height: 50px !important;
 		--ctrl-panel-strip-element-height: 34px !important;
 		--ctrl-panel-strip-btn-width: 34px !important;
+		--ctrl-panel-strip-btn-wide-width: 60px !important;
+		--ctrl-panel-strip-select-width: 100px !important;
+		--ctrl-panel-strip-input-width: 120px !important;
+		--ctrl-panel-strip-color-width: 34px !important;
+		--ctrl-panel-strip-number-width: 80px !important;
 		--ctrl-panel-strip-gap: 6px !important;
 		--ctrl-panel-strip-padding: 6px !important;
-		/* Let calculated widths handle dropdowns */
-		--ctrl-panel-strip-color-width: calc(
-			var(--ctrl-panel-strip-btn-width) * 2
-		) !important;
-		--ctrl-panel-strip-number-width: calc(
-			var(--ctrl-panel-strip-btn-width) * 2
-		) !important;
 	}
 
 	/* Override container query layouts for full width mode */
@@ -1814,12 +1812,112 @@
 
 @media (prefers-reduced-motion: reduce) {
 	* {
-		animation-duration: 0.01ms !important;
-		animation-iteration-count: 1 !important;
-		transition-duration: 0.01ms !important;
+		transition: none !important;
+		animation: none !important;
 	}
 
 	.ctrl-btn :before {
-		display: none;
+		transition: none !important;
 	}
+}
+
+/* Play/Stop Button State Styling */
+/* Timeline and State Machine buttons with state-based colors */
+#toggleTimelineBtn,
+#toggleStateMachineBtn {
+	font-size: 1.2rem;
+	color: white;
+	font-weight: normal;
+	min-width: 40px;
+	justify-content: center;
+	/* Remove Font Awesome styling for these buttons */
+	font-family: system-ui, -apple-system, sans-serif !important;
+}
+
+/* Remove Font Awesome styling from play/stop buttons specifically */
+#toggleTimelineBtn *,
+#toggleStateMachineBtn * {
+	font-family: system-ui, -apple-system, sans-serif !important;
+	font-weight: normal !important;
+}
+
+/* Playing state - Red (Stop) */
+#toggleTimelineBtn[data-state="playing"],
+#toggleStateMachineBtn[data-state="playing"] {
+	background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+	border-color: #ef4444;
+}
+
+#toggleTimelineBtn[data-state="playing"]:hover,
+#toggleStateMachineBtn[data-state="playing"]:hover {
+	background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+	border-color: #dc2626;
+}
+
+/* Stopped state - Green (Play) */
+#toggleTimelineBtn[data-state="stopped"],
+#toggleStateMachineBtn[data-state="stopped"] {
+	background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+	border-color: #10b981;
+}
+
+#toggleTimelineBtn[data-state="stopped"]:hover,
+#toggleStateMachineBtn[data-state="stopped"]:hover {
+	background: linear-gradient(135deg, #059669 0%, #047857 100%);
+	border-color: #059669;
+}
+
+/* Pause Button State Styling */
+#pauseTimelineBtn {
+	font-size: 1.2rem;
+	color: white;
+	font-weight: normal;
+	min-width: 40px;
+	justify-content: center;
+	transition: all 0.3s ease;
+}
+
+/* Inactive state - when animation is stopped */
+#pauseTimelineBtn[data-state="unpaused"]:disabled {
+	background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+	border-color: #6b7280;
+	color: #9ca3af;
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+#pauseTimelineBtn[data-state="unpaused"]:disabled:hover {
+	background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+	transform: none;
+	box-shadow: none;
+}
+
+/* Active state - when animation is playing (dull yellow) */
+#pauseTimelineBtn[data-state="unpaused"]:not(:disabled) {
+	background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+	border-color: #d97706;
+	color: white;
+}
+
+#pauseTimelineBtn[data-state="unpaused"]:not(:disabled):hover {
+	background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+	border-color: #f59e0b;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 15px rgba(217, 119, 6, 0.3);
+}
+
+/* Paused state - when animation is paused (bright yellow) */
+#pauseTimelineBtn[data-state="paused"] {
+	background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+	border-color: #fbbf24;
+	color: #92400e;
+	font-weight: 600;
+	box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+}
+
+#pauseTimelineBtn[data-state="paused"]:hover {
+	background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
+	border-color: #fcd34d;
+	transform: translateY(-1px);
+	box-shadow: 0 6px 20px rgba(251, 191, 36, 0.5);
 }

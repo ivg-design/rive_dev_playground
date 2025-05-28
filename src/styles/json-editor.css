@@ -89,6 +89,93 @@ div.jsoneditor-value.jsoneditor-invalid {
 	color: white;
 }
 
+/* JSON Editor font size override */
+.jsoneditor,
+.jsoneditor td,
+.jsoneditor th,
+.jsoneditor textarea,
+.jsoneditor-field,
+.jsoneditor-value,
+.jsoneditor-preview,
+.jsoneditor-popover,
+.jsoneditor-schema-error {
+    font-size: 11px !important;
+}
+
+.jsoneditor .ace_editor {
+    font-size: 11px !important;
+}
+
+.jsoneditor .autocomplete.dropdown {
+    font-size: 11px !important;
+}
+
+.jsoneditor-contextmenu .jsoneditor-menu button {
+    font-size: 11px !important;
+}
+
+.jsoneditor-modal,
+.jsoneditor-modal #query,
+.jsoneditor-modal input,
+.jsoneditor-modal input[type="text"],
+.jsoneditor-modal option,
+.jsoneditor-modal select,
+.jsoneditor-modal table td,
+.jsoneditor-modal table th,
+.jsoneditor-modal textarea {
+    font-size: 10px !important;
+}
+
+/* Custom styling for the save button in JSONEditor menu */
+.jsoneditor-save-button {
+	background: transparent !important;
+	color: #d4d4d4 !important;
+	border: 1px solid transparent !important;
+	/* padding: 4px 8px !important; */
+	border-radius: 2px !important;
+	cursor: pointer !important;
+	font-size: 11px !important;
+	font-weight: normal !important;
+	font-family: 'droid-sans-mono', 'consolas', 'menlo', 'ubuntu mono', monospace !important;
+	transition: all 0.2s ease !important;
+	margin: 2px 4px !important;
+	height: 26px !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+}
+
+.jsoneditor-save-button svg {
+	width: 25px !important;
+	height: 25px !important;
+	fill: currentColor !important;
+	pointer-events: none !important;
+}
+
+.jsoneditor-save-button:hover {
+	background: rgba(255, 255, 255, 0.1) !important;
+	border-color: #555 !important;
+}
+
+.jsoneditor-save-button:active {
+	background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.jsoneditor-save-button:disabled {
+	opacity: 0.4 !important;
+	cursor: not-allowed !important;
+	color: #888 !important;
+}
+
+.jsoneditor-save-button:disabled svg {
+	fill: #888 !important;
+}
+
+.jsoneditor-save-button:disabled:hover {
+	background: transparent !important;
+	border-color: transparent !important;
+}
+
 /* JSON Inspector Component */
 #jsonInspectorComponent #output {
 	flex: 1;
@@ -122,8 +209,14 @@ div.jsoneditor-menu > div.jsoneditor-modes > button {
 	color: #d4d4d4;
 }
 
+div.jsoneditor-tree {
+	background-color: #2a2a2a;
+	color: #d4d4d4;
+}
+
 div.jsoneditor-search div.jsoneditor-frame {
-	background-color: #333;
+	background-color: #3c3c3c;
+	border: 1px solid #555;
 }
 
 div.jsoneditor-search input {
@@ -150,4 +243,48 @@ div.jsoneditor-search input {
 
 #jsonInspectorComponent #output::-webkit-scrollbar-thumb:hover {
 	background: #555 !important;
+}
+
+/* JSON Editor Container */
+.json-editor-container {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	background-color: #2a2a2a;
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.json-editor-header {
+	background-color: #3c3c3c;
+	padding: 8px 12px;
+	border-bottom: 1px solid #444;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.json-editor-title {
+	color: #d4d4d4;
+	font-weight: 600;
+	font-size: 0.9rem;
+}
+
+.json-editor-content {
+	flex: 1;
+	overflow: hidden;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+	#output {
+		width: 90vw;
+	}
+	
+	.jsoneditor-save-button {
+		font-size: 20px !important;
+		padding: 2px 4px !important;
+		margin: 1px 2px !important;
+	}
 }

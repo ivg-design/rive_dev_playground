@@ -1,0 +1,261 @@
+/* Toggle Switch Styles */
+.toggle-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 8px 0;
+	padding: 4px 0;
+}
+
+.toggle-switch {
+	position: relative;
+	display: inline-block;
+	cursor: pointer;
+	user-select: none;
+}
+
+/* Master toggle (larger) */
+.toggle-switch.master-toggle {
+	width: 48px;
+	height: 26px;
+}
+
+/* Compact toggle (smaller) */
+.toggle-switch.compact {
+	width: 40px;
+	height: 20px;
+}
+
+/* Hide the default checkbox */
+.toggle-switch input[type="checkbox"] {
+	opacity: 0;
+	width: 0;
+	height: 0;
+	position: absolute;
+}
+
+/* The slider */
+.toggle-slider {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(135deg, #dc2626, #b91c1c);
+	border-radius: 50px;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	box-shadow: 
+		inset 0 2px 4px rgba(0, 0, 0, 0.2),
+		0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.toggle-slider:before {
+	position: absolute;
+	content: "";
+	background: linear-gradient(135deg, #ffffff, #f8fafc);
+	border-radius: 50%;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	box-shadow: 
+		0 2px 8px rgba(0, 0, 0, 0.2),
+		0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Master toggle slider dimensions */
+.toggle-switch.master-toggle .toggle-slider:before {
+	height: 20px;
+	width: 20px;
+	left: 3px;
+	bottom: 3px;
+}
+
+/* Compact toggle slider dimensions */
+.toggle-switch.compact .toggle-slider:before {
+	height: 14px;
+	width: 14px;
+	left: 3px;
+	bottom: 3px;
+}
+
+/* Checked state */
+.toggle-switch input:checked + .toggle-slider {
+	background: linear-gradient(135deg, #059669, #047857);
+	box-shadow: 
+		inset 0 2px 4px rgba(0, 0, 0, 0.2),
+		0 2px 8px rgba(5, 150, 105, 0.3);
+}
+
+/* Master toggle checked position */
+.toggle-switch.master-toggle input:checked + .toggle-slider:before {
+	transform: translateX(22px);
+}
+
+/* Compact toggle checked position */
+.toggle-switch.compact input:checked + .toggle-slider:before {
+	transform: translateX(20px);
+}
+
+/* Hover effects */
+.toggle-switch:hover .toggle-slider {
+	box-shadow: 
+		inset 0 2px 4px rgba(0, 0, 0, 0.2),
+		0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+.toggle-switch input:checked:hover + .toggle-slider {
+	box-shadow: 
+		inset 0 2px 4px rgba(0, 0, 0, 0.2),
+		0 4px 12px rgba(5, 150, 105, 0.4);
+}
+
+.toggle-switch:hover .toggle-slider:before {
+	box-shadow: 
+		0 4px 12px rgba(0, 0, 0, 0.3),
+		0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Focus states for accessibility */
+.toggle-switch input:focus + .toggle-slider {
+	outline: 2px solid #3b82f6;
+	outline-offset: 2px;
+}
+
+/* Active state */
+.toggle-switch:active .toggle-slider:before {
+	transform: scale(0.95);
+}
+
+.toggle-switch.master-toggle:active input:checked + .toggle-slider:before {
+	transform: translateX(22px) scale(0.95);
+}
+
+.toggle-switch.compact:active input:checked + .toggle-slider:before {
+	transform: translateX(20px) scale(0.95);
+}
+
+/* Toggle label styling */
+.toggle-label {
+	font-size: 0.9rem;
+	font-weight: 500;
+	color: #e2e8f0;
+	cursor: pointer;
+	transition: color 0.2s ease;
+	flex: 1;
+}
+
+.toggle-label:hover {
+	color: #f1f5f9;
+}
+
+/* Disabled state */
+.toggle-switch input:disabled + .toggle-slider {
+	opacity: 0.5;
+	cursor: not-allowed;
+	background: linear-gradient(135deg, #64748b, #475569);
+}
+
+.toggle-switch input:disabled + .toggle-slider:before {
+	background: linear-gradient(135deg, #94a3b8, #cbd5e1);
+}
+
+/* Animation for smooth transitions */
+@keyframes toggleOn {
+	0% {
+		transform: translateX(0) scale(1);
+	}
+	50% {
+		transform: translateX(11px) scale(1.1);
+	}
+	100% {
+		transform: translateX(22px) scale(1);
+	}
+}
+
+@keyframes toggleOnCompact {
+	0% {
+		transform: translateX(0) scale(1);
+	}
+	50% {
+		transform: translateX(10px) scale(1.1);
+	}
+	100% {
+		transform: translateX(20px) scale(1);
+	}
+}
+
+@keyframes toggleOff {
+	0% {
+		transform: translateX(22px) scale(1);
+	}
+	50% {
+		transform: translateX(11px) scale(1.1);
+	}
+	100% {
+		transform: translateX(0) scale(1);
+	}
+}
+
+@keyframes toggleOffCompact {
+	0% {
+		transform: translateX(20px) scale(1);
+	}
+	50% {
+		transform: translateX(10px) scale(1.1);
+	}
+	100% {
+		transform: translateX(0) scale(1);
+	}
+}
+
+/* Apply animations on state change */
+.toggle-switch.master-toggle input:checked + .toggle-slider:before {
+	animation: toggleOn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-switch.compact input:checked + .toggle-slider:before {
+	animation: toggleOnCompact 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.toggle-row {
+		gap: 8px;
+		margin: 6px 0;
+	}
+	
+	.toggle-label {
+		font-size: 0.85rem;
+	}
+	
+	/* Slightly smaller toggles on mobile */
+	.toggle-switch.master-toggle {
+		width: 44px;
+		height: 24px;
+	}
+	
+	.toggle-switch.master-toggle .toggle-slider:before {
+		height: 18px;
+		width: 18px;
+		left: 3px;
+		bottom: 3px;
+	}
+	
+	.toggle-switch.master-toggle input:checked + .toggle-slider:before {
+		transform: translateX(20px);
+	}
+	
+	.toggle-switch.compact {
+		width: 36px;
+		height: 18px;
+	}
+	
+	.toggle-switch.compact .toggle-slider:before {
+		height: 12px;
+		width: 12px;
+		left: 3px;
+		bottom: 3px;
+	}
+	
+	.toggle-switch.compact input:checked + .toggle-slider:before {
+		transform: translateX(18px);
+	}
+} 

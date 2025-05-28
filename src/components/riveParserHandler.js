@@ -90,6 +90,16 @@ function findDOMElements() {
 	pauseTimelineBtn = document.getElementById("pauseTimelineBtn");
 	toggleStateMachineBtn = document.getElementById("toggleStateMachineBtn");
 
+	// Initialize button symbols and states
+	if (toggleTimelineBtn) {
+		toggleTimelineBtn.innerHTML = "▶";
+		toggleTimelineBtn.setAttribute("data-state", "stopped");
+	}
+	if (toggleStateMachineBtn) {
+		toggleStateMachineBtn.innerHTML = "▶";
+		toggleStateMachineBtn.setAttribute("data-state", "stopped");
+	}
+
 	// Debug logging for each element
 	logger.debug("DOM element search results:", {
 		riveFilePicker: !!riveFilePicker,
@@ -390,53 +400,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				updateBackgroundColorLabelContrast(bgColorInput.value);
 			}
 
-			// Initialize layout scale state
-			const riveFitSelect = document.getElementById("riveFitSelect");
-			const layoutScaleInput =
-				document.getElementById("layoutScaleInput");
-			const scaleUpBtn = document.getElementById("scaleUpBtn");
-			const scaleDownBtn = document.getElementById("scaleDownBtn");
-
-			if (riveFitSelect && layoutScaleInput) {
-				const fitValue = riveFitSelect.value;
-				logger.debug(
-					`[Init] Fit mode: ${fitValue}, Scale input value: "${layoutScaleInput.value}", Input element:`,
-					layoutScaleInput,
-				);
-
-				// Force set the value to ensure it's visible
-				if (!layoutScaleInput.value || layoutScaleInput.value === "") {
-					layoutScaleInput.value = "1.0";
-					logger.debug("[Init] Forced scale input value to 1.0");
-				}
-
-				layoutScaleInput.disabled = fitValue !== "layout";
-				if (fitValue === "layout") {
-					layoutScaleInput.style.opacity = "1";
-					layoutScaleInput.style.cursor = "text";
-				} else {
-					layoutScaleInput.style.opacity = "0.5";
-					layoutScaleInput.style.cursor = "not-allowed";
-				}
-
-				// Initialize scale buttons
-				if (scaleUpBtn && scaleDownBtn) {
-					const isLayoutMode = fitValue === "layout";
-					scaleUpBtn.disabled = !isLayoutMode;
-					scaleDownBtn.disabled = !isLayoutMode;
-					scaleUpBtn.style.opacity = isLayoutMode ? "1" : "0.5";
-					scaleDownBtn.style.opacity = isLayoutMode ? "1" : "0.5";
-					scaleUpBtn.style.cursor = isLayoutMode
-						? "pointer"
-						: "not-allowed";
-					scaleDownBtn.style.cursor = isLayoutMode
-						? "pointer"
-						: "not-allowed";
-					logger.debug(
-						`[Init] Scale buttons initialized, layout mode: ${isLayoutMode}`,
-					);
-				}
-			}
+			// Layout controls are now handled by RiveControlInterface class
 
 			// Initialize with default message
 			setupJsonEditor({ message: "Please select a Rive file to parse." });
@@ -518,28 +482,8 @@ function setupEventListeners() {
 		});
 	}
 
-	// Event listeners for Rive layout controls
-	const riveFitSelect = document.getElementById("riveFitSelect");
-	const riveAlignmentSelect = document.getElementById("riveAlignmentSelect");
-	const layoutScaleInput = document.getElementById("layoutScaleInput");
-	const scaleUpBtn = document.getElementById("scaleUpBtn");
-	const scaleDownBtn = document.getElementById("scaleDownBtn");
-
-	if (riveFitSelect) {
-		riveFitSelect.addEventListener("change", handleRiveLayoutChange);
-	}
-	if (riveAlignmentSelect) {
-		riveAlignmentSelect.addEventListener("change", handleRiveLayoutChange);
-	}
-	if (layoutScaleInput) {
-		layoutScaleInput.addEventListener("input", handleRiveLayoutChange);
-	}
-	if (scaleUpBtn) {
-		scaleUpBtn.addEventListener("click", handleScaleUp);
-	}
-	if (scaleDownBtn) {
-		scaleDownBtn.addEventListener("click", handleScaleDown);
-	}
+	// Layout controls are now handled by RiveControlInterface class
+	// Removed duplicate event listeners to prevent conflicts
 
 	logger.debug("Event listeners set up");
 }
@@ -848,8 +792,9 @@ function updateButtonStates() {
 			"data-state",
 			timelineState === "playing" ? "playing" : "stopped",
 		);
-		toggleTimelineBtn.textContent =
-			timelineState === "playing" ? "Stop" : "Play";
+		// Use flat Unicode symbols instead of emoji
+		const timelineIcon = timelineState === "playing" ? "■" : "▶";
+		toggleTimelineBtn.innerHTML = timelineIcon;
 	}
 
 	// Update pause button
@@ -867,8 +812,9 @@ function updateButtonStates() {
 			"data-state",
 			stateMachineState === "playing" ? "playing" : "stopped",
 		);
-		toggleStateMachineBtn.textContent =
-			stateMachineState === "playing" ? "Stop" : "Play";
+		// Use flat Unicode symbols instead of emoji
+		const stateMachineIcon = stateMachineState === "playing" ? "■" : "▶";
+		toggleStateMachineBtn.innerHTML = stateMachineIcon;
 	}
 }
 
@@ -1299,6 +1245,16 @@ function handleClearFile() {
 	// Reset all application state
 	resetApplicationState();
 
+	// Clear event console when file is cleared (safely)
+	try {
+		if (window.clearEventConsole && typeof window.clearEventConsole === 'function') {
+			window.clearEventConsole();
+			logger.debug("Event console cleared on file clear");
+		}
+	} catch (e) {
+		logger.warn("Error clearing event console on file clear:", e);
+	}
+
 	// Clear the JSON editor
 	setupJsonEditor({ message: "Please select a Rive file to begin parsing." });
 
@@ -1354,199 +1310,4 @@ function updateFileSelectionUI(fileSelected, fileName = "") {
 	}
 }
 
-/**
- * Handles Rive layout changes (fit, alignment, scale)
- */
-function handleRiveLayoutChange() {
-	const riveInstance = getLiveRiveInstance();
-	if (!riveInstance) {
-		logger.debug("No Rive instance available for layout change");
-		return;
-	}
-
-	const riveFitSelect = document.getElementById("riveFitSelect");
-	const riveAlignmentSelect = document.getElementById("riveAlignmentSelect");
-	const layoutScaleInput = document.getElementById("layoutScaleInput");
-
-	if (!riveFitSelect || !riveAlignmentSelect || !layoutScaleInput) {
-		logger.warn("Layout control elements not found");
-		return;
-	}
-
-	const fitValue = riveFitSelect.value;
-	const alignmentValue = riveAlignmentSelect.value;
-	const scaleValue = parseFloat(layoutScaleInput.value) || 1;
-
-	logger.debug(
-		`[LayoutChange] Fit: ${fitValue}, Alignment: ${alignmentValue}, Scale input value: "${layoutScaleInput.value}", Parsed scale: ${scaleValue}`,
-	);
-
-	// Enable/disable layout scale input based on fit type
-	layoutScaleInput.disabled = fitValue !== "layout";
-
-	// Update visual state for scale input
-	if (fitValue === "layout") {
-		layoutScaleInput.style.opacity = "1";
-		layoutScaleInput.style.cursor = "text";
-	} else {
-		layoutScaleInput.style.opacity = "0.5";
-		layoutScaleInput.style.cursor = "not-allowed";
-	}
-
-	// Update scale button states
-	const scaleUpBtn = document.getElementById("scaleUpBtn");
-	const scaleDownBtn = document.getElementById("scaleDownBtn");
-	if (scaleUpBtn && scaleDownBtn) {
-		const isLayoutMode = fitValue === "layout";
-		scaleUpBtn.disabled = !isLayoutMode;
-		scaleDownBtn.disabled = !isLayoutMode;
-		scaleUpBtn.style.opacity = isLayoutMode ? "1" : "0.5";
-		scaleDownBtn.style.opacity = isLayoutMode ? "1" : "0.5";
-		scaleUpBtn.style.cursor = isLayoutMode ? "pointer" : "not-allowed";
-		scaleDownBtn.style.cursor = isLayoutMode ? "pointer" : "not-allowed";
-	}
-
-	try {
-		// Map string values to Rive enums
-		const fitMap = {
-			contain: window.rive.Fit.Contain,
-			cover: window.rive.Fit.Cover,
-			fill: window.rive.Fit.Fill,
-			fitWidth: window.rive.Fit.FitWidth,
-			fitHeight: window.rive.Fit.FitHeight,
-			scaleDown: window.rive.Fit.ScaleDown,
-			none: window.rive.Fit.None,
-			layout: window.rive.Fit.Layout,
-		};
-
-		const alignmentMap = {
-			center: window.rive.Alignment.Center,
-			topLeft: window.rive.Alignment.TopLeft,
-			topCenter: window.rive.Alignment.TopCenter,
-			topRight: window.rive.Alignment.TopRight,
-			centerLeft: window.rive.Alignment.CenterLeft,
-			centerRight: window.rive.Alignment.CenterRight,
-			bottomLeft: window.rive.Alignment.BottomLeft,
-			bottomCenter: window.rive.Alignment.BottomCenter,
-			bottomRight: window.rive.Alignment.BottomRight,
-		};
-
-		const fit = fitMap[fitValue] || window.rive.Fit.Contain;
-		const alignment =
-			alignmentMap[alignmentValue] || window.rive.Alignment.Center;
-
-		// Create new layout
-		const layout = new window.rive.Layout({
-			fit: fit,
-			alignment: alignment,
-		});
-
-		// Set layout scale factor if using Layout fit
-		if (fitValue === "layout") {
-			layout.layoutScaleFactor = scaleValue;
-		}
-
-		// Apply the new layout
-		riveInstance.layout = layout;
-
-		// Trigger resize to apply changes with proper aspect ratio
-		setTimeout(() => {
-			resizeCanvasToAnimationAspectRatio();
-		}, 100);
-
-		logger.info(
-			`Layout updated - Fit: ${fitValue}, Alignment: ${alignmentValue}, Scale: ${scaleValue}`,
-		);
-
-		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Layout updated: ${fitValue} fit, ${alignmentValue} alignment${fitValue === "layout" ? `, ${scaleValue}x scale` : ""}`;
-		}
-	} catch (error) {
-		logger.error("Error updating Rive layout:", error);
-		if (statusMessageDiv) {
-			statusMessageDiv.textContent = `Error updating layout: ${error.message}`;
-		}
-	}
-}
-
-/**
- * Handles scale up button click
- */
-function handleScaleUp() {
-	const layoutScaleInput = document.getElementById("layoutScaleInput");
-	const riveFitSelect = document.getElementById("riveFitSelect");
-
-	logger.debug(
-		`[ScaleUp] Button clicked. Input found: ${!!layoutScaleInput}, Fit select found: ${!!riveFitSelect}`,
-	);
-
-	if (!layoutScaleInput || !riveFitSelect) {
-		logger.warn("[ScaleUp] Missing required elements");
-		return;
-	}
-
-	const fitValue = riveFitSelect.value;
-	logger.debug(`[ScaleUp] Current fit mode: ${fitValue}`);
-
-	if (fitValue !== "layout") {
-		logger.debug("[ScaleUp] Not in layout mode, ignoring click");
-		return;
-	}
-
-	const currentValue = parseFloat(layoutScaleInput.value) || 1;
-	const step = parseFloat(layoutScaleInput.step) || 0.1;
-	const max = parseFloat(layoutScaleInput.max) || 5;
-
-	logger.debug(
-		`[ScaleUp] Current: ${currentValue}, Step: ${step}, Max: ${max}`,
-	);
-
-	const newValue = Math.min(currentValue + step, max);
-	layoutScaleInput.value = newValue.toFixed(1);
-
-	logger.debug(`[ScaleUp] New value set: ${newValue.toFixed(1)}`);
-
-	// Trigger the layout change
-	handleRiveLayoutChange();
-}
-
-/**
- * Handles scale down button click
- */
-function handleScaleDown() {
-	const layoutScaleInput = document.getElementById("layoutScaleInput");
-	const riveFitSelect = document.getElementById("riveFitSelect");
-
-	logger.debug(
-		`[ScaleDown] Button clicked. Input found: ${!!layoutScaleInput}, Fit select found: ${!!riveFitSelect}`,
-	);
-
-	if (!layoutScaleInput || !riveFitSelect) {
-		logger.warn("[ScaleDown] Missing required elements");
-		return;
-	}
-
-	const fitValue = riveFitSelect.value;
-	logger.debug(`[ScaleDown] Current fit mode: ${fitValue}`);
-
-	if (fitValue !== "layout") {
-		logger.debug("[ScaleDown] Not in layout mode, ignoring click");
-		return;
-	}
-
-	const currentValue = parseFloat(layoutScaleInput.value) || 1;
-	const step = parseFloat(layoutScaleInput.step) || 0.1;
-	const min = parseFloat(layoutScaleInput.min) || 0.1;
-
-	logger.debug(
-		`[ScaleDown] Current: ${currentValue}, Step: ${step}, Min: ${min}`,
-	);
-
-	const newValue = Math.max(currentValue - step, min);
-	layoutScaleInput.value = newValue.toFixed(1);
-
-	logger.debug(`[ScaleDown] New value set: ${newValue.toFixed(1)}`);
-
-	// Trigger the layout change
-	handleRiveLayoutChange();
-}
+// Layout handling functions removed - now handled by RiveControlInterface class

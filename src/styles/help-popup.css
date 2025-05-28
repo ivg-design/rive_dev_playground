@@ -1,0 +1,209 @@
+/* Help Button Styles */
+.help-button {
+	background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+	border: none;
+	border-radius: 50%;
+	width: 20px;
+	height: 20px;
+	color: white;
+	font-size: 12px;
+	font-weight: bold;
+	cursor: pointer;
+	margin-left: 8px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.help-button:hover {
+	background: linear-gradient(135deg, #2563eb, #1e40af);
+	transform: scale(1.1);
+	box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+.help-button:active {
+	transform: scale(0.95);
+}
+
+/* Help Popup Overlay */
+.help-popup-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.7);
+	backdrop-filter: blur(4px);
+	z-index: 10000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+/* Help Popup */
+.help-popup {
+	background: linear-gradient(135deg, #1e293b, #0f172a);
+	border-radius: 12px;
+	box-shadow: 
+		0 25px 50px rgba(0, 0, 0, 0.5),
+		0 0 0 1px rgba(255, 255, 255, 0.1),
+		inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	max-width: 600px;
+	max-height: 80vh;
+	width: 90vw;
+	overflow: hidden;
+	animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+	from {
+		opacity: 0;
+		transform: scale(0.9) translateY(-20px);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1) translateY(0);
+	}
+}
+
+/* Help Popup Header */
+.help-popup-header {
+	background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+	padding: 16px 20px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.help-popup-header h3 {
+	margin: 0;
+	color: white;
+	font-size: 1.2rem;
+	font-weight: 600;
+}
+
+.help-popup-close {
+	background: rgba(255, 255, 255, 0.2);
+	border: none;
+	border-radius: 50%;
+	width: 32px;
+	height: 32px;
+	color: white;
+	font-size: 18px;
+	font-weight: bold;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s ease;
+}
+
+.help-popup-close:hover {
+	background: rgba(255, 255, 255, 0.3);
+	transform: scale(1.1);
+}
+
+/* Help Popup Content */
+.help-popup-content {
+	padding: 20px;
+	color: #e2e8f0;
+	line-height: 1.6;
+	overflow-y: auto;
+	max-height: calc(80vh - 80px);
+}
+
+.help-popup-content p {
+	margin: 0 0 16px 0;
+}
+
+.help-section {
+	margin-bottom: 20px;
+	padding: 16px;
+	background: rgba(30, 41, 59, 0.5);
+	border-radius: 8px;
+	border-left: 4px solid #3b82f6;
+}
+
+.help-section h4 {
+	margin: 0 0 8px 0;
+	color: #60a5fa;
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+.help-section p {
+	margin: 0;
+	color: #cbd5e1;
+	font-size: 0.9rem;
+}
+
+.help-tip {
+	background: linear-gradient(135deg, #059669, #047857);
+	padding: 16px;
+	border-radius: 8px;
+	margin-top: 20px;
+	color: white;
+	font-size: 0.9rem;
+}
+
+.warning {
+	color: #fbbf24;
+	font-weight: bold;
+}
+
+/* Scrollbar for popup content */
+.help-popup-content::-webkit-scrollbar {
+	width: 8px;
+}
+
+.help-popup-content::-webkit-scrollbar-track {
+	background: rgba(30, 41, 59, 0.3);
+	border-radius: 4px;
+}
+
+.help-popup-content::-webkit-scrollbar-thumb {
+	background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+	border-radius: 4px;
+}
+
+.help-popup-content::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(135deg, #2563eb, #1e40af);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+	.help-popup {
+		width: 95vw;
+		max-height: 90vh;
+	}
+	
+	.help-popup-header {
+		padding: 12px 16px;
+	}
+	
+	.help-popup-header h3 {
+		font-size: 1.1rem;
+	}
+	
+	.help-popup-content {
+		padding: 16px;
+		max-height: calc(90vh - 60px);
+	}
+	
+	.help-section {
+		padding: 12px;
+	}
+} 

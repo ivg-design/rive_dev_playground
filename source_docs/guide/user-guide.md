@@ -71,7 +71,13 @@ The Canvas panel displays your Rive animation with real-time rendering and inter
 
 ## 🔍 JSON Inspector
 
-The JSON Inspector provides a comprehensive view of your Rive file's internal structure using an interactive tree interface.
+The JSON Inspector provides a comprehensive view of your Rive file's internal structure using an interactive tree interface with professional export capabilities.
+
+### Interface Features
+
+- **Professional Header**: Clean panel header with title and integrated save button
+- **Compact Display**: Optimized 11px font size for better space utilization and readability of large datasets
+- **Responsive Design**: Adapts to different panel sizes and layouts with consistent styling
 
 ### View Modes
 
@@ -87,6 +93,22 @@ The JSON Inspector provides a comprehensive view of your Rive file's internal st
 - **Expand All/Collapse All**: Quick navigation controls
 - **Node Preview**: Object previews show first property values
 - **Array Display**: Arrays show element count
+
+### Export Functionality
+
+The JSON Inspector includes powerful export capabilities for saving parsed data:
+
+- **Save to File**: Click the "💾 Save JSON" button in the panel header to download parsed data
+- **Timestamped Files**: Automatic filename generation with timestamp (e.g., `rive-parsed-data-2025-01-15T10-30-45.json`)
+- **Formatted Output**: Clean, properly indented JSON for easy reading and analysis
+- **Error Handling**: Graceful error handling with user-friendly messages for failed save operations
+
+### Data Export Use Cases
+
+- **Backup**: Save parsed data for later analysis or comparison
+- **Documentation**: Export structure for documentation purposes
+- **Development**: Use exported data for testing and development workflows
+- **Sharing**: Share parsed Rive file structure with team members
 
 ## ⚡ Dynamic Controls
 

@@ -292,3 +292,20 @@
 	cursor: pointer;
 	font-style: italic;
 }
+
+/* Clear console button styling */
+.clear-console-btn {
+	padding: 6px 12px;
+	background-color: #35a35f;
+	color: white;
+	border: none;
+	border-radius: 3px;
+	cursor: pointer;
+	font-size: 12px;
+	font-weight: 500;
+	transition: background-color 0.2s ease;
+}
+
+.clear-console-btn:hover {
+	background-color: #42c474;
+}

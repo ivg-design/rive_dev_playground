@@ -62,11 +62,13 @@ body {
 	z-index: 2000;
 	transition: all 0.3s ease;
 	flex-shrink: 0;
+	min-height: 32px; /* Ensure minimum height for buttons */
 }
 
 .restore-bar.collapsed {
-	height: 24px;
-	overflow: hidden;
+	height: auto; /* Allow auto height to accommodate buttons */
+	min-height: 32px; /* Ensure buttons are always visible */
+	overflow: visible; /* Don't hide the buttons */
 }
 
 .restore-bar-content {
@@ -75,36 +77,46 @@ body {
 	gap: 8px;
 	padding: 8px 12px;
 	flex-wrap: wrap;
+	justify-content: flex-start; /* Align restore buttons to the left */
+}
+
+.restore-bar-content .restore-bar-buttons {
+	margin-left: auto; /* Push docs/reset buttons to the right */
+	flex-shrink: 0; /* Prevent buttons from shrinking */
 }
 
 .restore-bar-collapsed {
-	padding: 4px 12px;
+	padding: 6px 12px; /* Slightly more padding for better button visibility */
 	color: #888;
 	font-size: 0.8em;
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	min-height: 32px; /* Ensure minimum height for buttons */
 }
 
 .restore-bar-buttons {
 	display: flex;
 	gap: 8px;
 	align-items: center;
+	flex-shrink: 0; /* Prevent buttons from shrinking */
 }
 
 .docs-btn,
 .layout-reset-btn {
-	padding: 2px 8px;
+	padding: 4px 8px; /* Slightly more padding for better visibility */
 	border: none;
 	border-radius: 3px;
 	cursor: pointer;
-	font-size: 0.7em;
+	font-size: 0.75em; /* Slightly larger font */
 	font-weight: 500;
 	transition: all 0.2s ease;
 	white-space: nowrap;
 	display: flex;
 	align-items: center;
 	gap: 4px;
+	min-height: 24px; /* Ensure minimum button height */
+	flex-shrink: 0; /* Prevent buttons from shrinking */
 }
 
 .docs-btn {
@@ -164,4 +176,63 @@ body {
 	z-index: 10000;
 	pointer-events: none;
 	backdrop-filter: blur(5px);
+}
+
+/* Responsive handling for smaller screens */
+@media (max-width: 768px) {
+	.restore-bar-content {
+		flex-wrap: wrap;
+		gap: 6px;
+		padding: 6px 8px;
+	}
+	
+	.restore-bar-content .restore-bar-buttons {
+		margin-left: 0; /* Reset margin on small screens */
+		margin-top: 4px; /* Add some top margin when wrapped */
+		order: 999; /* Ensure buttons appear at the end */
+	}
+	
+	.docs-btn,
+	.layout-reset-btn {
+		font-size: 0.7em;
+		padding: 3px 6px;
+		min-height: 20px;
+	}
+}
+
+/* JSON Editor font size override */
+.jsoneditor,
+.jsoneditor td,
+.jsoneditor th,
+.jsoneditor textarea,
+.jsoneditor-field,
+.jsoneditor-value,
+.jsoneditor-preview,
+.jsoneditor-popover,
+.jsoneditor-schema-error {
+    font-size: 11px !important;
+}
+
+.jsoneditor .ace_editor {
+    font-size: 11px !important;
+}
+
+.jsoneditor .autocomplete.dropdown {
+    font-size: 11px !important;
+}
+
+.jsoneditor-contextmenu .jsoneditor-menu button {
+    font-size: 11px !important;
+}
+
+.jsoneditor-modal,
+.jsoneditor-modal #query,
+.jsoneditor-modal input,
+.jsoneditor-modal input[type="text"],
+.jsoneditor-modal option,
+.jsoneditor-modal select,
+.jsoneditor-modal table td,
+.jsoneditor-modal table th,
+.jsoneditor-modal textarea {
+    font-size: 10px !important;
 }

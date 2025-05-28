@@ -250,10 +250,132 @@ The Rive Playground includes a modular debug logging system with configurable le
 
 ### Debug Levels
 
-- `error`: Only error messages
-- `warn`: Warnings and errors
-- `info`: Informational messages, warnings, and errors
-- `debug`: All messages including detailed debug information
+- `NONE`: No logging (0)
+- `ERROR`: Only error messages (1)
+- `WARN`: Warnings and errors (2)
+- `INFO`: Informational messages, warnings, and errors (3)
+- `DEBUG`: All messages including detailed debug information (4)
+- `TRACE`: Extremely detailed tracing information (5)
+
+### Enhanced Debug Control Panel
+
+The debug control system has been completely overhauled with comprehensive console logging and proper state management.
+
+#### Accessing Debug Controls
+
+```javascript
+// Show the debug controls panel
+debugHelper.enable();
+
+// Hide the debug controls panel
+debugHelper.disable();
+
+// Toggle the debug controls panel
+debugHelper.toggle();
+
+// Check if debug controls are enabled
+console.log(debugHelper.isEnabled());
+```
+
+#### Global Debug Control
+
+```javascript
+// Enable all logging globally (overrides all module settings)
+debugHelper.api.enable(true);
+
+// Disable all logging globally (stops all messages regardless of module levels)
+debugHelper.api.enable(false);
+
+// Check global enabled state
+console.log(debugHelper.api.isEnabled());
+```
+
+#### Module-Specific Control
+
+```javascript
+// Set specific module to DEBUG level
+debugHelper.api.setModuleLevel("controlInterface", 4);
+
+// Set all modules to INFO level
+debugHelper.api.setAllLevels(3);
+
+// Get current level for a specific module
+console.log(debugHelper.api.getModuleLevel("parser"));
+
+// Get all current module levels
+console.log(debugHelper.api.getAllLevels());
+```
+
+#### Testing and Diagnostics
+
+```javascript
+// Test all debug modules with sample messages
+debugHelper.test();
+
+// View current debug settings with detailed status
+debugHelper.currentSettings();
+
+// Clear all saved debug settings
+debugHelper.clearSettings();
+```
+
+### Available Debug Modules
+
+| Module            | Description                             |
+| ----------------- | --------------------------------------- |
+| `parser`          | Rive file parsing and data extraction   |
+| `parserHandler`   | File handling and parsing orchestration |
+| `controlInterface`| Dynamic control generation and updates  |
+| `dataConnector`   | Data processing and control mapping     |
+| `goldenLayout`    | Golden Layout system management         |
+| `eventMapper`     | Event logging and mapping system        |
+
+### Debug Control Panel Features
+
+#### Console Logging
+All debug control actions now provide comprehensive console feedback:
+
+```javascript
+// Example console output when enabling all logging:
+// 🐛 [DEBUG CONTROL] Enabling all logging globally
+// 🐛 [DEBUG CONTROL] Global logging enabled - all modules will now log according to their levels
+
+// Example console output when setting module level:
+// 🐛 [DEBUG CONTROL] Setting module 'controlInterface' to level: DEBUG (4)
+// 🐛 [DEBUG CONTROL] Module 'controlInterface' now set to DEBUG level
+```
+
+#### Status Reporting
+The `debugHelper.currentSettings()` function provides detailed status information:
+
+```javascript
+debugHelper.currentSettings();
+// Console output:
+// 🐛 Current Debug Settings:
+// =========================
+// Debug Controls Panel: ✅ Enabled
+// Global Logging: ✅ Enabled
+// 
+// Module Settings:
+//   parser          : DEBUG (UI: DEBUG)
+//   parserHandler   : INFO (UI: INFO)
+//   controlInterface: NONE ⚠️ (UI shows: DEBUG)
+//   dataConnector   : WARN (UI: WARN)
+//   goldenLayout    : ERROR (UI: ERROR)
+//   eventMapper     : TRACE (UI: TRACE)
+// 
+// 💡 Tips:
+//   - Use debugHelper.enable() to show debug controls
+//   - Use debugHelper.disable() to hide debug controls
+//   - Use debugHelper.test() to test all modules
+//   - Set levels to NONE to stop all messages for that module
+//   - Global disable overrides all module settings
+//   - ⚠️ indicates UI/actual level mismatch - click 'Set' button to sync
+// =========================
+```
+
+#### Mismatch Detection
+The system now detects when UI settings don't match actual logger state and shows warnings (⚠️) for mismatched modules.
 
 ### Configuration
 
@@ -270,18 +392,6 @@ window.debugConfig = {
 // Apply configuration
 window.applyDebugConfig();
 ```
-
-### Available Debug Modules
-
-| Module        | Description                             |
-| ------------- | --------------------------------------- |
-| `parser`      | Rive file parsing and data extraction   |
-| `controls`    | Dynamic control generation and updates  |
-| `layout`      | Golden Layout system management         |
-| `rive`        | Rive runtime interactions and events    |
-| `ui`          | User interface updates and interactions |
-| `state`       | Application state management            |
-| `performance` | Performance monitoring and metrics      |
 
 ### Debug Functions
 
