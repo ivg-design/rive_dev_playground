@@ -1,3 +1,6 @@
+## [1.3.0] - 2025-05-28
+### Changes
+- [minor]: improve JSON save filename format and fix event console initialization
 ## [1.2.6] - 2025-05-27
 ### Changes
 - [fix]: enhance pymdownx.emoji configuration for improved emoji rendering with custom icons
