@@ -1,3 +1,6 @@
+## [1.4.0] - 2025-05-29
+### Changes
+- feat: migrate to local dependencies and implement graph visualizer with WebGL error resolution [minor]
 # Changelog
 
 All notable changes to this project will be documented in this file.
