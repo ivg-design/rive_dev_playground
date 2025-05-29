@@ -233,7 +233,7 @@ function resizeCanvasToContainer() {
 function setupWindowResizeListener() {
 	// Remove existing listener if any
 	if (resizeHandler) {
-		window.removeEventListener("resize", resizeHandler);
+		window.removeEventListener("resize", resizeHandler, { passive: true });
 	}
 
 	// Create debounced resize handler to avoid excessive calls
@@ -246,7 +246,7 @@ function setupWindowResizeListener() {
 		}, 100); // 100ms debounce
 	};
 
-	window.addEventListener("resize", resizeHandler);
+	window.addEventListener("resize", resizeHandler, { passive: true });
 	logger.debug("Window resize listener set up");
 }
 
@@ -255,7 +255,7 @@ function setupWindowResizeListener() {
  */
 function removeWindowResizeListener() {
 	if (resizeHandler) {
-		window.removeEventListener("resize", resizeHandler);
+		window.removeEventListener("resize", resizeHandler, { passive: true });
 		resizeHandler = null;
 		logger.debug("Window resize listener removed");
 	}

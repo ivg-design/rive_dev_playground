@@ -72,19 +72,25 @@ const defaultLayoutConfig = {
 							type: "component",
 							componentName: "canvas",
 							title: "Rive Canvas",
-							width: 60,
+							width: 40,
+						},
+						{
+							type: "component",
+							componentName: "graphVisualizer",
+							title: "Graph Visualizer",
+							width: 35,
 						},
 						{
 							type: "component",
 							componentName: "dynamicControls",
 							title: "Dynamic Controls",
-							width: 25,
+							width: 15,
 						},
 						{
 							type: "component",
 							componentName: "assetManager",
 							title: "Asset Manager",
-							width: 15,
+							width: 10,
 						},
 						// Event Console panel removed from default layout - will be available in restore menu
 					],
@@ -102,15 +108,57 @@ function getLayoutConfig() {
 		const savedConfig = localStorage.getItem("goldenLayoutConfig");
 		if (savedConfig) {
 			const parsed = JSON.parse(savedConfig);
+			
+			// Validate the configuration for known component names
+			const validComponents = [
+				"controls", "canvas", "dynamicControls", "jsonInspector", 
+				"assetManager", "eventConsole", "graphVisualizer"
+			];
+			
+			// Check if the saved config contains invalid component names
+			const hasInvalidComponents = checkForInvalidComponents(parsed, validComponents);
+			
+			if (hasInvalidComponents) {
+				logger.warn("Saved layout contains invalid component names, using default layout");
+				localStorage.removeItem("goldenLayoutConfig");
+				return defaultLayoutConfig;
+			}
+			
 			logger.info("Loaded layout configuration from localStorage");
 			return parsed;
 		}
 	} catch (error) {
 		logger.warn("Error loading layout from localStorage:", error);
+		// Clear invalid configuration
+		localStorage.removeItem("goldenLayoutConfig");
 	}
 
 	logger.info("Using default layout configuration");
 	return defaultLayoutConfig;
+}
+
+/**
+ * Recursively check for invalid component names in layout configuration
+ */
+function checkForInvalidComponents(config, validComponents) {
+	if (!config) return false;
+	
+	// Check if this is a component with an invalid name
+	if (config.componentName && !validComponents.includes(config.componentName)) {
+		logger.warn(`Found invalid component name: ${config.componentName}`);
+		return true;
+	}
+	
+	// Recursively check content items
+	if (config.content && Array.isArray(config.content)) {
+		for (const item of config.content) {
+			if (checkForInvalidComponents(item, validComponents)) {
+				return true;
+			}
+		}
+	}
+	
+	return false;
 }
 
 /**
@@ -192,6 +240,41 @@ const componentFactories = {
 				canvas.style.height = "100%";
 				// Set initial background color
 				canvas.style.backgroundColor = "#252525";
+				
+				// Ensure canvas has minimum dimensions to prevent WebGL framebuffer errors
+				// This is critical for Rive WebGL context initialization
+				const ensureCanvasDimensions = () => {
+					const containerRect = canvas.parentElement?.getBoundingClientRect();
+					const containerWidth = containerRect?.width || 0;
+					const containerHeight = containerRect?.height || 0;
+					
+					// If container has zero dimensions, set minimum safe dimensions
+					if (containerWidth < 10 || containerHeight < 10) {
+						logger.warn("Canvas container has zero dimensions, setting minimum safe size");
+						canvas.width = 400;
+						canvas.height = 300;
+						canvas.style.minWidth = "400px";
+						canvas.style.minHeight = "300px";
+					} else {
+						// Set actual dimensions based on container
+						canvas.width = Math.max(containerWidth, 100);
+						canvas.height = Math.max(containerHeight, 100);
+					}
+					
+					logger.debug("Canvas dimensions set:", {
+						width: canvas.width,
+						height: canvas.height,
+						containerWidth,
+						containerHeight
+					});
+				};
+				
+				// Set initial dimensions immediately
+				ensureCanvasDimensions();
+				
+				// Also ensure dimensions after a delay for Golden Layout to finish sizing
+				setTimeout(ensureCanvasDimensions, 100);
+				setTimeout(ensureCanvasDimensions, 300);
 			}
 
 			logger.info("Canvas component created");
@@ -312,32 +395,33 @@ const componentFactories = {
 				element.appendChild(content);
 			}
 
-			// Initialize the event console with proper state
+			// Set up event console functionality
 			setTimeout(() => {
 				// Load saved event logging settings to determine initial state
-				let displayRiveEvents = false; // Default
+				let logPlaybackEvents = true;
+				let logSystemEvents = true;
+				let logFrameEvents = false;
+
 				try {
-					const savedDisplayEvents = localStorage.getItem("riveDisplayEvents");
-					if (savedDisplayEvents !== null) {
-						displayRiveEvents = JSON.parse(savedDisplayEvents);
+					const savedLogPlaybackEvents = localStorage.getItem('riveLogPlaybackEvents');
+					if (savedLogPlaybackEvents !== null) {
+						logPlaybackEvents = JSON.parse(savedLogPlaybackEvents);
+					}
+
+					const savedLogSystemEvents = localStorage.getItem('riveLogSystemEvents');
+					if (savedLogSystemEvents !== null) {
+						logSystemEvents = JSON.parse(savedLogSystemEvents);
+					}
+
+					const savedLogFrameEvents = localStorage.getItem("riveLogFrameEvents");
+					if (savedLogFrameEvents !== null) {
+						logFrameEvents = JSON.parse(savedLogFrameEvents);
 					}
 				} catch (e) {
-					logger.warn("Error loading saved event display setting:", e);
+					logger.warn("Error loading saved event logging settings:", e);
 				}
 
-				// Set initial console message based on settings
-				const consoleContent = content.querySelector("#eventConsoleContent");
-				if (consoleContent) {
-					if (displayRiveEvents) {
-						consoleContent.innerHTML = '<div class="event-enabled-message">✅ Event logging enabled - waiting for events...</div>';
-						logger.debug("[goldenLayout] Event console initialized in enabled state");
-					} else {
-						consoleContent.innerHTML = '<div class="event-disabled-message">🚫 Event logging is disabled</div>';
-						logger.debug("[goldenLayout] Event console initialized in disabled state");
-					}
-				}
-
-				// Set up clear button functionality
+				// Set up clear button
 				const clearBtn = content.querySelector("#clearEventConsoleBtn");
 				if (clearBtn) {
 					clearBtn.addEventListener("click", () => {
@@ -358,6 +442,90 @@ const componentFactories = {
 			logger.info("Event Console component created");
 		} catch (error) {
 			logger.error("Error creating eventConsole component:", error);
+		}
+	},
+
+	graphVisualizer: function (container, componentState) {
+		try {
+			const template = document.getElementById("graphVisualizerTemplate");
+			if (!template) {
+				logger.error("graphVisualizerTemplate not found");
+				return;
+			}
+
+			const content = template.cloneNode(true);
+			content.style.display = "block";
+			content.id = "graphVisualizerComponent";
+
+			// Get the DOM element from jQuery wrapper
+			const element = container.getElement();
+			if (element && element.length > 0) {
+				element[0].appendChild(content);
+			} else if (element && element.appendChild) {
+				element.appendChild(content);
+			}
+
+			// Initialize the graph visualizer
+			setTimeout(async () => {
+				const graphContainer = content.querySelector("#graphVisualizerContent");
+				if (graphContainer && window.graphVisualizerIntegration) {
+					try {
+						await window.graphVisualizerIntegration.initialize(graphContainer);
+						logger.info("Graph visualizer initialized in Golden Layout panel");
+						
+						// Set up control button event listeners
+						const fitViewBtn = content.querySelector("#fitViewBtn");
+						const exportBtn = content.querySelector("#exportGraphBtn");
+						const toggleOptionsBtn = content.querySelector("#toggleOptionsBtn");
+						
+						if (fitViewBtn) {
+							fitViewBtn.addEventListener("click", () => {
+								window.graphVisualizerIntegration.fitView();
+							});
+						}
+						
+						if (exportBtn) {
+							exportBtn.addEventListener("click", () => {
+								window.graphVisualizerIntegration.exportImage();
+							});
+						}
+						
+						if (toggleOptionsBtn) {
+							toggleOptionsBtn.addEventListener("click", () => {
+								const optionsPanel = content.querySelector("#graphOptions");
+								if (optionsPanel) {
+									optionsPanel.style.display = optionsPanel.style.display === "none" ? "block" : "none";
+								}
+							});
+						}
+						
+						// Set up options checkboxes
+						const includeAssetsOption = content.querySelector("#includeAssetsOption");
+						const includeEnumsOption = content.querySelector("#includeEnumsOption");
+						const includeInputsOption = content.querySelector("#includeInputsOption");
+						
+						const updateOptions = () => {
+							const options = {
+								includeAssets: includeAssetsOption?.checked ?? true,
+								includeEnums: includeEnumsOption?.checked ?? true,
+								includeInputs: includeInputsOption?.checked ?? true
+							};
+							window.graphVisualizerIntegration.updateOptions(options);
+						};
+						
+						if (includeAssetsOption) includeAssetsOption.addEventListener("change", updateOptions);
+						if (includeEnumsOption) includeEnumsOption.addEventListener("change", updateOptions);
+						if (includeInputsOption) includeInputsOption.addEventListener("change", updateOptions);
+						
+					} catch (error) {
+						logger.error("Failed to initialize graph visualizer:", error);
+					}
+				}
+			}, 300);
+
+			logger.info("Graph Visualizer component created");
+		} catch (error) {
+			logger.error("Error creating graphVisualizer component:", error);
 		}
 	},
 };
@@ -408,6 +576,10 @@ export function initializeGoldenLayout() {
 		goldenLayout.registerComponent(
 			"eventConsole",
 			componentFactories.eventConsole,
+		);
+		goldenLayout.registerComponent(
+			"graphVisualizer",
+			componentFactories.graphVisualizer,
 		);
 
 		logger.info("All components registered successfully");
@@ -472,13 +644,18 @@ export function initializeGoldenLayout() {
 				}, 100);
 			};
 
-			window.addEventListener("resize", handleResize);
+			window.addEventListener("resize", handleResize, { passive: true });
 
 			// Store the resize handler for cleanup
 			goldenLayout._resizeHandler = handleResize;
 
 			// Set up constraints for controls panel
 			setupControlsConstraints();
+
+			// Set up canvas tab visibility monitoring for existing stacks
+			setTimeout(() => {
+				setupCanvasTabVisibilityForExistingStacks();
+			}, 200);
 
 			// Note: Restore menu updates are handled by event listeners below
 			// No periodic sync needed as events should catch all changes
@@ -514,6 +691,9 @@ export function initializeGoldenLayout() {
 			debouncedAddRestoreMenu();
 			// Check if controls panel layout state changed
 			debouncedCheckControlsLayoutState("stackCreated");
+			
+			// Set up tab visibility monitoring for canvas component
+			setupCanvasTabVisibilityMonitoring(stack);
 		});
 
 		// Handle item added events (broader than just components)
@@ -537,6 +717,41 @@ export function initializeGoldenLayout() {
 	} catch (error) {
 		logger.error("Error initializing Golden Layout:", error);
 		console.error("Golden Layout error details:", error);
+		
+		// If it's a configuration error, try to reset and retry once
+		if (error.name === 'Configuration Error' || error.message.includes('Unknown component')) {
+			logger.warn("Configuration error detected, clearing saved layout and retrying with default");
+			localStorage.removeItem("goldenLayoutConfig");
+			
+			// Try once more with default configuration
+			try {
+				const defaultConfig = defaultLayoutConfig;
+				goldenLayout = new window.GoldenLayout(defaultConfig, $(container));
+				
+				// Register components again
+				goldenLayout.registerComponent("controls", componentFactories.controls);
+				goldenLayout.registerComponent("canvas", componentFactories.canvas);
+				goldenLayout.registerComponent("dynamicControls", componentFactories.dynamicControls);
+				goldenLayout.registerComponent("jsonInspector", componentFactories.jsonInspector);
+				goldenLayout.registerComponent("assetManager", componentFactories.assetManager);
+				goldenLayout.registerComponent("eventConsole", componentFactories.eventConsole);
+				goldenLayout.registerComponent("graphVisualizer", componentFactories.graphVisualizer);
+				
+				// Set up basic event handlers
+				goldenLayout.on("initialised", () => {
+					logger.info("Golden Layout initialized successfully with default config after error recovery");
+					addRestoreMenu();
+				});
+				
+				goldenLayout.init();
+				logger.info("Golden Layout recovery successful");
+				return goldenLayout;
+				
+			} catch (retryError) {
+				logger.error("Failed to recover Golden Layout with default config:", retryError);
+			}
+		}
+		
 		return null;
 	}
 }
@@ -560,9 +775,7 @@ function initializeJSONEditor(container) {
 		search: true,
 		enableTransform: false,
 		// Use API configuration for compact display instead of CSS overrides
-		indentation: 1, // Use 2 spaces for indentation (more compact than default 4)
-		escapeControlCharacters: false, // Don't escape control characters for more compact display
-		escapeUnicodeCharacters: false, // Don't escape unicode for more compact display
+		indentation: 0.5, // Use 1 space for indentation (more compact than default 2)
 		// Configure the editor for more compact tree view
 		onNodeName: function ({ path, type, size, value }) {
 			if (type === "object") {
@@ -763,27 +976,30 @@ function saveWithDownloadLink(jsonString) {
 }
 
 /**
- * Update JSONEditor content
+ * Update JSONEditor with new data
+ * @param {object} data - The data to display in the editor
  */
 export function updateJSONEditor(data) {
-	if (jsonEditorInstance) {
-		try {
-			jsonEditorInstance.set(data || {});
-			
-			// Enable/disable save button based on data availability
-			const container = jsonEditorInstance.container;
-			const saveButton = container._saveButton;
-			if (saveButton) {
-				const hasData = data && Object.keys(data).length > 0;
-				saveButton.disabled = !hasData;
-				saveButton.title = hasData 
-					? 'Save JSON to file' 
-					: 'Save JSON to file (disabled - no data loaded)';
-				logger.debug(`Save button ${hasData ? 'enabled' : 'disabled'} based on data availability`);
-			}
-		} catch (error) {
-			logger.error("Error updating JSONEditor:", error);
-		}
+	if (!jsonEditorInstance) {
+		logger.warn("JSONEditor instance not available");
+		return;
+	}
+
+	try {
+		jsonEditorInstance.set(data);
+		logger.info("JSONEditor updated with new data");
+		
+		// Emit event for graph visualizer integration
+		const event = new CustomEvent('jsonEditorUpdated', {
+			detail: { data: data }
+		});
+		document.dispatchEvent(event);
+		
+		// Also update global reference for other components
+		window.currentParsedData = data;
+		
+	} catch (error) {
+		logger.error("Error updating JSONEditor:", error);
 	}
 }
 
@@ -833,6 +1049,7 @@ function addRestoreMenu() {
 		"jsonInspector",
 		"assetManager",
 		"eventConsole",
+		"graphVisualizer",
 	];
 	const missingComponents = [];
 	const foundComponents = [];
@@ -990,6 +1207,7 @@ function getComponentDisplayName(componentName) {
 		jsonInspector: "Rive Parser",
 		assetManager: "Asset Manager",
 		eventConsole: "Event Console",
+		graphVisualizer: "Graph Visualizer",
 	};
 	return names[componentName] || componentName;
 }
@@ -1162,6 +1380,23 @@ export function resetLayoutToDefault() {
 		logger.error("Error resetting layout:", error);
 	}
 }
+
+/**
+ * Clear saved layout configuration (for debugging)
+ */
+export function clearSavedLayout() {
+	try {
+		localStorage.removeItem("goldenLayoutConfig");
+		logger.info("Saved layout configuration cleared");
+		return true;
+	} catch (error) {
+		logger.error("Error clearing saved layout:", error);
+		return false;
+	}
+}
+
+// Expose globally for debugging
+window.clearSavedLayout = clearSavedLayout;
 
 /**
  * Manually refresh the restore menu (useful for debugging or if events are missed)
@@ -1665,5 +1900,152 @@ function checkControlsLayoutState() {
 			goldenLayoutReady: !!(goldenLayout && goldenLayout.isInitialised),
 			goldenLayoutRoot: !!goldenLayout?.root,
 		});
+	}
+}
+
+/**
+ * Sets up monitoring for canvas tab visibility to prevent WebGL errors
+ * @param {Object} stack - The Golden Layout stack that was created
+ */
+function setupCanvasTabVisibilityMonitoring(stack) {
+	if (!stack || stack.type !== "stack") {
+		return;
+	}
+
+	// Check if this stack contains the canvas component
+	const hasCanvasComponent = stack.contentItems.some(
+		(item) => item.config && item.config.componentName === "canvas"
+	);
+
+	if (!hasCanvasComponent) {
+		return;
+	}
+
+	logger.info("Setting up canvas tab visibility monitoring for stack");
+
+	// Listen for active content item changes (tab switches)
+	stack.on("activeContentItemChanged", (contentItem) => {
+		handleCanvasTabVisibilityChange(contentItem, stack);
+	});
+
+	// Also check initial state
+	setTimeout(() => {
+		const activeItem = stack.getActiveContentItem();
+		if (activeItem) {
+			handleCanvasTabVisibilityChange(activeItem, stack);
+		}
+	}, 100);
+}
+
+/**
+ * Handles canvas tab visibility changes to prevent WebGL errors
+ * @param {Object} activeContentItem - The currently active content item
+ * @param {Object} stack - The stack containing the tabs
+ */
+function handleCanvasTabVisibilityChange(activeContentItem, stack) {
+	if (!activeContentItem || !activeContentItem.config) {
+		return;
+	}
+
+	const isCanvasActive = activeContentItem.config.componentName === "canvas";
+	
+	logger.debug("Canvas tab visibility change:", {
+		activeComponent: activeContentItem.config.componentName,
+		isCanvasActive: isCanvasActive,
+		title: activeContentItem.config.title
+	});
+
+	if (isCanvasActive) {
+		// Canvas tab is now active - resume Rive instance
+		resumeRiveInstance();
+	} else {
+		// Canvas tab is hidden - pause Rive instance to prevent WebGL errors
+		pauseRiveInstance();
+	}
+}
+
+/**
+ * Pauses the Rive instance to prevent WebGL errors when canvas is hidden
+ */
+function pauseRiveInstance() {
+	try {
+		if (window.riveInstanceGlobal && typeof window.riveInstanceGlobal.pause === "function") {
+			window.riveInstanceGlobal.pause();
+			logger.info("Rive instance paused - canvas tab hidden");
+		}
+	} catch (error) {
+		logger.warn("Error pausing Rive instance:", error);
+	}
+}
+
+/**
+ * Resumes the Rive instance when canvas tab becomes visible
+ */
+function resumeRiveInstance() {
+	try {
+		if (window.riveInstanceGlobal && typeof window.riveInstanceGlobal.play === "function") {
+			// Small delay to ensure canvas is properly visible
+			setTimeout(() => {
+				try {
+					// Ensure canvas has proper dimensions before resuming
+					const canvas = document.getElementById("rive-canvas");
+					if (canvas) {
+						const canvasRect = canvas.getBoundingClientRect();
+						if (canvasRect.width > 0 && canvasRect.height > 0) {
+							window.riveInstanceGlobal.resizeDrawingSurfaceToCanvas();
+							window.riveInstanceGlobal.play();
+							logger.info("Rive instance resumed - canvas tab visible");
+						} else {
+							logger.warn("Canvas has zero dimensions, delaying resume");
+							// Try again after a longer delay
+							setTimeout(() => {
+								if (window.riveInstanceGlobal && canvas.getBoundingClientRect().width > 0) {
+									window.riveInstanceGlobal.resizeDrawingSurfaceToCanvas();
+									window.riveInstanceGlobal.play();
+									logger.info("Rive instance resumed after delay");
+								}
+							}, 200);
+						}
+					}
+				} catch (error) {
+					logger.warn("Error during delayed Rive resume:", error);
+				}
+			}, 50);
+		}
+	} catch (error) {
+		logger.warn("Error resuming Rive instance:", error);
+	}
+}
+
+/**
+ * Sets up canvas tab visibility monitoring for existing stacks
+ */
+function setupCanvasTabVisibilityForExistingStacks() {
+	if (!goldenLayout || !goldenLayout.isInitialised) {
+		return;
+	}
+
+	try {
+		// Find all existing stacks in the layout
+		const allStacks = [];
+		const findStacks = (item) => {
+			if (item.type === "stack") {
+				allStacks.push(item);
+			}
+			if (item.contentItems) {
+				item.contentItems.forEach(findStacks);
+			}
+		};
+
+		findStacks(goldenLayout.root);
+
+		logger.debug(`Found ${allStacks.length} existing stacks to monitor`);
+
+		// Set up monitoring for each stack that contains canvas
+		allStacks.forEach((stack) => {
+			setupCanvasTabVisibilityMonitoring(stack);
+		});
+	} catch (error) {
+		logger.error("Error setting up canvas tab visibility for existing stacks:", error);
 	}
 }

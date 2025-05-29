@@ -352,6 +352,7 @@ function showEventLoggingHelp() {
 	// Add event listeners
 	const closeBtn = popup.querySelector('#closeHelpPopup');
 	const closePopup = () => {
+		document.removeEventListener('keydown', handleKeyDown, { passive: true });
 		overlay.remove();
 	};
 	
@@ -366,10 +367,9 @@ function showEventLoggingHelp() {
 	const handleKeyDown = (e) => {
 		if (e.key === 'Escape') {
 			closePopup();
-			document.removeEventListener('keydown', handleKeyDown);
 		}
 	};
-	document.addEventListener('keydown', handleKeyDown);
+	document.addEventListener('keydown', handleKeyDown, { passive: true });
 	
 	logger.info("[controlInterface] Event logging help popup displayed");
 }
@@ -1115,6 +1115,39 @@ export function initDynamicControls(parsedDataFromHandler) {
 		},
 	};
 
+	// Validate canvas dimensions before creating Rive instance to prevent WebGL framebuffer errors
+	const canvasRect = canvas.getBoundingClientRect();
+	const canvasWidth = canvasRect.width || canvas.offsetWidth || canvas.width;
+	const canvasHeight = canvasRect.height || canvas.offsetHeight || canvas.height;
+	
+	logger.debug("[controlInterface] Canvas dimensions before Rive creation:", {
+		width: canvasWidth,
+		height: canvasHeight,
+		offsetWidth: canvas.offsetWidth,
+		offsetHeight: canvas.offsetHeight,
+		clientWidth: canvas.clientWidth,
+		clientHeight: canvas.clientHeight
+	});
+	
+	// If canvas has zero dimensions, ensure it has minimum safe dimensions
+	if (canvasWidth < 10 || canvasHeight < 10) {
+		logger.warn("[controlInterface] Canvas has zero/small dimensions, setting minimum safe size to prevent WebGL errors");
+		canvas.width = Math.max(canvasWidth, 400);
+		canvas.height = Math.max(canvasHeight, 300);
+		canvas.style.minWidth = "400px";
+		canvas.style.minHeight = "300px";
+		
+		// Force a layout recalculation
+		canvas.offsetHeight; // Trigger reflow
+		
+		logger.info("[controlInterface] Canvas dimensions after safety adjustment:", {
+			width: canvas.width,
+			height: canvas.height,
+			offsetWidth: canvas.offsetWidth,
+			offsetHeight: canvas.offsetHeight
+		});
+	}
+
 	logger.info("[controlInterface] Creating new Rive instance with options:", {
 		src: riveOptions.src,
 		artboard: riveOptions.artboard,
@@ -1155,6 +1188,31 @@ export function initDynamicControls(parsedDataFromHandler) {
 		logger.info("[controlInterface] Rive instance EventType.Load fired.");
 		dynamicControlsInitialized = true;
 		try {
+			// Validate canvas dimensions before resizing to prevent WebGL framebuffer errors
+			const canvas = riveInstance.canvas;
+			if (canvas) {
+				const canvasRect = canvas.getBoundingClientRect();
+				const canvasWidth = canvasRect.width || canvas.offsetWidth || canvas.width;
+				const canvasHeight = canvasRect.height || canvas.offsetHeight || canvas.height;
+				
+				logger.debug("[controlInterface] Canvas dimensions before resize:", {
+					width: canvasWidth,
+					height: canvasHeight
+				});
+				
+				// Ensure canvas has minimum dimensions before resizing
+				if (canvasWidth < 10 || canvasHeight < 10) {
+					logger.warn("[controlInterface] Canvas still has small dimensions during Load event, adjusting before resize");
+					canvas.width = Math.max(canvasWidth, 400);
+					canvas.height = Math.max(canvasHeight, 300);
+					canvas.style.minWidth = "400px";
+					canvas.style.minHeight = "300px";
+					
+					// Force layout recalculation
+					canvas.offsetHeight;
+				}
+			}
+			
 			riveInstance.resizeDrawingSurfaceToCanvas();
 		} catch (e_resize) {
 			console.error(
@@ -2424,6 +2482,7 @@ class RiveControlInterface {
 		// Keyboard shortcuts
 		document.addEventListener("keydown", (e) =>
 			this.handleKeyboardShortcuts(e),
+			{ passive: true }
 		);
 	}
 

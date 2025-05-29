@@ -13,6 +13,8 @@ const MODULES = [
 	"dataConnector",
 	"goldenLayout",
 	"eventMapper",
+	"graphVisualizerIntegration",
+	"riveGraphVisualizer",
 ];
 
 // Log level names and values
@@ -208,7 +210,7 @@ function createDebugControlsUI() {
         z-index: 9999;
         font-family: monospace;
         font-size: 12px;
-        max-height: 300px;
+        max-height: 400px;
         overflow-y: auto;
         transition: transform 0.3s;
         transform: translateY(calc(100% - 30px));

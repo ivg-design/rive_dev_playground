@@ -21,6 +21,10 @@ LoggerAPI.setModuleLevel("controlInterface", LogLevel.NONE); // Detailed level f
 LoggerAPI.setModuleLevel("parserHandler", LogLevel.NONE); // Normal level for handler
 LoggerAPI.setModuleLevel("goldenLayout", LogLevel.DEBUG); // Golden Layout debugging - enabled for troubleshooting
 
+// Graph Visualizer modules
+LoggerAPI.setModuleLevel("graphVisualizerIntegration", LogLevel.DEBUG); // Graph integration debugging
+LoggerAPI.setModuleLevel("riveGraphVisualizer", LogLevel.DEBUG); // Graph visualizer core debugging
+
 /**
  * Configure all logging from this central place
  */

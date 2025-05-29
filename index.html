@@ -5,14 +5,14 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Rive Parser Test</title>
 
-		<!-- Golden Layout CSS (CDN) -->
+		<!-- Golden Layout CSS (Local) -->
 		<link
-			href="https://unpkg.com/golden-layout@1.5.9/src/css/goldenlayout-base.css"
+			href="./node_modules/golden-layout/src/css/goldenlayout-base.css"
 			rel="stylesheet"
 			type="text/css"
 		/>
 		<link
-			href="https://unpkg.com/golden-layout@1.5.9/src/css/goldenlayout-dark-theme.css"
+			href="./node_modules/golden-layout/src/css/goldenlayout-dark-theme.css"
 			rel="stylesheet"
 			type="text/css"
 		/>
@@ -29,15 +29,10 @@
 			href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
 			rel="stylesheet"
 		/>
+		<!-- Font Awesome (Local) -->
 		<link
 			rel="stylesheet"
-			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-		/>
-		<!-- Backup Font Awesome CDN -->
-		<link
-			rel="stylesheet"
-			href="https://use.fontawesome.com/releases/v6.4.0/css/all.css"
-			crossorigin="anonymous"
+			href="./node_modules/@fortawesome/fontawesome-free/css/all.min.css"
 		/>
 
 		<!-- Modular CSS files -->
@@ -51,6 +46,7 @@
 		<link rel="stylesheet" href="src/styles/event-console.css" />
 		<link rel="stylesheet" href="src/styles/toggle-switch.css" />
 		<link rel="stylesheet" href="src/styles/help-popup.css" />
+		<link rel="stylesheet" href="src/styles/graph-visualizer.css" />
 	</head>
 
 	<body class="jsoneditor-dark">
@@ -411,19 +407,66 @@
 					<div id="eventConsoleContent" class="event-console-content"></div>
 				</div>
 			</div>
+
+			<!-- Graph Visualizer Template -->
+			<div id="graphVisualizerTemplate">
+				<div class="graph-visualizer-container">
+					<div id="graphVisualizerContent"></div>
+					
+					<!-- Graph Controls -->
+					<div class="graph-controls">
+						<button class="graph-control-btn" id="fitViewBtn" title="Fit to View">
+							<i class="fas fa-expand-arrows-alt"></i>
+						</button>
+						<button class="graph-control-btn" id="exportGraphBtn" title="Export Image">
+							<i class="fas fa-download"></i>
+						</button>
+						<button class="graph-control-btn" id="toggleOptionsBtn" title="Toggle Options">
+							<i class="fas fa-cog"></i>
+						</button>
+					</div>
+					
+					<!-- Graph Statistics -->
+					<div class="graph-stats" id="graphStats">
+						<span class="stat-item">Nodes: <span class="stat-value" id="nodeCount">0</span></span>
+						<span class="stat-item">Edges: <span class="stat-value" id="edgeCount">0</span></span>
+						<span class="stat-item">Groups: <span class="stat-value" id="comboCount">0</span></span>
+					</div>
+					
+					<!-- Graph Options Panel -->
+					<div class="graph-options" id="graphOptions" style="display: none;">
+						<h4>Display Options</h4>
+						<div class="graph-option">
+							<input type="checkbox" id="includeAssetsOption" checked>
+							<label for="includeAssetsOption">Include Assets</label>
+						</div>
+						<div class="graph-option">
+							<input type="checkbox" id="includeEnumsOption" checked>
+							<label for="includeEnumsOption">Include Enums</label>
+						</div>
+						<div class="graph-option">
+							<input type="checkbox" id="includeInputsOption" checked>
+							<label for="includeInputsOption">Include Inputs</label>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<!-- Load the Rive runtime -->
 		<script src="./node_modules/@rive-app/webgl2/rive.js"></script>
 
-		<!-- jQuery (required by Golden Layout v1.5.9) -->
-		<script src="https://unpkg.com/jquery@3.6.0/dist/jquery.min.js"></script>
+		<!-- jQuery (Local) -->
+		<script src="./node_modules/jquery/dist/jquery.min.js"></script>
 
-		<!-- Golden Layout JS (CDN) -->
-		<script src="https://unpkg.com/golden-layout@1.5.9/dist/goldenlayout.min.js"></script>
+		<!-- Golden Layout JS (Local) -->
+		<script src="./node_modules/golden-layout/dist/goldenlayout.min.js"></script>
 
 		<!-- JSONEditor JS (Ensure it's loaded before scripts that use it) -->
 		<script src="./node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
+
+		<!-- G6 Graph Library (Local UMD Build) -->
+		<script src="./node_modules/@antv/g6/dist/g6.min.js"></script>
 
 		<!-- Logging System Scripts -->
 		<script type="module" src="src/utils/debugger/debugLogger.js"></script>
@@ -452,6 +495,9 @@
 			src="src/components/riveControlInterface.js"
 		></script>
 		<script type="module" src="src/components/assetManager.js"></script>
+
+		<!-- Graph Visualizer Integration -->
+		<script type="module" src="src/components/graphVisualizerIntegration.js"></script>
 
 		<!-- Debug Controls -->
 		<script type="module" src="src/utils/debugger/debugControl.js"></script>

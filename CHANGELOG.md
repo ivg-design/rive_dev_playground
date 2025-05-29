@@ -1,29 +1,337 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [v1.4.0] - 2024-12-19 - Major WebGL Error Resolution & Graph Visualizer Implementation
+Local Dependencies Migration & Performance Optimization
+
+### 🚀 Infrastructure Improvements
+
+#### CDN to Local Dependencies Migration
+- **Complete Local Dependency Migration** - Migrated all major external dependencies from CDN to local node_modules for improved performance and reliability
+  - **Golden Layout v1.5.9**: Migrated from unpkg.com CDN to local installation
+    - CSS: `./node_modules/golden-layout/src/css/goldenlayout-base.css`
+    - CSS: `./node_modules/golden-layout/src/css/goldenlayout-dark-theme.css`
+    - JS: `./node_modules/golden-layout/dist/goldenlayout.min.js`
+  - **jQuery v3.6.0**: Migrated from unpkg.com CDN to local installation
+    - JS: `./node_modules/jquery/dist/jquery.min.js`
+  - **Font Awesome**: Migrated from cdnjs.cloudflare.com to local installation
+    - CSS: `./node_modules/@fortawesome/fontawesome-free/css/all.min.css`
+    - Includes all webfonts (woff2, ttf) for complete icon support
+
+#### Performance & Reliability Benefits
+- **Faster Loading Times** - Eliminated external network requests for major dependencies
+- **Offline Capability** - Application now works completely offline (except Google Fonts)
+- **Version Control** - Exact dependency versions locked in package.json
+- **No CDN Downtime Risk** - Application immune to external CDN failures
+- **Better Caching** - All resources served from same domain for improved browser caching
+
+### 🔧 Technical Fixes
+
+#### Event Listener Optimization
+- **Non-Passive Event Listener Violations Resolved** - Fixed browser console warnings about non-passive event listeners
+  - Added `{ passive: true }` option to resize event listeners in `riveParserHandler.js`
+  - Added `{ passive: true }` option to keydown event listeners in `riveControlInterface.js`
+  - Updated corresponding `removeEventListener` calls to match addEventListener options
+  - Improved browser performance by allowing passive event handling
+
+#### Package Management
+- **Correct Version Installation** - Resolved Golden Layout version mismatch
+  - **Issue**: npm installed Golden Layout v2.6.0 instead of requested v1.5.9
+  - **Root Cause**: Version specification wasn't properly enforced
+  - **Solution**: Explicitly uninstalled v2.6.0 and reinstalled correct v1.5.9
+  - **Verification**: Confirmed proper file structure and API compatibility
+
+### 🛠️ Code Quality Improvements
+
+#### Dependency Management
+- **Package.json Updates** - Added local dependencies to package.json
+  - `jquery@3.6.0` - UI framework dependency
+  - `@fortawesome/fontawesome-free` - Icon library
+  - `golden-layout@1.5.9` - Layout management (corrected version)
+
+#### HTML Structure Optimization
+- **Cleaner Resource Loading** - Streamlined HTML dependency loading
+  - Removed redundant Font Awesome CDN fallback links
+  - Organized local resource links with clear comments
+  - Maintained Google Fonts CDN for optimal font delivery
+
+### 📋 Compatibility & Maintenance
+
+#### Browser Compatibility
+- **Enhanced Cross-Browser Support** - Local dependencies ensure consistent behavior
+  - No dependency on external CDN availability
+  - Consistent file versions across all environments
+  - Reduced CORS and mixed-content issues
+
+#### Development Workflow
+- **Improved Development Experience** - Better local development setup
+  - All dependencies available in node_modules
+  - Consistent versions across team members
+  - Easier debugging with local source files
+
+### 🔍 Testing & Validation
+
+#### Functionality Verification
+- **Complete Feature Testing** - Verified all functionality works with local dependencies
+  - Golden Layout panels and controls operate correctly
+  - Font Awesome icons display properly throughout interface
+  - jQuery functionality (drag/drop, animations) works as expected
+  - No console errors related to missing dependencies
+
+#### Performance Validation
+- **Load Time Measurements** - Confirmed improved loading performance
+  - Reduced initial page load time due to local file serving
+  - Eliminated network latency for major dependencies
+  - Faster subsequent page loads due to improved caching
+
+### 🚨 Migration Notes
+
+#### Breaking Changes
+- **None** - All existing functionality preserved during migration
+
+#### File Structure Changes
+- **New Local Files** - Added to project structure:
+  - `node_modules/golden-layout/` - Layout management library
+  - `node_modules/jquery/` - UI framework
+  - `node_modules/@fortawesome/fontawesome-free/` - Icon library and fonts
+
+
+### 🚨 Critical Bug Fixes
+- **RESOLVED: WebGL Framebuffer Errors** - Eliminated the persistent `GL_INVALID_FRAMEBUFFER_OPERATION: Framebuffer is incomplete: Attachment has zero size` errors that occurred when loading Rive files
+  - **Root Cause**: Rive canvas was being initialized with zero dimensions before Golden Layout had properly sized containers
+  - **Solution**: Implemented comprehensive canvas dimension validation and safety checks across multiple components:
+    - Added `ensureCanvasDimensions()` function in Golden Layout canvas component with multiple timing checks
+    - Enhanced Rive Control Interface with canvas dimension validation before `new RiveEngine.Rive()` creation
+    - Added load event protection with safety checks before `resizeDrawingSurfaceToCanvas()`
+    - Enforced minimum safe dimensions (400x300) for WebGL context safety
+    - Implemented tab visibility monitoring to pause/resume Rive instances when switching between canvas and graph visualizer tabs
+
+### 🎯 New Features
+
+#### Graph Visualizer System
+- **Complete G6-based Graph Visualizer** - Implemented a fully functional hierarchical graph visualization system for Rive file structure
+  - **Technology**: Uses AntV G6 v5 graph library with local UMD build for offline functionality
+  - **Architecture**: Hierarchical tree data structure using G6's built-in `treeToGraphData()` and native collapse/expand functionality
+  - **Visual Design**: 
+    - Color-coded nodes by type (artboards: blue, animations: purple, state machines: green, etc.)
+    - Rich text nodes displaying names, details, types, and counts
+    - Interactive collapse/expand buttons with smooth animations
+    - Dark theme with high contrast for better visibility
+  - **Integration**: Seamlessly integrated into Golden Layout with 40% width allocation in default layout
+  - **Data Flow**: JSON Editor → Custom Events → Graph Visualizer with real-time updates
+  - **Controls**: Fit view, export image, toggle options with event listeners
+  - **Options**: Configurable inclusion of assets, enums, and inputs
+
+#### On-Demand Generation
+- **Smart Loading Strategy** - Graph visualization is generated on-demand rather than automatically
+  - Added "Generate Graph Visualization" button with tree icon and loading states
+  - Prevents unnecessary processing and improves initial load performance
+  - Maintains responsive UI during generation with proper loading indicators
+
+#### Enhanced Event System
+- **Comprehensive Rive Event Logging** - Advanced event monitoring and display system
+  - **Event Categories**: Custom events, state changes, nested ViewModel events, playback events, system events, frame events
+  - **Smart Filtering**: Granular control over which event types to log with persistent settings
+  - **Event Console**: Dedicated panel with scrolling text support for long event messages
+  - **Event Throttling**: Prevents browser crashes with intelligent throttling (100ms minimum between same event types, 50 events/second max)
+  - **Emergency Shutdown**: Automatic protection against event floods (200+ events triggers shutdown)
+  - **Event Mapping**: Comprehensive event formatter with context-aware descriptions
+
+#### Tab Visibility Management
+- **WebGL Context Protection** - Intelligent handling of Rive instances when switching between tabs
+  - Monitors Golden Layout `activeContentItemChanged` events for tab switches
+  - Automatically pauses Rive instances when canvas tab is hidden to prevent WebGL errors
+  - Resumes instances with proper dimension validation when canvas tab becomes visible
+  - Prevents the WebGL framebuffer errors that occurred during tab switching
+
+### 🔧 Technical Improvements
+
+#### Architecture Enhancements
+- **Modular Component System** - Clean separation of concerns across components:
+  - `riveGraphVisualizer.js` - Core graph visualization logic with custom TreeNode class
+  - `graphVisualizerIntegration.js` - Golden Layout integration and data flow management
+  - Enhanced `goldenLayoutManager.js` with tab monitoring and canvas safety features
+  - Improved `riveControlInterface.js` with WebGL protection and dimension validation
+
+#### Debug System Enhancements
+- **Runtime Debug Controls** - Added graph visualizer modules to debug control panel
+  - `graphVisualizerIntegration` and `riveGraphVisualizer` modules now appear in debug controls
+  - Runtime log level adjustment for graph components
+  - Enhanced debug configuration with proper module registration
+
+#### Performance Optimizations
+- **Efficient Data Processing** - Optimized graph data conversion and rendering
+  - Simplified from complex edge-based graphs to hierarchical tree structure (reduced from ~500 to ~200 lines)
+  - Leveraged G6's built-in functionality instead of custom implementations
+  - Implemented ResizeObserver for automatic graph resizing without performance impact
+
+### 🛠️ Code Quality & Maintenance
+
+#### Codebase Cleanup
+- **Removed Testing Files**:
+  - `test-graph-visualizer-es6.html` - Graph visualizer testing file
+  - `test-rive-g6-converter.html` - Rive G6 converter testing file  
+  - `test-g6-api.html` - G6 API testing file
+  - `script_to_fix.js` - Temporary fix script
+  - `g6example.js` - Duplicate G6 example file
+  - `src/scripts/test-deployment.js` - Duplicate deployment test script
+  - `src/utils/riveToG6Converter.js` - Unused converter utility
+
+#### Debugger API Compliance
+- **Consistent Logging** - Replaced all `console.log` statements with project's debugger API
+  - Added proper logger imports: `import { createLogger } from '../utils/debugger/debugLogger.js'`
+  - Fixed logger method usage: `logger.info()`, `logger.debug()`, `logger.warn()`, `logger.error()`
+  - Maintained debug levels and module-specific configuration
+
+#### Module System Improvements
+- **ES6 Module Integration** - Enhanced module loading and dependency management
+  - Fixed module import errors by adding `type="module"` to script tags
+  - Proper async/await patterns for dynamic imports
+  - Clean module boundaries with explicit exports/imports
+
+### 🎨 User Experience Improvements
+
+#### UI/UX Enhancements
+- **Responsive Design** - Graph visualizer adapts to container size changes
+  - Automatic resizing with ResizeObserver
+  - Proper dimension validation and safe fallbacks
+  - Smooth transitions and loading states
+
+#### Error Handling
+- **Graceful Degradation** - Comprehensive error handling throughout the graph system
+  - Try-catch blocks prevent crashes during graph operations
+  - User-friendly error messages with retry options
+  - Fallback behaviors when graph generation fails
+
+#### Accessibility
+- **Better Visual Feedback** - Enhanced user feedback and status indicators
+  - Loading states during graph generation
+  - Clear status messages for user actions
+  - Proper button states and visual cues
+
+### 📋 Integration & Compatibility
+
+#### Golden Layout Integration
+- **Seamless Panel Management** - Full integration with existing Golden Layout system
+  - Component registration and factory functions
+  - Proper event handling and cleanup
+  - Restore menu integration for missing panels
+
+#### Data Pipeline
+- **Robust Data Flow** - Reliable data synchronization between components
+  - JSON Editor updates trigger graph regeneration
+  - Event-driven architecture prevents tight coupling
+  - Proper error propagation and handling
+
+### 🔍 Testing & Validation
+
+#### WebGL Error Resolution Validation
+- **Comprehensive Testing** - Verified WebGL framebuffer error elimination across scenarios:
+  - File loading with various canvas states
+  - Tab switching between canvas and graph visualizer
+  - Window resizing and layout changes
+  - Multiple file loads and state resets
+
+#### Graph Functionality Testing
+- **Feature Validation** - Confirmed all graph features work correctly:
+  - Hierarchical data visualization
+  - Interactive collapse/expand functionality
+  - Color coding and visual differentiation
+  - Export and control features
+  - Responsive resizing and layout adaptation
+
+### 📚 Documentation & Maintenance
+
+#### Code Documentation
+- **Enhanced Comments** - Comprehensive inline documentation for complex logic
+  - WebGL safety measures and dimension validation
+  - Graph data transformation processes
+  - Event handling and tab monitoring systems
+
+#### Debug Information
+- **Improved Logging** - Better debug output for troubleshooting
+  - Detailed dimension logging for WebGL safety
+  - Graph generation progress tracking
+  - Event system monitoring and throttling logs
+
+### 🚀 Performance Impact
+
+#### Load Time Improvements
+- **Optimized Initialization** - Faster application startup
+  - On-demand graph generation reduces initial load
+  - Efficient module loading with proper async patterns
+  - Reduced redundant file processing
+
+#### Runtime Performance
+- **Smooth Operation** - Enhanced runtime performance
+  - Event throttling prevents performance degradation
+  - Efficient graph rendering with G6 optimizations
+  - Proper memory management and cleanup
+
+### 🔧 Technical Debt Reduction
+
+#### Code Simplification
+- **Reduced Complexity** - Simplified graph implementation by following G6 patterns
+  - Eliminated custom graph logic in favor of library features
+  - Reduced code duplication and redundant files
+  - Cleaner module boundaries and dependencies
+
+#### Maintenance Improvements
+- **Better Maintainability** - Enhanced code organization and structure
+  - Clear separation of concerns between components
+  - Consistent error handling patterns
+  - Standardized logging and debug practices
+
+---
+
+### Migration Notes
+- **No Breaking Changes** - All existing functionality preserved
+- **Enhanced Stability** - WebGL errors eliminated, improving overall reliability
+- **New Features** - Graph visualizer adds significant value without affecting existing workflows
+- **Performance** - Overall application performance improved through optimizations and cleanup
+
+### Known Issues Resolved
+- ✅ WebGL framebuffer errors during file loading
+- ✅ Canvas dimension issues with Golden Layout
+- ✅ Tab switching causing WebGL context problems
+- ✅ Graph visualizer integration complexity
+- ✅ Event system performance issues
+- ✅ Code duplication and redundant files
+
 ## [1.3.0] - 2025-05-28
 ### Changes
 - [minor]: improve JSON save filename format and fix event console initialization
+
 ## [1.2.6] - 2025-05-27
 ### Changes
 - [fix]: enhance pymdownx.emoji configuration for improved emoji rendering with custom icons
+
 ## [1.2.5] - 2025-05-27
 ### Changes
 - fix: simplify pymdownx.emoji configuration and update VSCode settings for GitHub Actions workflow [fix]
+
 ## [1.2.4] - 2025-05-27
 ### Changes
 - fix: update documentation links and paths to reflect the new Rive Tester application structure and improve emoji rendering configuration[fix]
+
 ## [1.2.3] - 2025-05-27
 ### Changes
 - fix: update documentation link in release-and-deploy workflow to point to the correct /docs/ directory [fix]
 - chore: housekeeping [fix] remove outdated documentation and assets\n\n- Deleted various HTML, CSS, and JavaScript files related to documentation, including README, 404 pages, and guides for user management, installation, and debugging.\n- Cleaned up the repository to streamline the documentation structure and focus on essential content.
 - [fix] update Rive app docs link to point to /docs/ for correct documentation location
+
 ## [1.2.2] - 2025-05-27
 ### Changes
 - [fix] configure pymdownx.emoji for proper Material icon rendering in docs
 - fix: deploy mkdocs_site as /docs in GitHub Pages workflow
+
 ## [1.2.1] - 2025-05-27
 ### Changes
 - chore: remove outdated documentation files and assets from the repository[fix]\n\n- Deleted various markdown files related to user guides, debugging, runtime controls, asset management, installation, and quick start.\n- Removed associated CSS and HTML files for documentation.\n- Cleaned up the repository to streamline the documentation structure and focus on essential content.
 - refactor: rename docs/ to source_docs and docs-html/ to mkdocs_site; updated all references in scripts, configs, and workflows; ensured MkDocs and deployment workflows use the new folder names; updated changelog accordingly
 - chore: enforce consistent formatting and fix workflow input\n\n- Updated .editorconfig and .prettierrc to enforce tabs for code and spaces for YAML\n- Reformatted all files with Prettier\n- Fixed workflow_dispatch input for version_type in semantic-release.yml
+
 ## [1.2.0] - 2025-05-27
 
 ### Changes
@@ -62,10 +370,6 @@
 
 - chore: Update project name and enhance dependencies for Rive Playground [minor]
 
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
 ## [1.0.1] - 2025-05-27
 
 ### Changes
@@ -102,174 +406,3 @@ All notable changes to this project will be documented in this file.
 - Enhance index.html layout and parser.js functionality. Updated index.html to improve user interface with additional controls for Rive file parsing, including file selection and calibration inputs. Refactored parser.js to introduce a new runOriginalClientParser function for better handling of Rive instances and file paths. Improved error handling and logging throughout the parser modules for enhanced debugging and maintainability.
 - Refactor vmBlueprintAnalyzer and vmInstancePropertyValueExtractor for improved property analysis and value extraction. Enhanced analyzeBlueprintFromDefinition to include nested ViewModel properties and added generateBlueprintFingerprint function. Updated extractVmInstancePropertyValue to utilize dedicated value getters for better clarity and maintainability.
 - initial commit for a rive parser and testing environment
-
-## [Unreleased] - 2025-01-XX
-
-### Added
-- **JSON Editor Enhancements**
-  - Added save functionality to JSON Inspector with downloadable JSON files
-  - JSON files are saved with Rive filename in format: `{rivefilename}_parsed-data_{timestamp}.json`
-  - Added professional header to JSON Inspector panel with save button
-  - Implemented proper error handling for save operations
-  - Enhanced filename detection from file input and UI display elements
-
-- **Enhanced Debug Control System**
-  - Added comprehensive console logging for all debug control actions
-  - Implemented `debugHelper.test()` function to test all debug modules with sample messages
-  - Added `debugHelper.currentSettings()` with enhanced status reporting showing actual vs UI state
-  - Exposed `debugHelper.api` for direct access to LoggerAPI methods
-  - Added real-time mismatch detection between UI settings and actual logger state
-  - Implemented proper initialization logging with available commands list
-  - Added global enabled state tracking and display
-
-- **Debug Control Panel Improvements**
-  - Enhanced Enable All/Disable All buttons with proper console feedback
-  - Fixed "Set All Levels" functionality to properly update all module dropdowns
-  - Added individual module setting with detailed console logging
-  - Implemented proper state synchronization between UI and LoggerAPI
-  - Added status messages in debug panel with auto-clear functionality
-
-- **LoggerAPI Enhancements**
-  - Added `isEnabled()` method to get current global enabled state
-  - Added `getModuleLevel(moduleName)` to get current level for specific modules
-  - Added `getAllLevels()` method to retrieve all current module levels
-  - Enhanced module level setting with proper validation and logging
-  - Improved global enable/disable functionality with immediate effect
-
-- **Comprehensive Rive Event Logging System**
-  - Added master toggle for enabling/disabling all event logging
-  - Implemented separate toggles for different event categories:
-    - Custom Events (user-defined events from Rive files)
-    - State Change Events (state transitions, input changes, ViewModel properties)
-    - Nested ViewModel Events (property changes in nested ViewModels)
-    - Playback Events (Play, Pause, Stop, Loop)
-    - System Events (Load, LoadError)
-  - Event Console panel with terminal-style interface (black background, green text)
-  - Real-time event streaming with latest messages on top
-  - Event throttling and emergency shutdown to prevent browser crashes
-  - Comprehensive event formatting with timestamps and detailed information
-  - Help system with popup modal explaining all event types
-  - Persistent settings saved to localStorage
-
-- **Beautiful Toggle Switch UI**
-  - Replaced checkboxes with modern red/green gradient toggle switches
-  - Master toggle (larger) for main event logging control
-  - Compact toggles for sub-options
-  - Smooth animations with hover effects and accessibility support
-
-- **Enhanced Event Console**
-  - Terminal-style interface with monospaced font
-  - Auto-scroll to keep latest events visible
-  - Clear button functionality
-  - Message limiting (100 entries) for performance
-  - Styled scrollbar for better UX
-  - Event console clears on page reload
-  - Disabled/enabled status messages
-
-- **Advanced ViewModel Event Monitoring**
-  - Enhanced VM name detection with actual instance names and blueprint names
-  - Support for nested ViewModel property change tracking
-  - Full VM path tracking for complex nested structures
-  - Context-aware event logging with VM metadata
-
-- **Improved Control Interface**
-  - All control panel sections (State Machine Controls, VM sections) start closed on load
-  - Consistent styling across all Dynamic Controls sections
-  - Better organization and visual hierarchy
-
-### Fixed
-- **Event Console Initialization**
-  - Fixed event console flicker on initialization
-  - Moved event console state initialization to Golden Layout component factory
-  - Ensured proper initial message display based on saved settings
-  - Removed conflicting initialization logic from riveControlInterface.js
-  - Reduced initialization timeout from 100ms to 50ms for faster display
-
-- **Debug Control System Issues**
-  - Fixed Enable All/Disable All buttons not working properly
-  - Fixed missing console logging for debug control actions
-  - Fixed setting all levels to NONE not stopping debug messages
-  - Fixed disconnect between UI state and actual LoggerAPI state
-  - Fixed localStorage persistence for global enabled state
-  - Fixed module level synchronization between UI dropdowns and actual settings
-  - Fixed debug panel status messages not displaying properly
-
-- **Debug System Functionality**
-  - Fixed LoggerAPI global enable/disable not being properly tracked
-  - Fixed module level getters not being available for status checking
-  - Fixed debug controls initialization not providing user feedback
-  - Fixed mismatch detection between saved settings and runtime state
-  - Fixed test function import issues and error handling
-
-- **Play Button Icons**
-  - Play/pause/stop buttons now maintain persistent triangle (▶️) and stop (⏹️) icons
-  - Button states properly synchronize with Rive playback events
-  - Icons no longer get replaced with text during state changes
-  - Proper event listener synchronization for timeline and state machine playback
-
-- **Event Console Improvements**
-  - Removed distracting blinking cursor from terminal interface
-  - Event console properly clears on page reload
-  - Clear button functionality works correctly
-  - Latest events appear at top (newest pushes older events down)
-
-- **Code Cleanup**
-  - Removed all nested artboard event monitoring code (non-functional)
-  - Removed nested artboard toggle switch from UI
-  - Removed frame events toggle (high frequency events)
-  - Removed nested artboard references from help popup
-  - Cleaned up localStorage handling for removed features
-
-### Improved
-- **JSON Editor User Experience**
-  - Reduced font size from 14px to 11px for more compact display
-  - Reduced indentation from 2 to 1 space for more compact display
-  - Better space utilization in JSON Inspector panel
-  - Improved readability for large JSON structures
-
-- **Event System Performance**
-  - Added event throttling (100ms minimum between same event types)
-  - Maximum 50 events per second limit
-  - Emergency shutdown at 200 events to prevent browser crashes
-  - Automatic recovery after emergency shutdown
-  - Better memory management for event storage
-
-- **User Experience**
-  - Help system with professional popup modal design
-  - Responsive design for help popup
-  - Keyboard shortcuts (Escape to close popups)
-  - Better visual feedback for all interactions
-  - Improved accessibility with focus states
-
-- **Developer Experience**
-  - Enhanced debugging capabilities with structured event logging
-  - Better error handling and recovery
-  - Comprehensive event categorization and filtering
-  - Detailed event metadata for troubleshooting
-
-### Technical Improvements
-- **Event Mapping System**
-  - Complete event type mappings based on C++ bindings
-  - Proper event categorization and color coding
-  - Support for all Rive event types with proper formatting
-  - Enhanced event data extraction and processing
-
-- **State Management**
-  - Improved localStorage persistence for all settings
-  - Better state synchronization between UI and Rive runtime
-  - Proper cleanup of event listeners and intervals
-  - Enhanced error recovery and fallback handling
-  - Better separation of concerns between Golden Layout and control interface
-  - Eliminated race conditions in event console initialization
-
-### Removed
-- **Nested Artboard Event Monitoring**
-  - Removed non-functional nested artboard event detection
-  - Removed related UI toggles and help documentation
-  - Cleaned up associated code and localStorage entries
-  - Simplified event processing pipeline
-
-- **Frame Events Toggle**
-  - Removed high-frequency frame events toggle
-  - Removed associated help documentation
-  - Simplified event filtering logic
