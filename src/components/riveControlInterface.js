@@ -855,21 +855,98 @@ function createControlForProperty(property, vmContext = null) {
 						logger.debug(
 							`[App] Event: Attempting to fire trigger ${name}`,
 						);
-						if (typeof liveProperty.fire === "function") {
-							liveProperty.fire();
-						} else {
-							const oldValue = liveProperty.value;
-							liveProperty.value = true;
-							setTimeout(() => {
-								liveProperty.value = oldValue;
-							}, 100);
+						
+						// Enhanced debugging for trigger objects
+						logger.trace(`[App] Trigger object for ${name}:`, liveProperty);
+						logger.trace(`[App] Trigger object type:`, typeof liveProperty);
+						logger.trace(`[App] Trigger object constructor:`, liveProperty?.constructor?.name);
+						logger.trace(`[App] Trigger object properties:`, Object.getOwnPropertyNames(liveProperty || {}));
+						logger.trace(`[App] Trigger object prototype methods:`, Object.getOwnPropertyNames(Object.getPrototypeOf(liveProperty || {})));
+						
+						// 🔍 LIVE OBJECT DEBUGGING - Expose trigger object for console examination
+						console.group(`🔥 FIRING TRIGGER: ${name}`);
+						console.log(`Trigger name: ${name}`);
+						console.log(`Live trigger object:`, liveProperty);
+						console.log(`Object constructor:`, liveProperty?.constructor?.name);
+						console.log(`Prototype chain:`, Object.getPrototypeOf(liveProperty));
+						console.log(`Available methods:`, Object.getOwnPropertyNames(Object.getPrototypeOf(liveProperty || {})));
+						console.log(`Direct properties:`, Object.getOwnPropertyNames(liveProperty || {}));
+						
+						// Expose on window for interactive debugging
+						const windowKey = `firing_trigger_${name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+						window[windowKey] = liveProperty;
+						console.log(`💡 Object exposed as: window.${windowKey}`);
+						console.log(`💡 Try: window.${windowKey}.trigger() to test manually`);
+						
+						// Check available methods
+						const hasFire = typeof liveProperty.fire === "function";
+						const hasTrigger = typeof liveProperty.trigger === "function";
+						const hasValue = typeof liveProperty.value !== "undefined";
+						
+						console.log(`🔍 Method availability:`, {
+							fire: hasFire,
+							trigger: hasTrigger,
+							value: hasValue,
+							valueType: typeof liveProperty.value
+						});
+						
+						let triggerFired = false;
+						
+						try {
+							// Try ViewModel trigger method first (correct API)
+							if (hasTrigger) {
+								console.log(`🚀 Attempting: liveProperty.trigger()`);
+								logger.debug(`[App] Firing trigger ${name} using trigger() method`);
+								liveProperty.trigger();
+								triggerFired = true;
+								console.log(`✅ SUCCESS: trigger() method worked!`);
+								logger.info(`[App] Successfully fired trigger ${name} using trigger() method`);
+							}
+							// Fallback to fire() method (for state machine triggers)
+							else if (hasFire) {
+								console.log(`🚀 Attempting: liveProperty.fire()`);
+								logger.debug(`[App] Firing trigger ${name} using fire() method`);
+								liveProperty.fire();
+								triggerFired = true;
+								console.log(`✅ SUCCESS: fire() method worked!`);
+								logger.info(`[App] Successfully fired trigger ${name} using fire() method`);
+							}
+							// Last resort: boolean pulse
+							else if (hasValue) {
+								console.log(`🚀 Attempting: boolean pulse (value = true)`);
+								logger.debug(`[App] Firing trigger ${name} using boolean pulse (value property)`);
+								const oldValue = liveProperty.value;
+								liveProperty.value = true;
+								setTimeout(() => {
+									liveProperty.value = oldValue;
+								}, 100);
+								triggerFired = true;
+								console.log(`✅ SUCCESS: boolean pulse worked!`);
+								logger.info(`[App] Successfully fired trigger ${name} using boolean pulse`);
+							}
+							else {
+								console.error(`❌ FAILED: No valid trigger method found!`);
+								logger.error(`[App] No valid trigger method found for ${name}. Available:`, {
+									object: liveProperty,
+									methods: Object.getOwnPropertyNames(Object.getPrototypeOf(liveProperty || {})),
+									properties: Object.getOwnPropertyNames(liveProperty || {})
+								});
+							}
+						} catch (error) {
+							console.error(`❌ ERROR during trigger firing:`, error);
+							logger.error(`[App] Error firing trigger ${name}:`, error);
+							logger.error(`[App] Trigger object that failed:`, liveProperty);
 						}
 						
-						// Log ViewModel property change
+						console.groupEnd();
+						
+						// Log ViewModel property change with enhanced information
 						logRiveEvent("ViewModelPropertyChanged", {
 							property: name,
 							type: type,
 							value: "triggered",
+							success: triggerFired,
+							methodUsed: hasTrigger ? "trigger()" : hasFire ? "fire()" : hasValue ? "boolean_pulse" : "none",
 							viewModel: vmContext?.instanceName || vmContext?.blueprintName || "ViewModel",
 							vmPath: vmContext?.path || "ViewModel",
 							isNested: vmContext?.isNested || false,

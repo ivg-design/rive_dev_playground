@@ -409,4 +409,79 @@
 
 .generate-graph-btn i {
   font-size: 16px;
+}
+
+/* Graph Visualizer Error */
+.graph-visualizer-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: #f8f9fa;
+  color: #6c757d;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.error-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+
+.error-title {
+  margin: 0 0 12px 0;
+  color: #dc3545;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.error-message {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 400px;
+  opacity: 0.8;
+}
+
+.error-retry-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.error-retry-btn:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.error-retry-btn:active {
+  transform: translateY(0);
+}
+
+/* Dark Theme Error Styles */
+.jsoneditor-dark .graph-visualizer-error {
+  background: #2d3748;
+  color: #a0aec0;
+}
+
+.jsoneditor-dark .error-title {
+  color: #fc8181;
+}
+
+.jsoneditor-dark .error-retry-btn {
+  background: #fc8181;
+  color: #2d3748;
+}
+
+.jsoneditor-dark .error-retry-btn:hover {
+  background: #f56565;
 } 

@@ -239,6 +239,7 @@ class GraphVisualizerIntegration {
   generateGraph() {
     if (!this.currentData) {
       logger.warn('No data available to generate graph');
+      this.showError(this.container, 'No data available to generate graph. Please load a Rive file first.');
       return;
     }
 
@@ -251,12 +252,59 @@ class GraphVisualizerIntegration {
     `;
 
     // Generate graph after a short delay to show loading state
-    setTimeout(() => {
-      this.updateData(this.currentData);
+    setTimeout(async () => {
+      try {
+        // If visualizer is not initialized, initialize it now
+        if (!this.isInitialized || !this.visualizer) {
+          logger.info('Visualizer not initialized, initializing now for graph generation');
+          
+          // Clear the loading state and prepare container for graph
+          this.container.innerHTML = '';
+          
+          // Ensure container has proper dimensions
+          this.container.style.width = '100%';
+          this.container.style.height = '100%';
+          this.container.style.minHeight = '400px';
+          this.container.style.position = 'relative';
+          this.container.style.display = 'block';
+          
+          // Force layout if needed
+          if (this.container.offsetHeight < 50) {
+            this.container.style.height = '400px';
+          }
+          
+          // Wait for container to be properly sized
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Validate dimensions one more time
+          const rect = this.container.getBoundingClientRect();
+          if (rect.width < 10 || rect.height < 10) {
+            throw new Error(`Container dimensions still too small: ${rect.width}x${rect.height}`);
+          }
+          
+          // Import and create visualizer
+          const { RiveGraphVisualizer } = await import('./riveGraphVisualizer.js');
+          this.visualizer = new RiveGraphVisualizer(this.container, {
+            includeAssets: true,
+            includeEnums: true,
+            includeInputs: true
+          });
+          
+          this.isInitialized = true;
+          logger.info('Graph visualizer initialized successfully for graph generation');
+        }
+        
+        // Now update with data
+        await this.updateData(this.currentData);
+        
+      } catch (error) {
+        logger.error('Failed to generate graph:', error);
+        this.showError(this.container, 'Failed to generate graph: ' + error.message);
+      }
     }, 100);
   }
 
-  updateData(riveData) {
+  async updateData(riveData) {
     if (!this.isInitialized || !this.visualizer) {
       logger.warn('Graph visualizer not initialized, cannot update data');
       return;
@@ -264,7 +312,7 @@ class GraphVisualizerIntegration {
 
     try {
       this.currentData = riveData;
-      this.visualizer.updateData(riveData);
+      await this.visualizer.updateData(riveData);
       
       // Update statistics in the main app if available
       this.updateMainAppStatistics();
@@ -295,7 +343,7 @@ class GraphVisualizerIntegration {
     }
   }
 
-  updateOptions(options) {
+  async updateOptions(options) {
     if (!this.isInitialized || !this.visualizer) return;
 
     try {
@@ -303,7 +351,7 @@ class GraphVisualizerIntegration {
       
       // Reload current data with new options
       if (this.currentData) {
-        this.visualizer.updateData(this.currentData);
+        await this.visualizer.updateData(this.currentData);
       }
       
     } catch (error) {

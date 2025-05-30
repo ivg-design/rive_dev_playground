@@ -381,20 +381,58 @@ export function processDataForControls(parsedData, riveInstance) {
 							break;
 						case "trigger":
 							// Special handling for triggers if needed
+							logger.debug(`[DataConnector] Processing trigger property: ${prop.name}`);
+							logger.trace(`[DataConnector] mainViewModelInstance:`, mainViewModelInstance);
+							logger.trace(`[DataConnector] mainViewModelInstance.trigger method:`, typeof mainViewModelInstance.trigger);
+							
 							try {
 								if (
 									typeof mainViewModelInstance.trigger ===
 									"function"
 								) {
+									logger.debug(`[DataConnector] Attempting to get trigger property: ${prop.name}`);
 									vmProperty = mainViewModelInstance.trigger(
 										prop.name,
 									);
+									
+									if (vmProperty) {
+										logger.info(`[DataConnector] Successfully retrieved trigger property: ${prop.name}`);
+										logger.trace(`[DataConnector] Trigger object:`, vmProperty);
+										logger.trace(`[DataConnector] Trigger object type:`, typeof vmProperty);
+										logger.trace(`[DataConnector] Trigger object constructor:`, vmProperty?.constructor?.name);
+										logger.trace(`[DataConnector] Trigger methods available:`, {
+											fire: typeof vmProperty.fire === "function",
+											trigger: typeof vmProperty.trigger === "function",
+											value: typeof vmProperty.value !== "undefined"
+										});
+										
+										// 🔍 LIVE OBJECT DEBUGGING - Expose trigger object for console examination
+										console.group(`🔍 LIVE TRIGGER OBJECT: ${prop.name}`);
+										console.log(`Trigger name: ${prop.name}`);
+										console.log(`Trigger object:`, vmProperty);
+										console.log(`Trigger prototype:`, Object.getPrototypeOf(vmProperty));
+										console.log(`Available methods:`, Object.getOwnPropertyNames(Object.getPrototypeOf(vmProperty)));
+										console.log(`Direct properties:`, Object.getOwnPropertyNames(vmProperty));
+										
+										// Expose on window for interactive debugging
+										const windowKey = `trigger_${prop.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+										window[windowKey] = vmProperty;
+										console.log(`💡 Object exposed as: window.${windowKey}`);
+										console.log(`💡 Try: window.${windowKey}.trigger() or inspect manually`);
+										console.groupEnd();
+										
+									} else {
+										logger.warn(`[DataConnector] Trigger property ${prop.name} returned null/undefined`);
+									}
+								} else {
+									logger.error(`[DataConnector] mainViewModelInstance.trigger is not a function:`, typeof mainViewModelInstance.trigger);
 								}
 							} catch (e) {
-								logger.warn(
-									`Trigger property access error for ${prop.name}:`,
+								logger.error(
+									`[DataConnector] Trigger property access error for ${prop.name}:`,
 									e,
 								);
+								logger.error(`[DataConnector] Stack trace:`, e.stack);
 							}
 							break;
 					}

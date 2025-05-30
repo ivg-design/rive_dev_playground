@@ -143,16 +143,62 @@ class RiveTreeNode extends window.G6.Rect {
     
     // Color scheme based on node type
     const colors = {
-      artboard: { fill: '#1e3a8a', stroke: '#3b82f6' },
-      animation: { fill: '#7c2d92', stroke: '#a855f7' },
-      stateMachine: { fill: '#166534', stroke: '#22c55e' },
-      state: { fill: '#ea580c', stroke: '#f97316' },
-      viewModel: { fill: '#be185d', stroke: '#ec4899' },
+      // Root
+      root: { fill: '#1f2937', stroke: '#6b7280' },
+      
+      // Main category nodes (auto-detected from root level)
+      artboardsRoot: { fill: '#1e3a8a', stroke: '#3b82f6' },
       assetsRoot: { fill: '#365314', stroke: '#65a30d' },
-      asset: { fill: '#365314', stroke: '#65a30d' },
-      enumsRoot: { fill: '#d97706', stroke: '#f59e0b' },
-      enum: { fill: '#d97706', stroke: '#f59e0b' },
-      default: { fill: '#374151', stroke: '#9ca3af' }
+      viewModelDefsRoot: { fill: '#be185d', stroke: '#ec4899' },
+      globalEnumsRoot: { fill: '#d97706', stroke: '#f59e0b' },
+      defaultElementsRoot: { fill: '#374151', stroke: '#9ca3af' },
+      
+      // Artboard related
+      artboard: { fill: '#1e40af', stroke: '#3b82f6' },
+      animationsGroup: { fill: '#7c2d92', stroke: '#a855f7' },
+      animation: { fill: '#8b5cf6', stroke: '#a78bfa' },
+      stateMachinesGroup: { fill: '#166534', stroke: '#22c55e' },
+      stateMachine: { fill: '#16a34a', stroke: '#4ade80' },
+      viewModelsGroup: { fill: '#be185d', stroke: '#ec4899' },
+      viewModel: { fill: '#c2410c', stroke: '#ea580c' },
+      nestedViewModel: { fill: '#be185d', stroke: '#ec4899' },
+      
+      // Inputs and Properties
+      inputsGroup: { fill: '#0f766e', stroke: '#14b8a6' },
+      input: { fill: '#0d9488', stroke: '#2dd4bf' },
+      propertiesGroup: { fill: '#9333ea', stroke: '#a855f7' },
+      property: { fill: '#a855f7', stroke: '#c084fc' },
+      nestedVMsGroup: { fill: '#7c3aed', stroke: '#8b5cf6' },
+      
+      // Assets
+      asset: { fill: '#65a30d', stroke: '#84cc16' },
+      
+      // View Model Definitions
+      viewModelDefinition: { fill: '#be185d', stroke: '#ec4899' },
+      blueprintPropsGroup: { fill: '#c2410c', stroke: '#ea580c' },
+      blueprintProperty: { fill: '#ea580c', stroke: '#f97316' },
+      instancesGroup: { fill: '#a21caf', stroke: '#c084fc' },
+      viewModelInstance: { fill: '#c084fc', stroke: '#ddd6fe' },
+      
+      // Global Enums
+      globalEnum: { fill: '#d97706', stroke: '#f59e0b' },
+      enumValue: { fill: '#f59e0b', stroke: '#fbbf24' },
+      valuesGroup: { fill: '#ca8a04', stroke: '#eab308' },
+      
+      // Default Elements
+      defaultArtboard: { fill: '#6b7280', stroke: '#9ca3af' },
+      defaultStateMachines: { fill: '#6b7280', stroke: '#9ca3af' },
+      defaultStateMachine: { fill: '#9ca3af', stroke: '#d1d5db' },
+      defaultViewModel: { fill: '#6b7280', stroke: '#9ca3af' },
+      defaultSource: { fill: '#6b7280', stroke: '#9ca3af' },
+      
+      // Generic types (for future extensibility)
+      array: { fill: '#4338ca', stroke: '#6366f1' },
+      object: { fill: '#059669', stroke: '#10b981' },
+      value: { fill: '#dc2626', stroke: '#ef4444' },
+      
+      // Fallback
+      default: { fill: '#6b7280', stroke: '#9ca3af' }
     };
     
     const nodeColors = colors[nodeType] || colors.default;
@@ -193,7 +239,11 @@ export class RiveGraphVisualizer {
       throw new Error('G6 library not found. Please ensure G6 is loaded before initializing the visualizer.');
     }
     
-    this.init();
+    // Initialize asynchronously and handle errors
+    this.initPromise = this.init().catch(error => {
+      logger.error('Failed to initialize graph visualizer:', error);
+      throw error;
+    });
   }
 
   init() {
@@ -202,185 +252,293 @@ export class RiveGraphVisualizer {
     this.container.style.border = '1px solid #374151';
     this.container.style.borderRadius = '8px';
     
-    // Get container dimensions
-    const containerRect = this.container.getBoundingClientRect();
-    const width = containerRect.width || this.container.offsetWidth || 800;
-    const height = containerRect.height || this.container.offsetHeight || 600;
+    // Ensure container has proper styling
+    this.container.style.width = '100%';
+    this.container.style.height = '100%';
+    this.container.style.position = 'relative';
+    this.container.style.display = 'block';
     
-    logger.info('Initializing graph with dimensions:', { width, height });
-    
-    // Validate dimensions to prevent WebGL framebuffer errors
-    if (width < 10 || height < 10) {
-      logger.error('Container dimensions too small for WebGL context:', { width, height });
-      throw new Error(`Container dimensions too small: ${width}x${height}. Minimum required: 10x10`);
-    }
-    
-    // Ensure minimum viable dimensions for WebGL
-    const safeWidth = Math.max(width, 100);
-    const safeHeight = Math.max(height, 100);
-    
-    if (safeWidth !== width || safeHeight !== height) {
-      logger.warn('Adjusting dimensions for WebGL safety:', { 
-        original: { width, height }, 
-        adjusted: { width: safeWidth, height: safeHeight } 
-      });
-    }
-    
-    // Create graph exactly like the G6 example
-    this.graph = new window.G6.Graph({
-      container: this.container,
-      width: safeWidth,
-      height: safeHeight,
-      data: { nodes: [], edges: [] },
-      
-      node: {
-        type: 'rive-tree-node',
-        style: {
-          size: [200, 60],
-          radius: 8,
-        },
-      },
-      
-      edge: {
-        type: 'cubic-vertical',
-        style: {
-          stroke: '#666',
-          lineWidth: 1.5,
-        },
-      },
-      
-      layout: {
-        type: 'dagre',
-        rankdir: 'TB',
-        nodesep: 100,
-        ranksep: 120,
-      },
-      
-      behaviors: ['zoom-canvas', 'drag-canvas', 'drag-element'],
-    });
-
-    // Set up resize observer to automatically handle container size changes
-    if (window.ResizeObserver) {
-      this.resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const { width, height } = entry.contentRect;
-          if (width > 10 && height > 10 && this.graph && this.graph.resize) {
-            logger.debug('Container resized, updating graph:', { width, height });
-            // Ensure safe dimensions for WebGL
-            const safeWidth = Math.max(width, 100);
-            const safeHeight = Math.max(height, 100);
-            this.graph.resize(safeWidth, safeHeight);
+    // Wait for container to be properly sized by the layout system
+    const waitForDimensions = () => {
+      return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 20; // 2 seconds max wait
+        
+        const checkDimensions = () => {
+          attempts++;
+          const containerRect = this.container.getBoundingClientRect();
+          const width = containerRect.width || this.container.offsetWidth;
+          const height = containerRect.height || this.container.offsetHeight;
+          
+          logger.debug(`Dimension check attempt ${attempts}:`, { width, height });
+          
+          if (width >= 100 && height >= 100) {
+            resolve({ width, height });
+          } else if (attempts >= maxAttempts) {
+            // Force minimum dimensions as fallback
+            this.container.style.width = '800px';
+            this.container.style.height = '600px';
+            this.container.style.minWidth = '800px';
+            this.container.style.minHeight = '600px';
+            
+            // Wait a bit for forced dimensions to take effect
+            setTimeout(() => {
+              const finalRect = this.container.getBoundingClientRect();
+              const finalWidth = Math.max(finalRect.width || 800, 800);
+              const finalHeight = Math.max(finalRect.height || 600, 600);
+              logger.warn('Forced container dimensions:', { width: finalWidth, height: finalHeight });
+              resolve({ width: finalWidth, height: finalHeight });
+            }, 100);
+          } else {
+            setTimeout(checkDimensions, 100);
           }
-        }
+        };
+        
+        checkDimensions();
       });
-      this.resizeObserver.observe(this.container);
-    }
+    };
+    
+    // Wait for proper dimensions before creating graph
+    return waitForDimensions().then(({ width, height }) => {
+      logger.info('Initializing graph with validated dimensions:', { width, height });
+      
+      // Ensure minimum viable dimensions for WebGL
+      const safeWidth = Math.max(width, 400);
+      const safeHeight = Math.max(height, 300);
+      
+      if (safeWidth !== width || safeHeight !== height) {
+        logger.warn('Adjusting dimensions for WebGL safety:', { 
+          original: { width, height }, 
+          adjusted: { width: safeWidth, height: safeHeight } 
+        });
+      }
+      
+      try {
+        // Create graph exactly like the G6 example
+        this.graph = new window.G6.Graph({
+          container: this.container,
+          width: safeWidth,
+          height: safeHeight,
+          data: { nodes: [], edges: [] },
+          
+          node: {
+            type: 'rive-tree-node',
+            style: {
+              size: [200, 60],
+              radius: 8,
+            },
+          },
+          
+          edge: {
+            type: 'cubic-vertical',
+            style: {
+              stroke: '#666',
+              lineWidth: 1.5,
+            },
+          },
+          
+          layout: {
+            type: 'dagre',
+            rankdir: 'TB',
+            nodesep: 100,
+            ranksep: 120,
+          },
+          
+          behaviors: ['zoom-canvas', 'drag-canvas', 'drag-element'],
+        });
 
-    logger.info('Graph created with tree structure');
+        // Set up resize observer to automatically handle container size changes
+        if (window.ResizeObserver) {
+          this.resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+              const { width, height } = entry.contentRect;
+              if (width > 100 && height > 100 && this.graph && this.graph.resize) {
+                logger.debug('Container resized, updating graph:', { width, height });
+                // Ensure safe dimensions for WebGL
+                const safeWidth = Math.max(width, 400);
+                const safeHeight = Math.max(height, 300);
+                this.graph.resize(safeWidth, safeHeight);
+              }
+            }
+          });
+          this.resizeObserver.observe(this.container);
+        }
+
+        logger.info('Graph created successfully with tree structure');
+        return true;
+        
+      } catch (error) {
+        logger.error('Failed to create G6 graph:', error);
+        throw new Error(`Failed to initialize graph: ${error.message}`);
+      }
+    });
   }
 
   convertRiveDataToTree(riveData) {
-    // Convert to hierarchical tree structure like the G6 example
-    const treeData = {
-      id: 'root',
-      name: 'Rive File',
-      nodeType: 'root',
-      details: 'Root',
-      children: []
-    };
-
-    // Add artboards as top-level children
-    if (riveData.artboards && riveData.artboards.length > 0) {
-      riveData.artboards.forEach((artboard, index) => {
-        const artboardNode = {
-          id: `artboard_${index}`,
-          name: artboard.name || `Artboard ${index + 1}`,
-          nodeType: 'artboard',
-          details: `${(artboard.animations?.length || 0) + (artboard.stateMachines?.length || 0)} components`,
-          children: []
-        };
-
-        // Add animations
-        if (artboard.animations && artboard.animations.length > 0) {
-          artboard.animations.forEach((animation, animIndex) => {
-            artboardNode.children.push({
-              id: `animation_${index}_${animIndex}`,
-              name: animation.name || `Animation ${animIndex + 1}`,
-              nodeType: 'animation',
-              details: animation.duration ? `${animation.duration}s` : 'Timeline'
-            });
-          });
+    // Generic recursive function to convert any JSON structure to tree
+    const convertToTreeNode = (data, name = 'Root', parentId = '', index = 0) => {
+      const nodeId = parentId ? `${parentId}_${index}` : 'root';
+      
+      // Determine node type and details based on data structure
+      let nodeType = 'default';
+      let details = '';
+      let displayName = name;
+      
+      if (typeof data === 'object' && data !== null) {
+        if (Array.isArray(data)) {
+          nodeType = 'array';
+          details = `${data.length} item(s)`;
+          displayName = `${name} (Array)`;
+        } else {
+          // Object - determine type from context and properties
+          const keys = Object.keys(data);
+          nodeType = this.inferNodeType(name, data, parentId);
+          
+          // Generate meaningful details
+          if (keys.length === 0) {
+            details = 'Empty object';
+          } else if (keys.length <= 3) {
+            details = `Properties: ${keys.join(', ')}`;
+          } else {
+            details = `${keys.length} properties`;
+          }
+          
+          // Add specific details for known structures
+          if (data.name) displayName = data.name;
+          if (data.instanceName) displayName = data.instanceName;
+          if (data.blueprintName) displayName = data.blueprintName;
+          
+          // Add type/value info to details if available
+          const typeInfo = [];
+          if (data.type) typeInfo.push(`Type: ${data.type}`);
+          if (data.value !== undefined) typeInfo.push(`Value: ${data.value}`);
+          if (data.fps) typeInfo.push(`FPS: ${data.fps}`);
+          if (data.duration) typeInfo.push(`Duration: ${data.duration}`);
+          if (data.cdnUuid) typeInfo.push(`CDN: ${data.cdnUuid || 'None'}`);
+          if (data.sourceBlueprintName) typeInfo.push(`Blueprint: ${data.sourceBlueprintName}`);
+          if (data.enumTypeName) typeInfo.push(`Enum: ${data.enumTypeName}`);
+          
+          if (typeInfo.length > 0) {
+            details = typeInfo.join(', ');
+          }
         }
-
-        // Add state machines
-        if (artboard.stateMachines && artboard.stateMachines.length > 0) {
-          artboard.stateMachines.forEach((sm, smIndex) => {
-            const smNode = {
-              id: `sm_${index}_${smIndex}`,
-              name: sm.name || `State Machine ${smIndex + 1}`,
-              nodeType: 'stateMachine',
-              details: `${sm.states?.length || 0} states`,
-              children: []
-            };
-
-            // Add states
-            if (sm.states && sm.states.length > 0) {
-              sm.states.forEach((state, stateIndex) => {
-                smNode.children.push({
-                  id: `state_${index}_${smIndex}_${stateIndex}`,
-                  name: state.name || `State ${stateIndex + 1}`,
-                  nodeType: 'state',
-                  details: 'State'
-                });
-              });
+      } else {
+        // Primitive value
+        nodeType = 'value';
+        details = `${typeof data}: ${data}`;
+        displayName = `${name}: ${data}`;
+      }
+      
+      const node = {
+        id: nodeId,
+        name: displayName,
+        nodeType: nodeType,
+        details: details,
+        children: []
+      };
+      
+      // Recursively process children
+      if (typeof data === 'object' && data !== null) {
+        if (Array.isArray(data)) {
+          // Process array items
+          data.forEach((item, itemIndex) => {
+            const childNode = convertToTreeNode(item, `Item ${itemIndex + 1}`, nodeId, itemIndex);
+            node.children.push(childNode);
+          });
+        } else {
+          // Process object properties
+          Object.entries(data).forEach(([key, value], propIndex) => {
+            // Skip certain internal properties that aren't useful to display
+            if (this.shouldSkipProperty(key, value)) {
+              return;
             }
-
-            artboardNode.children.push(smNode);
+            
+            const childNode = convertToTreeNode(value, key, nodeId, propIndex);
+            node.children.push(childNode);
           });
         }
-
-        treeData.children.push(artboardNode);
-      });
+      }
+      
+      return node;
+    };
+    
+    // Start conversion from root
+    return convertToTreeNode(riveData, 'Rive File');
+  }
+  
+  // Helper method to infer node type from context
+  inferNodeType(name, data, parentId) {
+    const nameLower = name.toLowerCase();
+    const parentLower = parentId.toLowerCase();
+    
+    // Root level categories
+    if (parentId === 'root') {
+      if (nameLower.includes('artboard')) return 'artboardsRoot';
+      if (nameLower.includes('asset')) return 'assetsRoot';
+      if (nameLower.includes('viewmodel') || nameLower.includes('view_model')) return 'viewModelDefsRoot';
+      if (nameLower.includes('enum')) return 'globalEnumsRoot';
+      if (nameLower.includes('default')) return 'defaultElementsRoot';
     }
-
-    // Add assets if enabled
-    if (this.options.includeAssets && riveData.assets && riveData.assets.length > 0) {
-      const assetsNode = {
-        id: 'assets_root',
-        name: 'Assets',
-        nodeType: 'assetsRoot',
-        details: 'Asset Library',
-        children: riveData.assets.map((asset, index) => ({
-          id: `asset_${index}`,
-          name: asset.name || `Asset ${index + 1}`,
-          nodeType: 'asset',
-          details: asset.type || 'Asset'
-        }))
-      };
-      treeData.children.push(assetsNode);
+    
+    // Artboard related
+    if (parentLower.includes('artboard')) {
+      if (nameLower.includes('animation')) return 'animationsGroup';
+      if (nameLower.includes('statemachine') || nameLower.includes('state_machine')) return 'stateMachinesGroup';
+      if (nameLower.includes('viewmodel') || nameLower.includes('view_model')) return 'viewModelsGroup';
+      if (data.name && data.animations) return 'artboard';
     }
-
-    // Add enums if enabled
-    if (this.options.includeEnums && riveData.enums && riveData.enums.length > 0) {
-      const enumsNode = {
-        id: 'enums_root',
-        name: 'Enums',
-        nodeType: 'enumsRoot',
-        details: 'Enumerations',
-        children: riveData.enums.map((enumItem, index) => ({
-          id: `enum_${index}`,
-          name: enumItem.name || `Enum ${index + 1}`,
-          nodeType: 'enum',
-          details: 'Enum'
-        }))
-      };
-      treeData.children.push(enumsNode);
-    }
-
-    return treeData;
+    
+    // Specific item types
+    if (data.name && data.fps && data.duration) return 'animation';
+    if (data.name && data.inputs && Array.isArray(data.inputs)) return 'stateMachine';
+    if (data.instanceName && data.sourceBlueprintName) return 'viewModel';
+    if (data.instanceName && data.inputs) return 'nestedViewModel';
+    if (data.name && data.cdnUuid !== undefined) return 'asset';
+    if (data.blueprintName && data.blueprintProperties) return 'viewModelDefinition';
+    if (data._dataEnum || (data.name && data.values)) return 'globalEnum';
+    if (data.type && data.name && parentLower.includes('input')) return 'input';
+    if (data.type && data.value !== undefined) return 'property';
+    
+    // Group types
+    if (nameLower.includes('input') && Array.isArray(data)) return 'inputsGroup';
+    if (nameLower.includes('animation') && Array.isArray(data)) return 'animationsGroup';
+    if (nameLower.includes('nested') && Array.isArray(data)) return 'nestedVMsGroup';
+    if (nameLower.includes('properties') && Array.isArray(data)) return 'propertiesGroup';
+    if (nameLower.includes('values') && Array.isArray(data)) return 'valuesGroup';
+    
+    // Default based on data structure
+    if (Array.isArray(data)) return 'array';
+    if (typeof data === 'object' && data !== null) return 'object';
+    return 'value';
+  }
+  
+  // Helper method to determine if a property should be skipped
+  shouldSkipProperty(key, value) {
+    // Skip empty arrays and objects that don't add value
+    if (Array.isArray(value) && value.length === 0) return true;
+    if (typeof value === 'object' && value !== null && Object.keys(value).length === 0) return true;
+    
+    // Skip certain technical properties that clutter the view
+    const skipKeys = ['__proto__', 'constructor', 'toString'];
+    if (skipKeys.includes(key)) return true;
+    
+    // Skip null or undefined values
+    if (value === null || value === undefined) return true;
+    
+    return false;
   }
 
-  updateData(riveData) {
+  async updateData(riveData) {
+    // Wait for initialization to complete
+    if (this.initPromise) {
+      try {
+        await this.initPromise;
+      } catch (error) {
+        logger.error('Graph initialization failed, cannot update data:', error);
+        return;
+      }
+    }
+    
     if (!this.graph || !riveData) return;
 
     const treeData = this.convertRiveDataToTree(riveData);
@@ -390,7 +548,7 @@ export class RiveGraphVisualizer {
     const graphData = window.G6.treeToGraphData(treeData, {
       getNodeData: (datum, depth) => {
         if (!datum.style) datum.style = {};
-        datum.style.collapsed = depth >= 2; // Auto-collapse deep levels
+        datum.style.collapsed = depth >= 1; // Auto-collapse artboards and deeper levels
         if (!datum.children) return datum;
         const { children, ...restDatum } = datum;
         return { ...restDatum, children: children.map((child) => child.id) };

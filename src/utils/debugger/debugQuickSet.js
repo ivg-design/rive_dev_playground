@@ -40,52 +40,6 @@ window.debugHelper = {
 		logger.info(`Module '${module}' set to TRACE level`);
 	},
 
-	// Helper for toggling Pills Active state directly
-	togglePills: () => {
-		if (window.vm && typeof window.vm.boolean === "function") {
-			try {
-				const pillsActive = window.vm.boolean("Pills Active");
-				const newValue = !pillsActive.value;
-				pillsActive.value = newValue;
-				logger.info(`Pills Active toggled to: ${newValue}`);
-				return newValue;
-			} catch (e) {
-				logger.error("Error toggling Pills Active:", e);
-				return null;
-			}
-		} else {
-			logger.warn("VM not available or missing boolean method");
-			return null;
-		}
-	},
-
-	// Helper to check state of key properties
-	checkState: () => {
-		if (window.vm) {
-			try {
-				const props = {};
-				if (typeof window.vm.boolean === "function") {
-					try {
-						props["Pills Active"] =
-							window.vm.boolean("Pills Active").value;
-					} catch (e) {}
-					try {
-						props["Pills In"] = window.vm.boolean("Pills In").value;
-					} catch (e) {}
-				}
-				// Use console.table for this specific case as it's a data display function
-				console.table(props);
-				return props;
-			} catch (e) {
-				logger.error("Error checking state:", e);
-				return null;
-			}
-		} else {
-			logger.warn("VM not available");
-			return null;
-		}
-	},
-
 	// Helper to show current debug settings (will be extended by debugControl.js)
 	currentSettings: () => {
 		logger.info(

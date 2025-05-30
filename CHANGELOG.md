@@ -5,6 +5,102 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.4.1] - 2024-12-19 - Comprehensive Debugger System Enhancement
+Enhanced Input Discovery & General Purpose Debugging
+
+### 🐛 Bug Fixes
+
+#### Critical Function Errors
+- **Fixed `debugHelper.help is not a function` Error** - Resolved function definition order issues
+  - **Problem**: Functions were being referenced before definition in debugHelper object assignments
+  - **Solution**: Moved all function definitions (showDebugHelp, listAllCommands, input discovery functions) before they are referenced
+  - **Result**: `debugHelper.help()` and all other functions now work correctly
+
+### 🚀 Feature Enhancements
+
+#### Comprehensive Input Discovery System
+- **Universal Input Type Support** - Expanded beyond triggers to support all Rive input types
+  - **Triggers**: Both ViewModel and State Machine trigger inputs
+  - **Boolean Inputs**: ViewModel and State Machine boolean inputs with toggle testing
+  - **Number Inputs**: ViewModel and State Machine number inputs with increment/change testing
+  - **Enum Inputs**: ViewModel enum inputs with value cycling testing
+  - **State Machine Inputs**: Full support for all state machine input types
+
+#### Enhanced Discovery & Testing API
+- **New Primary Functions**:
+  - `debugHelper.discoverInputs()` - Discovers all available Rive inputs automatically
+  - `debugHelper.listInputs()` - Lists all discovered inputs with window object mappings
+  - `debugHelper.testInput("name")` - Tests specific input by name or window key
+  - `debugHelper.testAllInputs()` - Tests all discovered inputs with staggered timing
+
+#### Auto-Exposure System
+- **Window Object Mapping** - All discovered inputs automatically exposed on window
+  - `window.trigger_*` - Trigger inputs with sanitized names
+  - `window.boolean_*` - Boolean inputs for easy console access
+  - `window.number_*` - Number inputs for direct manipulation
+  - `window.enum_*` - Enum inputs for value inspection
+  - `window.sm_*` - State Machine inputs with type information
+
+### 🔧 Architecture Improvements
+
+#### Extensibility Framework
+- **Plugin System for Future Rive Features**:
+  - `debugHelper.addInputType("typeName", config)` - Add support for new input types
+  - `debugHelper.getInputTypes()` - View all available input type definitions
+  - Modular configuration system in `RIVE_INPUT_TYPES` object
+  - Future-proof architecture for unknown Rive input types
+
+#### Intelligent Discovery Logic
+- **Multi-Source Input Discovery**:
+  - **ViewModel Scanning**: `window.vm` or `window.stageVM` introspection
+  - **State Machine Scanning**: `window.r`, `window.rive`, or `window.riveInstance` analysis
+  - **Common Pattern Recognition**: Uses likely input names for discovery
+  - **Graceful Fallback**: Handles missing or incomplete input definitions
+
+### 🧹 Code Quality & Maintainability
+
+#### Removed File-Specific Dependencies
+- **General Purpose Design** - Eliminated dependencies on specific Rive files
+  - **Removed**: `togglePills()` function (specific to Pills Active property)
+  - **Removed**: `checkState()` function (specific to Pills In/Active states)
+  - **Result**: Debugger now works with ANY Rive file, not just specific animations
+
+#### Legacy Support & Migration Path
+- **Backwards Compatibility**:
+  - All legacy trigger functions still work (`enableTriggerDebug`, `listTriggers`, etc.)
+  - Deprecated functions show migration warnings
+  - Clear migration path to new comprehensive system
+  - Gradual adoption without breaking existing usage
+
+### 📚 Documentation Updates
+
+#### Comprehensive Documentation Rewrite
+- **Updated**: `source_docs/advanced/debugging.md` with complete API reference
+- **Added**: Extensibility examples and custom input type definitions
+- **Added**: Error handling and troubleshooting guides
+- **Added**: Advanced techniques for custom discovery patterns
+- **Removed**: File-specific examples replaced with general purpose examples
+
+#### Enhanced Help System
+- **Improved**: `debugHelper.help()` with comprehensive command reference
+- **Updated**: `debugHelper.commands()` with categorized function listings
+- **Added**: Quick start guide and usage examples
+- **Added**: Input type support matrix and capabilities overview
+
+### 🎯 Impact & Benefits
+
+#### Developer Experience
+- **Universal Compatibility** - Works with any Rive file containing inputs
+- **Automatic Discovery** - No manual configuration required for standard input types
+- **Comprehensive Testing** - All input types can be tested automatically
+- **Future Ready** - Extensible architecture for upcoming Rive features
+
+#### Debugging Capabilities
+- **Type-Specific Testing** - Each input type has appropriate test methods
+- **Detailed Reporting** - Success/failure status with method details and value changes
+- **Batch Operations** - Test all inputs with intelligent timing delays
+- **Live Object Inspection** - Direct console access to all discovered inputs
+
 ## [v1.4.0] - 2024-12-19 - Major WebGL Error Resolution & Graph Visualizer Implementation
 Local Dependencies Migration & Performance Optimization
 

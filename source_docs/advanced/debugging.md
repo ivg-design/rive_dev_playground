@@ -1,936 +1,306 @@
-# 🐛 Debugging Guide
+# Advanced Debugging
 
-> **Comprehensive debugging tools and techniques for Rive Playground**
+The Rive Tester includes a comprehensive debugging system with live object inspection, automatic input discovery, and extensive testing capabilities. The system is designed to handle all types of Rive inputs and is fully extensible for future functionality.
 
-This guide covers all debugging features, tools, and techniques available in the Rive Playground, including global runtime access, modular logging, and advanced debugging strategies.
+## Quick Start
 
-## 📋 Table of Contents
+1. **Load a Rive file** with inputs (triggers, booleans, numbers, enums)
+2. **Discover inputs**: `debugHelper.discoverInputs()`
+3. **List available inputs**: `debugHelper.listInputs()`  
+4. **Test specific input**: `debugHelper.testInput("input_name")`
+5. **Test all inputs**: `debugHelper.testAllInputs()`
 
-- [🌐 Global Runtime Access](#-global-runtime-access)
-- [📊 Debug Logging System](#-debug-logging-system)
-- [🔍 Inspection Tools](#-inspection-tools)
-- [⚠️ Error Handling](#️-error-handling)
-- [🎛️ Runtime Controls](#️-runtime-controls)
-- [📈 Performance Monitoring](#-performance-monitoring)
-- [🧪 Testing & Validation](#-testing--validation)
+## debugHelper API Reference
 
-## 🌐 Global Runtime Access
+The `debugHelper` is automatically available on `window` and provides comprehensive debugging capabilities:
 
-The Rive Playground exposes the current Rive instance globally for advanced debugging and runtime inspection.
+### 📊 Log Level Shortcuts
 
-### `window.riveInstanceGlobal`
-
-Access the current Rive instance from the browser console:
+Control debug output levels across all modules:
 
 ```javascript
-// Get the global Rive instance
-const rive = window.riveInstanceGlobal;
-
-// Check if instance is available
-if (rive) {
-	console.log("Rive instance is loaded and ready");
-} else {
-	console.log("No Rive instance currently loaded");
-}
+debugHelper.verbose()          // Set all modules to TRACE (most detailed)
+debugHelper.debug()            // Set all modules to DEBUG  
+debugHelper.normal()           // Set all modules to INFO (recommended)
+debugHelper.quiet()            // Set all modules to WARN (errors/warnings only)
+debugHelper.silent()           // Set all modules to ERROR (errors only)
+debugHelper.off()              // Disable all logging
+debugHelper.traceSingle("parser") // Set specific module to TRACE
 ```
 
-### Artboard Inspection
+### 🎛️ Panel Controls
+
+Control the visual debug panel:
 
 ```javascript
-// Get all artboard names
-console.log("Artboards:", rive.artboardNames);
+debugHelper.enable()           // Show debug controls panel
+debugHelper.disable()          // Hide debug controls panel  
+debugHelper.toggle()           // Toggle debug controls panel
+debugHelper.isEnabled()        // Check if debug controls are enabled
+```
 
-// Get current artboard
-console.log("Current artboard:", rive.artboard?.name);
+### ⚙️ Settings & Status
 
-// Switch to different artboard
-rive.artboard = rive.artboardByName("ArtboardName");
+Manage debug configuration:
 
-// Get artboard dimensions
-console.log("Artboard size:", {
-	width: rive.artboard?.width,
-	height: rive.artboard?.height,
+```javascript
+debugHelper.currentSettings()  // Show detailed current debug settings
+debugHelper.clearSettings()    // Clear all saved debug settings  
+debugHelper.test()             // Test all debug modules
+```
+
+### 🔍 Comprehensive Input Discovery & Testing
+
+**NEW**: Discover and test all types of Rive inputs automatically:
+
+```javascript
+// Enable comprehensive input debugging
+debugHelper.enableInputDebug()
+
+// Discover all available inputs
+debugHelper.discoverInputs()
+
+// List all discovered inputs with details  
+debugHelper.listInputs()        // or debugHelper.listAllInputs()
+
+// Test specific input by name or window key
+debugHelper.testInput("trigger_name")
+debugHelper.testInput("boolean_Active")
+debugHelper.testInput("enum_CTRL_States")
+
+// Test all discovered inputs automatically (with delays)
+debugHelper.testAllInputs()
+```
+
+#### Supported Input Types
+
+The system automatically discovers and tests:
+
+- **Triggers** (ViewModel & State Machine)
+- **Boolean Inputs** (ViewModel & State Machine)  
+- **Number Inputs** (ViewModel & State Machine)
+- **Enum Inputs** (ViewModel)
+- **Custom Types** (via extensibility system)
+
+#### Auto-Exposed Window Objects
+
+All discovered inputs are automatically exposed on `window` for easy console access:
+
+- `window.trigger_*` - Trigger inputs
+- `window.boolean_*` - Boolean inputs
+- `window.number_*` - Number inputs  
+- `window.enum_*` - Enum inputs
+- `window.sm_*` - State Machine inputs
+
+### 🔧 Extensibility & Development
+
+Add support for new Rive input types as they become available:
+
+```javascript
+// View all available input type definitions
+debugHelper.getInputTypes()
+
+// Add new input type definition  
+debugHelper.addInputType("myNewType", {
+  displayName: "My New Input Type",
+  windowPrefix: "mynew_",
+  getFromVM: (vm) => {
+    // Logic to discover inputs of this type from ViewModel
+    const inputs = [];
+    // ... discovery logic ...
+    return inputs;
+  },
+  testInput: (input, name) => {
+    // Logic to test this input type
+    try {
+      // ... test logic ...
+      return { success: true, method: 'test_method', details: 'change info' };
+    } catch (e) {
+      return { success: false, reason: e.message };
+    }
+  }
+});
+
+// After adding new type, rediscover inputs
+debugHelper.discoverInputs()
+```
+
+### 🔥 Legacy Trigger Debugging
+
+**DEPRECATED**: These functions still work for backwards compatibility but use the new comprehensive system instead:
+
+```javascript
+debugHelper.enableTriggerDebug()  // Use enableInputDebug() instead
+debugHelper.listTriggers()        // Use listInputs() instead  
+debugHelper.testTrigger("name")   // Use testInput() instead
+debugHelper.testAllTriggers()     // Use testAllInputs() instead
+```
+
+### 🔧 API Access
+
+Direct access to the underlying logging API:
+
+```javascript
+debugHelper.api.setModuleLevel("module", level)  // Set specific module level
+debugHelper.api.setAllLevels(level)              // Set all modules to level
+debugHelper.api.enable(true/false)               // Enable/disable global logging
+debugHelper.api.isEnabled()                      // Check global logging state
+```
+
+### 📖 Help & Commands
+
+Get help and see all available commands:
+
+```javascript
+debugHelper.help()             // Show comprehensive help guide
+debugHelper.commands()         // List all available commands with status
+```
+
+## Input Discovery Process
+
+The discovery system automatically:
+
+1. **Scans ViewModel inputs** (`window.vm` or `window.stageVM`)
+   - Attempts to discover triggers, booleans, numbers, and enums
+   - Uses common naming patterns and introspection
+
+2. **Scans State Machine inputs** (`window.r`, `window.rive`, or `window.riveInstance`)
+   - Discovers all inputs from state machine objects
+   - Handles triggers, booleans, and numbers
+
+3. **Exposes objects on window** for easy console access
+   - Uses prefixed naming (e.g., `trigger_Listen`, `boolean_Active`)
+   - Sanitizes names for valid JavaScript identifiers
+
+4. **Provides unified testing interface**
+   - Each input type has specific test methods
+   - Graceful fallback to common patterns
+   - Detailed success/failure reporting
+
+## Error Handling and Troubleshooting
+
+### No Inputs Found
+
+If `debugHelper.discoverInputs()` finds no inputs:
+
+1. **Verify Rive file is loaded** with inputs defined
+2. **Check for ViewModel/State Machine objects**:
+   - `window.vm` or `window.stageVM` for ViewModel
+   - `window.r`, `window.rive`, or `window.riveInstance` for State Machine
+3. **Enable detailed logging**: `debugHelper.enableInputDebug()`
+
+### Input Testing Fails
+
+If `debugHelper.testInput()` fails:
+
+1. **Check input object exists**: `console.log(window.input_name)`
+2. **Inspect available methods**: Available properties are logged on failure
+3. **Use manual testing**: Access the object directly and try methods
+
+### Discovery Issues
+
+1. **Use verbose logging**: `debugHelper.verbose()` for detailed discovery logs
+2. **Check object properties**: Use browser dev tools to inspect VM/State Machine objects
+3. **Add custom discovery**: Use `addInputType()` for non-standard input patterns
+
+## Advanced Techniques
+
+### Custom Input Type Example
+
+```javascript
+// Add support for hypothetical "slider" input type
+debugHelper.addInputType("sliders", {
+  displayName: "Slider Inputs",
+  windowPrefix: "slider_",
+  getFromVM: (vm) => {
+    const inputs = [];
+    if (vm && typeof vm.slider === 'function') {
+      ['Volume', 'Brightness', 'Speed'].forEach(name => {
+        try {
+          const slider = vm.slider(name);
+          if (slider) inputs.push({ name, input: slider });
+        } catch (e) {
+          // Input doesn't exist
+        }
+      });
+    }
+    return inputs;
+  },
+  testInput: (input, name) => {
+    try {
+      const oldValue = input.value;
+      const newValue = Math.min(1.0, oldValue + 0.1);
+      input.value = newValue;
+      return { 
+        success: true, 
+        method: 'value increment',
+        details: `${oldValue.toFixed(2)} → ${newValue.toFixed(2)}`
+      };
+    } catch (e) {
+      return { success: false, reason: e.message };
+    }
+  }
+});
+
+// Now discover and test the new type
+debugHelper.discoverInputs();
+debugHelper.testInput("slider_Volume");
+```
+
+### Batch Testing with Custom Delays
+
+```javascript
+// Test all inputs with custom timing
+const discovered = debugHelper.discoverInputs();
+const allInputs = Object.values(discovered.viewModel).flat();
+
+allInputs.forEach((inputData, index) => {
+  setTimeout(() => {
+    const name = inputData.name || inputData;
+    console.log(`Testing ${name}...`);
+    debugHelper.testInput(`trigger_${name.replace(/[^a-zA-Z0-9_]/g, '_')}`);
+  }, index * 1000); // 1 second delays
 });
 ```
 
-### Animation Control
+### Configuration Persistence
+
+Debug settings are automatically saved to localStorage:
+
+- **Panel visibility**: `rive-tester-debug-enabled`
+- **Module levels**: `rive-tester-debug-levels`  
+- **Global state**: `rive-tester-debug-global-enabled`
 
 ```javascript
-// Get all animations
-console.log("Animations:", rive.animationNames);
-
-// Control timeline playback
-const timeline = rive.animationByName("AnimationName");
-if (timeline) {
-	timeline.time = 0; // Reset to start
-	timeline.speed = 0.5; // Half speed
-	timeline.loopValue = 1; // Loop once
-}
-
-// Get animation properties
-console.log("Animation info:", {
-	name: timeline.name,
-	duration: timeline.duration,
-	fps: timeline.fps,
-	workStart: timeline.workStart,
-	workEnd: timeline.workEnd,
-});
-```
-
-### State Machine Debugging
-
-```javascript
-// Get all state machines
-console.log("State Machines:", rive.stateMachineNames);
-
-// Get state machine inputs
-const smInputs = rive.stateMachineInputs("StateMachineName");
-smInputs.forEach((input) => {
-	console.log(`Input: ${input.name}`, {
-		type: input.type,
-		value: input.value,
-		isBoolean: input.asBool !== undefined,
-		isNumber: input.asNumber !== undefined,
-		isTrigger: input.asTrigger !== undefined,
-	});
-});
-
-// Modify state machine inputs
-const boolInput = rive.getBooleanInput("InputName");
-if (boolInput) {
-	boolInput.value = true;
-}
-
-const numberInput = rive.getNumberInput("InputName");
-if (numberInput) {
-	numberInput.value = 42;
-}
-
-// Trigger events
-const triggerInput = rive.getTriggerInput("InputName");
-if (triggerInput) {
-	triggerInput.fire();
-}
-```
-
-### ViewModel Inspection
-
-```javascript
-// Get the main ViewModel instance
-const vm = rive.viewModelInstance;
-
-// Inspect ViewModel properties
-console.log("ViewModel properties:", vm.properties);
-
-// Access nested ViewModels
-vm.properties
-	.filter((p) => p.type === "viewModel")
-	.forEach((p) => {
-		const nestedVM = vm.viewModel(p.name);
-		console.log(`Nested VM: ${p.name}`, nestedVM);
-	});
-
-// Get string properties
-try {
-	const stringInputs = vm.strings();
-	stringInputs.forEach((name) => {
-		const stringInput = vm.string(name);
-		console.log(`String: ${name} = "${stringInput.value}"`);
-	});
-} catch (e) {
-	console.log("No string properties available");
-}
-
-// Get color properties
-try {
-	const colorInputs = vm.colors();
-	colorInputs.forEach((name) => {
-		const colorInput = vm.color(name);
-		console.log(
-			`Color: ${name} = ${colorInput.value} (${argbToHex(colorInput.value)})`,
-		);
-	});
-} catch (e) {
-	console.log("No color properties available");
-}
-
-// Get enum properties
-try {
-	const enumInputs = vm.enums();
-	enumInputs.forEach((name) => {
-		const enumInput = vm.enum(name);
-		console.log(`Enum: ${name} = "${enumInput.value}"`);
-	});
-} catch (e) {
-	console.log("No enum properties available");
-}
-```
-
-### Asset Inspection
-
-```javascript
-// Get all assets
-const assets = rive.assets();
-console.log("Assets:", assets);
-
-// Filter by asset type
-const imageAssets = assets.filter((asset) => asset.isImage);
-const fontAssets = assets.filter((asset) => asset.isFont);
-
-console.log("Image assets:", imageAssets);
-console.log("Font assets:", fontAssets);
-
-// Get asset details
-imageAssets.forEach((asset) => {
-	console.log(`Image: ${asset.name}`, {
-		uniqueId: asset.uniqueId,
-		cdnUuid: asset.cdnUuid,
-		fileExtension: asset.fileExtension,
-	});
-});
-```
-
-### Utility Functions
-
-```javascript
-// Color conversion helper
-function argbToHex(argb) {
-	if (typeof argb !== "number") return "#000000";
-	const hex = (argb & 0xffffff).toString(16).padStart(6, "0").toUpperCase();
-	return `#${hex}`;
-}
-
-// Hex to ARGB conversion
-function hexToArgb(hex) {
-	const cleanHex = hex.replace("#", "");
-	return parseInt(`FF${cleanHex}`, 16);
-}
-
-// Get all controllable properties
-function getAllControllableProperties() {
-	const rive = window.riveInstanceGlobal;
-	if (!rive) return null;
-
-	const properties = {
-		stateMachines: {},
-		viewModels: {},
-		assets: [],
-	};
-
-	// State machine inputs
-	rive.stateMachineNames.forEach((smName) => {
-		properties.stateMachines[smName] = rive.stateMachineInputs(smName);
-	});
-
-	// ViewModel properties
-	const vm = rive.viewModelInstance;
-	if (vm) {
-		properties.viewModels.main = {
-			strings: vm.strings?.() || [],
-			colors: vm.colors?.() || [],
-			enums: vm.enums?.() || [],
-			numbers: vm.numbers?.() || [],
-			booleans: vm.booleans?.() || [],
-		};
-	}
-
-	// Assets
-	properties.assets = rive.assets();
-
-	return properties;
-}
-
-// Usage
-console.log("All controllable properties:", getAllControllableProperties());
-```
-
-## 📊 Debug Logging System
-
-The Rive Playground includes a modular debug logging system with configurable levels per module.
-
-### Debug Levels
-
-- `NONE`: No logging (0)
-- `ERROR`: Only error messages (1)
-- `WARN`: Warnings and errors (2)
-- `INFO`: Informational messages, warnings, and errors (3)
-- `DEBUG`: All messages including detailed debug information (4)
-- `TRACE`: Extremely detailed tracing information (5)
-
-### Enhanced Debug Control Panel
-
-The debug control system has been completely overhauled with comprehensive console logging and proper state management.
-
-#### Accessing Debug Controls
-
-```javascript
-// Show the debug controls panel
-debugHelper.enable();
-
-// Hide the debug controls panel
-debugHelper.disable();
-
-// Toggle the debug controls panel
-debugHelper.toggle();
-
-// Check if debug controls are enabled
-console.log(debugHelper.isEnabled());
-```
-
-#### Global Debug Control
-
-```javascript
-// Enable all logging globally (overrides all module settings)
-debugHelper.api.enable(true);
-
-// Disable all logging globally (stops all messages regardless of module levels)
-debugHelper.api.enable(false);
-
-// Check global enabled state
-console.log(debugHelper.api.isEnabled());
-```
-
-#### Module-Specific Control
-
-```javascript
-// Set specific module to DEBUG level
-debugHelper.api.setModuleLevel("controlInterface", 4);
-
-// Set all modules to INFO level
-debugHelper.api.setAllLevels(3);
-
-// Get current level for a specific module
-console.log(debugHelper.api.getModuleLevel("parser"));
-
-// Get all current module levels
-console.log(debugHelper.api.getAllLevels());
-```
-
-#### Testing and Diagnostics
-
-```javascript
-// Test all debug modules with sample messages
-debugHelper.test();
-
-// View current debug settings with detailed status
-debugHelper.currentSettings();
-
-// Clear all saved debug settings
+// Clear all saved settings
 debugHelper.clearSettings();
-```
 
-### Available Debug Modules
-
-| Module            | Description                             |
-| ----------------- | --------------------------------------- |
-| `parser`          | Rive file parsing and data extraction   |
-| `parserHandler`   | File handling and parsing orchestration |
-| `controlInterface`| Dynamic control generation and updates  |
-| `dataConnector`   | Data processing and control mapping     |
-| `goldenLayout`    | Golden Layout system management         |
-| `eventMapper`     | Event logging and mapping system        |
-
-### Debug Control Panel Features
-
-#### Console Logging
-All debug control actions now provide comprehensive console feedback:
-
-```javascript
-// Example console output when enabling all logging:
-// 🐛 [DEBUG CONTROL] Enabling all logging globally
-// 🐛 [DEBUG CONTROL] Global logging enabled - all modules will now log according to their levels
-
-// Example console output when setting module level:
-// 🐛 [DEBUG CONTROL] Setting module 'controlInterface' to level: DEBUG (4)
-// 🐛 [DEBUG CONTROL] Module 'controlInterface' now set to DEBUG level
-```
-
-#### Status Reporting
-The `debugHelper.currentSettings()` function provides detailed status information:
-
-```javascript
+// View current settings
 debugHelper.currentSettings();
-// Console output:
-// 🐛 Current Debug Settings:
-// =========================
-// Debug Controls Panel: ✅ Enabled
-// Global Logging: ✅ Enabled
-// 
-// Module Settings:
-//   parser          : DEBUG (UI: DEBUG)
-//   parserHandler   : INFO (UI: INFO)
-//   controlInterface: NONE ⚠️ (UI shows: DEBUG)
-//   dataConnector   : WARN (UI: WARN)
-//   goldenLayout    : ERROR (UI: ERROR)
-//   eventMapper     : TRACE (UI: TRACE)
-// 
-// 💡 Tips:
-//   - Use debugHelper.enable() to show debug controls
-//   - Use debugHelper.disable() to hide debug controls
-//   - Use debugHelper.test() to test all modules
-//   - Set levels to NONE to stop all messages for that module
-//   - Global disable overrides all module settings
-//   - ⚠️ indicates UI/actual level mismatch - click 'Set' button to sync
-// =========================
 ```
 
-#### Mismatch Detection
-The system now detects when UI settings don't match actual logger state and shows warnings (⚠️) for mismatched modules.
+## Complete Command Reference
 
-### Configuration
+Use `debugHelper.commands()` for a current list of all available commands with their status.
 
-```javascript
-// Set debug levels for specific modules
-window.debugConfig = {
-	parser: "debug", // Detailed parsing information
-	controls: "info", // Control generation and updates
-	layout: "warn", // Layout system warnings
-	rive: "debug", // Rive runtime interactions
-	ui: "info", // UI component updates
-};
+### Categories:
 
-// Apply configuration
-window.applyDebugConfig();
-```
+- **📊 Log Level Shortcuts**: `verbose()`, `debug()`, `normal()`, `quiet()`, `silent()`, `off()`, `traceSingle()`
+- **🎛️ Panel Controls**: `enable()`, `disable()`, `toggle()`, `isEnabled()`
+- **⚙️ Settings & Status**: `currentSettings()`, `clearSettings()`, `test()`
+- **🔍 Input Discovery & Testing**: `enableInputDebug()`, `discoverInputs()`, `listInputs()`, `testInput()`, `testAllInputs()`
+- **🔧 Extensibility**: `addInputType()`, `getInputTypes()`
+- **🔥 Legacy**: `enableTriggerDebug()`, `listTriggers()`, `testTrigger()`, `testAllTriggers()`
+- **🔧 API Access**: `api.*`
+- **📖 Help**: `help()`, `commands()`
 
-### Debug Functions
+## Future Extensibility
 
-```javascript
-// View current debug settings
-console.log(window.getDebugSettings());
+The system is designed to grow with Rive's functionality:
 
-// Save current settings to localStorage
-window.saveDebugSettings();
+1. **Add new input types** using `addInputType()`
+2. **Extend discovery patterns** for new VM/State Machine APIs
+3. **Customize test methods** for specific input behaviors
+4. **Integrate with future Rive features** through the extensible architecture
 
-// Load saved settings from localStorage
-window.loadDebugSettings();
-
-// Clear all debug settings
-window.clearDebugSettings();
-
-// Reset to default settings
-window.resetDebugSettings();
-
-// Enable debug mode for all modules
-window.enableAllDebug();
-
-// Disable debug mode for all modules
-window.disableAllDebug();
-```
-
-### Custom Debug Messages
-
-```javascript
-// Use the debug logger in your code
-const logger = window.getDebugLogger("myModule");
-
-logger.debug("Detailed debug information");
-logger.info("General information");
-logger.warn("Warning message");
-logger.error("Error message");
-
-// With context data
-logger.debug("Processing data", { data: someObject });
-logger.info("Operation completed", { duration: "150ms" });
-```
-
-## 🔍 Inspection Tools
-
-### JSON Inspector
-
-The built-in JSON inspector provides detailed views of parsed Rive data:
-
-```javascript
-// Access the JSON editor instance
-const jsonEditor = window.jsonEditorInstance;
-
-// Get current data
-const currentData = jsonEditor.get();
-
-// Search for specific values
-jsonEditor.search("searchTerm");
-
-// Expand/collapse all nodes
-jsonEditor.expandAll();
-jsonEditor.collapseAll();
-
-// Switch view modes
-jsonEditor.setMode("tree"); // Tree view
-jsonEditor.setMode("code"); // Code view
-jsonEditor.setMode("text"); // Text view
-```
-
-### Data Extraction
-
-```javascript
-// Extract specific data from parsed results
-function extractAnimationData() {
-	const data = window.jsonEditorInstance?.get();
-	if (!data || !data.artboards) return null;
-
-	return data.artboards.map((artboard) => ({
-		name: artboard.name,
-		animations: artboard.animations.map((anim) => ({
-			name: anim.name,
-			duration: anim.duration,
-			fps: anim.fps,
-		})),
-	}));
-}
-
-// Extract ViewModel structure
-function extractViewModelStructure() {
-	const data = window.jsonEditorInstance?.get();
-	if (!data || !data.allViewModelDefinitionsAndInstances) return null;
-
-	return data.allViewModelDefinitionsAndInstances.map((vm) => ({
-		name: vm.name,
-		properties: vm.properties,
-		instanceCount: vm.instanceCountFromDefinition,
-	}));
-}
-```
-
-## ⚠️ Error Handling
-
-### Error Monitoring
-
-```javascript
-// Monitor for Rive errors
-window.addEventListener("error", (event) => {
-	if (event.filename?.includes("rive")) {
-		console.error("Rive Runtime Error:", event.error);
-	}
-});
-
-// Monitor for unhandled promise rejections
-window.addEventListener("unhandledrejection", (event) => {
-	console.error("Unhandled Promise Rejection:", event.reason);
-});
-```
-
-### Error Recovery
-
-```javascript
-// Attempt to recover from errors
-function attemptErrorRecovery() {
-	try {
-		// Clear current instance
-		if (window.riveInstanceGlobal) {
-			window.riveInstanceGlobal.cleanup?.();
-			window.riveInstanceGlobal = null;
-		}
-
-		// Reset application state
-		window.resetApplicationState?.();
-
-		// Reload the last file if available
-		const lastFile = localStorage.getItem("lastRiveFile");
-		if (lastFile) {
-			// Trigger file reload
-			console.log("Attempting to reload last file...");
-		}
-	} catch (e) {
-		console.error("Error recovery failed:", e);
-	}
-}
-```
-
-### Validation Functions
-
-```javascript
-// Validate Rive instance
-function validateRiveInstance() {
-	const rive = window.riveInstanceGlobal;
-
-	const checks = {
-		instanceExists: !!rive,
-		hasArtboard: !!rive?.artboard,
-		hasCanvas: !!rive?.canvas,
-		isLoaded: rive?.isLoaded || false,
-		hasViewModels: !!rive?.viewModelInstance,
-	};
-
-	console.log("Rive Instance Validation:", checks);
-	return Object.values(checks).every(Boolean);
-}
-
-// Validate file structure
-function validateFileStructure(data) {
-	const required = ["artboards", "allViewModelDefinitionsAndInstances"];
-	const missing = required.filter((key) => !data[key]);
-
-	if (missing.length > 0) {
-		console.warn("Missing required data:", missing);
-		return false;
-	}
-
-	return true;
-}
-```
-
-## 🎛️ Runtime Controls
-
-### Dynamic Control Testing
-
-```javascript
-// Test all dynamic controls
-function testAllControls() {
-	const rive = window.riveInstanceGlobal;
-	if (!rive) return;
-
-	// Test state machine inputs
-	rive.stateMachineNames.forEach((smName) => {
-		const inputs = rive.stateMachineInputs(smName);
-		inputs.forEach((input) => {
-			console.log(`Testing ${smName}.${input.name}`);
-
-			if (input.asBool !== undefined) {
-				input.value = !input.value;
-				setTimeout(() => (input.value = !input.value), 1000);
-			} else if (input.asNumber !== undefined) {
-				const original = input.value;
-				input.value = original + 10;
-				setTimeout(() => (input.value = original), 1000);
-			} else if (input.asTrigger !== undefined) {
-				input.fire();
-			}
-		});
-	});
-}
-
-// Test ViewModel properties
-function testViewModelProperties() {
-	const vm = window.riveInstanceGlobal?.viewModelInstance;
-	if (!vm) return;
-
-	// Test string properties
-	try {
-		const strings = vm.strings();
-		strings.forEach((name) => {
-			const input = vm.string(name);
-			const original = input.value;
-			input.value = `Test: ${Date.now()}`;
-			setTimeout(() => (input.value = original), 2000);
-		});
-	} catch (e) {}
-
-	// Test color properties
-	try {
-		const colors = vm.colors();
-		colors.forEach((name) => {
-			const input = vm.color(name);
-			const original = input.value;
-			input.value = 0xff00ff00; // Green
-			setTimeout(() => (input.value = original), 2000);
-		});
-	} catch (e) {}
-}
-```
-
-### Performance Testing
-
-```javascript
-// Measure control update performance
-function measureControlPerformance() {
-	const rive = window.riveInstanceGlobal;
-	if (!rive) return;
-
-	const startTime = performance.now();
-	let updateCount = 0;
-
-	// Rapid updates test
-	const interval = setInterval(() => {
-		const inputs = rive.stateMachineInputs(rive.stateMachineNames[0]);
-		if (inputs.length > 0 && inputs[0].asBool !== undefined) {
-			inputs[0].value = !inputs[0].value;
-			updateCount++;
-		}
-
-		if (updateCount >= 100) {
-			clearInterval(interval);
-			const endTime = performance.now();
-			console.log(`100 updates completed in ${endTime - startTime}ms`);
-			console.log(`Average: ${(endTime - startTime) / 100}ms per update`);
-		}
-	}, 10);
-}
-```
-
-## 📈 Performance Monitoring
-
-### Frame Rate Monitoring
-
-```javascript
-// Monitor frame rate
-let frameCount = 0;
-let lastTime = performance.now();
-
-function monitorFrameRate() {
-	frameCount++;
-	const currentTime = performance.now();
-
-	if (currentTime - lastTime >= 1000) {
-		console.log(`FPS: ${frameCount}`);
-		frameCount = 0;
-		lastTime = currentTime;
-	}
-
-	requestAnimationFrame(monitorFrameRate);
-}
-
-// Start monitoring
-monitorFrameRate();
-```
-
-### Memory Usage
-
-```javascript
-// Monitor memory usage (Chrome only)
-function monitorMemory() {
-	if (performance.memory) {
-		const memory = performance.memory;
-		console.log("Memory Usage:", {
-			used: `${(memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
-			total: `${(memory.totalJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
-			limit: `${(memory.jsHeapSizeLimit / 1024 / 1024).toFixed(2)} MB`,
-		});
-	}
-}
-
-// Monitor every 5 seconds
-setInterval(monitorMemory, 5000);
-```
-
-### Load Time Tracking
-
-```javascript
-// Track file load times
-const loadTimes = {
-	fileSelect: 0,
-	riveLoad: 0,
-	parseComplete: 0,
-	uiReady: 0,
-};
-
-// Use in your code
-loadTimes.fileSelect = performance.now();
-// ... file loading code ...
-loadTimes.riveLoad = performance.now();
-// ... parsing code ...
-loadTimes.parseComplete = performance.now();
-// ... UI updates ...
-loadTimes.uiReady = performance.now();
-
-console.log("Load Performance:", {
-	fileToRive: `${loadTimes.riveLoad - loadTimes.fileSelect}ms`,
-	riveToParse: `${loadTimes.parseComplete - loadTimes.riveLoad}ms`,
-	parseToUI: `${loadTimes.uiReady - loadTimes.parseComplete}ms`,
-	total: `${loadTimes.uiReady - loadTimes.fileSelect}ms`,
-});
-```
-
-## 🧪 Testing & Validation
-
-### Automated Testing
-
-```javascript
-// Run comprehensive tests
-function runDiagnostics() {
-	console.log("🧪 Running Rive Playground Diagnostics...");
-
-	const results = {
-		riveInstance: validateRiveInstance(),
-		debugSystem: testDebugSystem(),
-		controls: testControlSystem(),
-		performance: measureBasicPerformance(),
-	};
-
-	console.log("📊 Diagnostic Results:", results);
-	return results;
-}
-
-function testDebugSystem() {
-	try {
-		const originalConfig = window.getDebugSettings();
-		window.debugConfig = { test: "debug" };
-		window.applyDebugConfig();
-		const newConfig = window.getDebugSettings();
-		window.debugConfig = originalConfig;
-		window.applyDebugConfig();
-		return newConfig.test === "debug";
-	} catch (e) {
-		return false;
-	}
-}
-
-function testControlSystem() {
-	const rive = window.riveInstanceGlobal;
-	if (!rive) return false;
-
-	try {
-		const smCount = rive.stateMachineNames.length;
-		const vmExists = !!rive.viewModelInstance;
-		const assetsCount = rive.assets().length;
-
-		return smCount >= 0 && vmExists !== undefined && assetsCount >= 0;
-	} catch (e) {
-		return false;
-	}
-}
-
-function measureBasicPerformance() {
-	const start = performance.now();
-
-	// Simulate some operations
-	for (let i = 0; i < 1000; i++) {
-		Math.random();
-	}
-
-	const end = performance.now();
-	return end - start < 10; // Should complete in under 10ms
-}
-```
-
-### Debug Shortcuts
-
-Add these to your browser console for quick debugging:
-
-```javascript
-// Quick debug shortcuts
-window.debug = {
-	// Quick access to common objects
-	rive: () => window.riveInstanceGlobal,
-	data: () => window.jsonEditorInstance?.get(),
-
-	// Quick tests
-	test: () => runDiagnostics(),
-	validate: () => validateRiveInstance(),
-
-	// Quick controls
-	play: () => window.riveInstanceGlobal?.play(),
-	pause: () => window.riveInstanceGlobal?.pause(),
-	reset: () => window.riveInstanceGlobal?.reset(),
-
-	// Quick info
-	info: () => {
-		const rive = window.riveInstanceGlobal;
-		if (!rive) return "No Rive instance loaded";
-
-		return {
-			artboards: rive.artboardNames,
-			animations: rive.animationNames,
-			stateMachines: rive.stateMachineNames,
-			currentArtboard: rive.artboard?.name,
-		};
-	},
-};
-
-// Usage examples:
-// debug.rive()     - Get Rive instance
-// debug.test()     - Run diagnostics
-// debug.info()     - Get quick info
-// debug.play()     - Start playback
-```
-
-## 🔧 Advanced Debugging Techniques
-
-### Custom Event Monitoring
-
-```javascript
-// Monitor all Rive events
-function monitorRiveEvents() {
-	const rive = window.riveInstanceGlobal;
-	if (!rive) return;
-
-	// Monitor state changes
-	rive.on("statechange", (event) => {
-		console.log("State Change:", event);
-	});
-
-	// Monitor Rive events
-	rive.on("riveevent", (event) => {
-		console.log("Rive Event:", event.data);
-	});
-
-	// Monitor load events
-	rive.on("load", () => {
-		console.log("Rive loaded successfully");
-	});
-
-	// Monitor error events
-	rive.on("loaderror", (error) => {
-		console.error("Rive load error:", error);
-	});
-}
-```
-
-### State Snapshots
-
-```javascript
-// Create state snapshots for debugging
-function createStateSnapshot() {
-	const rive = window.riveInstanceGlobal;
-	if (!rive) return null;
-
-	const snapshot = {
-		timestamp: Date.now(),
-		artboard: rive.artboard?.name,
-		animations: rive.animationNames.map((name) => {
-			const anim = rive.animationByName(name);
-			return {
-				name,
-				time: anim?.time,
-				speed: anim?.speed,
-				isPlaying: anim?.isPlaying,
-			};
-		}),
-		stateMachines: rive.stateMachineNames.map((name) => {
-			const inputs = rive.stateMachineInputs(name);
-			return {
-				name,
-				inputs: inputs.map((input) => ({
-					name: input.name,
-					value: input.value,
-					type: input.type,
-				})),
-			};
-		}),
-	};
-
-	console.log("State Snapshot:", snapshot);
-	return snapshot;
-}
-
-// Compare snapshots
-function compareSnapshots(snapshot1, snapshot2) {
-	const differences = [];
-
-	// Compare animations
-	snapshot1.animations.forEach((anim1, index) => {
-		const anim2 = snapshot2.animations[index];
-		if (anim1.time !== anim2.time) {
-			differences.push(
-				`Animation ${anim1.name} time: ${anim1.time} → ${anim2.time}`,
-			);
-		}
-	});
-
-	// Compare state machine inputs
-	snapshot1.stateMachines.forEach((sm1, smIndex) => {
-		const sm2 = snapshot2.stateMachines[smIndex];
-		sm1.inputs.forEach((input1, inputIndex) => {
-			const input2 = sm2.inputs[inputIndex];
-			if (input1.value !== input2.value) {
-				differences.push(
-					`SM ${sm1.name}.${input1.name}: ${input1.value} → ${input2.value}`,
-				);
-			}
-		});
-	});
-
-	return differences;
-}
-```
-
-This debugging guide provides comprehensive tools and techniques for troubleshooting and optimizing your Rive Playground experience. Use these tools to understand how your animations work, identify performance issues, and debug complex interactions.
+This ensures the debugging system remains useful as Rive adds new input types and functionality. 

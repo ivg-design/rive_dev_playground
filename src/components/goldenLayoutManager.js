@@ -976,6 +976,20 @@ function saveWithDownloadLink(jsonString) {
 }
 
 /**
+ * Enable or disable the save button based on data availability
+ * @param {boolean} enabled - Whether to enable the save button
+ */
+export function setSaveButtonState(enabled) {
+	const jsonEditorContainer = document.querySelector('#output');
+	if (jsonEditorContainer && jsonEditorContainer._saveButton) {
+		const saveButton = jsonEditorContainer._saveButton;
+		saveButton.disabled = !enabled;
+		saveButton.title = enabled ? 'Save JSON to file' : 'Save JSON to file (disabled - no data loaded)';
+		logger.debug(`Save button ${enabled ? 'enabled' : 'disabled'}`);
+	}
+}
+
+/**
  * Update JSONEditor with new data
  * @param {object} data - The data to display in the editor
  */
@@ -989,6 +1003,10 @@ export function updateJSONEditor(data) {
 		jsonEditorInstance.set(data);
 		logger.info("JSONEditor updated with new data");
 		
+		// Enable the save button if we have valid data
+		const hasValidData = data && (typeof data === 'object') && Object.keys(data).length > 0;
+		setSaveButtonState(hasValidData);
+		
 		// Emit event for graph visualizer integration
 		const event = new CustomEvent('jsonEditorUpdated', {
 			detail: { data: data }
@@ -1000,6 +1018,8 @@ export function updateJSONEditor(data) {
 		
 	} catch (error) {
 		logger.error("Error updating JSONEditor:", error);
+		// Disable save button on error
+		setSaveButtonState(false);
 	}
 }
 

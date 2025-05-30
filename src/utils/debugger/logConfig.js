@@ -78,5 +78,26 @@ export function enableDetailedDebugging() {
  */
 export { LogLevel };
 
+// Enhanced debugging for trigger troubleshooting
+export const TRIGGER_DEBUG_CONFIG = {
+	controlInterface: LogLevel.TRACE,
+	dataConnector: LogLevel.TRACE,
+	script_to_fix: LogLevel.TRACE,
+	parser: LogLevel.DEBUG,
+	parserHandler: LogLevel.INFO
+};
+
+// Function to quickly enable trigger debugging - now integrated into debugHelper
+export async function enableTriggerDebugging() {
+	// This function is kept for backwards compatibility but delegates to debugHelper
+	if (window.debugHelper && typeof window.debugHelper.enableTriggerDebug === 'function') {
+		window.debugHelper.enableTriggerDebug();
+		console.log('💡 Trigger debugging enabled via debugHelper');
+		console.log('💡 Use debugHelper.listTriggers(), debugHelper.testTrigger(), etc.');
+	} else {
+		console.warn('debugHelper not available yet. Try: debugHelper.enableTriggerDebug()');
+	}
+}
+
 // Invoke the default configuration
 configureLogging();
