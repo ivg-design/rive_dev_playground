@@ -535,7 +535,7 @@ function createControlForProperty(property, vmContext = null) {
 							isNested: vmContext?.isNested || false,
 							blueprintName: vmContext?.blueprintName
 						});
-					});
+					}, { passive: true });
 				}
 				break;
 
@@ -565,7 +565,7 @@ function createControlForProperty(property, vmContext = null) {
 							isNested: vmContext?.isNested || false,
 							blueprintName: vmContext?.blueprintName
 						});
-					});
+					}, { passive: true });
 				}
 				break;
 
@@ -595,7 +595,7 @@ function createControlForProperty(property, vmContext = null) {
 							isNested: vmContext?.isNested || false,
 							blueprintName: vmContext?.blueprintName
 						});
-					});
+					}, { passive: true });
 				}
 				break;
 
@@ -629,7 +629,7 @@ function createControlForProperty(property, vmContext = null) {
 							isNested: vmContext?.isNested || false,
 							blueprintName: vmContext?.blueprintName
 						});
-					});
+					}, { passive: true });
 				}
 				break;
 
@@ -840,7 +840,7 @@ function createControlForProperty(property, vmContext = null) {
 							isNested: vmContext?.isNested || false,
 							blueprintName: vmContext?.blueprintName
 						});
-					});
+					}, { passive: true });
 				}
 				break;
 
@@ -952,7 +952,7 @@ function createControlForProperty(property, vmContext = null) {
 							isNested: vmContext?.isNested || false,
 							blueprintName: vmContext?.blueprintName
 						});
-					});
+					}, { passive: true });
 				}
 				break;
 		}
@@ -1731,7 +1731,7 @@ function buildControlsUI() {
 				}
 			}, 2000);
 		}
-	});
+	}, { passive: true });
 
 	const eventLabel = document.createElement("label");
 	eventLabel.htmlFor = "displayRiveEventsCheckbox";
@@ -1764,7 +1764,7 @@ function buildControlsUI() {
 		} catch (e) {
 			logger.warn("[controlInterface] Error saving custom events setting:", e);
 		}
-	});
+	}, { passive: true });
 
 	const customEventsLabel = document.createElement("label");
 	customEventsLabel.htmlFor = "logCustomEventsCheckbox";
@@ -1797,7 +1797,7 @@ function buildControlsUI() {
 		} catch (e) {
 			logger.warn("[controlInterface] Error saving state change events setting:", e);
 		}
-	});
+	}, { passive: true });
 
 	const stateChangeEventsLabel = document.createElement("label");
 	stateChangeEventsLabel.htmlFor = "logStateChangeEventsCheckbox";
@@ -1830,7 +1830,7 @@ function buildControlsUI() {
 		} catch (e) {
 			logger.warn("[controlInterface] Error saving nested ViewModel events setting:", e);
 		}
-	});
+	}, { passive: true });
 
 	const nestedViewModelEventsLabel = document.createElement("label");
 	nestedViewModelEventsLabel.htmlFor = "logNestedViewModelEventsCheckbox";
@@ -1863,7 +1863,7 @@ function buildControlsUI() {
 		} catch (e) {
 			logger.warn("[controlInterface] Error saving playback events setting:", e);
 		}
-	});
+	}, { passive: true });
 
 	const playbackEventsLabel = document.createElement("label");
 	playbackEventsLabel.htmlFor = "logPlaybackEventsCheckbox";
@@ -1896,7 +1896,7 @@ function buildControlsUI() {
 		} catch (e) {
 			logger.warn("[controlInterface] Error saving system events setting:", e);
 		}
-	});
+	}, { passive: true });
 
 	const systemEventsLabel = document.createElement("label");
 	systemEventsLabel.htmlFor = "logSystemEventsCheckbox";
@@ -1915,7 +1915,7 @@ function buildControlsUI() {
 				e.preventDefault();
 				e.stopPropagation();
 				showEventLoggingHelp();
-			});
+			});// no passive : true flag since it's a help button and uses preventDefault and stopPropagation
 		}
 	}, 100);
 
@@ -2036,6 +2036,7 @@ function buildStateMachineControls(container, stateMachines) {
 					ctrl.addEventListener(
 						"change",
 						() => (liveInput.value = ctrl.checked),
+						{ passive: true },
 					);
 				} else if (type === SMInputType.Number || type === "number") {
 					ctrl = document.createElement("input");
@@ -2044,11 +2045,13 @@ function buildStateMachineControls(container, stateMachines) {
 					ctrl.addEventListener(
 						"input",
 						() => (liveInput.value = parseFloat(ctrl.value) || 0),
+						{ passive: true },
 					);
 				} else if (type === SMInputType.Trigger || type === "trigger") {
 					ctrl = document.createElement("button");
 					ctrl.textContent = "Fire";
-					ctrl.addEventListener("click", () => liveInput.fire());
+					ctrl.addEventListener("click", () => liveInput.fire(), { passive: true,
+					});
 				}
 
 				if (ctrl) {
@@ -2468,7 +2471,7 @@ class RiveControlInterface {
 				.querySelector("#changeFileBtn")
 				.addEventListener("click", () => {
 					this.fileInput.click();
-				});
+				}, { passive: true });
 		}
 	}
 
@@ -2480,7 +2483,7 @@ class RiveControlInterface {
 			);
 		}
 		if (this.clearBtn) {
-			this.clearBtn.addEventListener("click", () => this.clearFile());
+			this.clearBtn.addEventListener("click", () => this.clearFile(), { passive: true });
 		}
 
 		// Artboard events
@@ -2490,77 +2493,76 @@ class RiveControlInterface {
 			);
 		}
 		if (this.applyBtn) {
-			this.applyBtn.addEventListener("click", () =>
-				this.applyArtboardSelection(),
-			);
+			this.applyBtn.addEventListener("click", () => {
+				this.applyArtboardSelection();
+			}, { passive: true });
 		}
 
 		// Timeline events
 		if (this.timelineSelect) {
-			this.timelineSelect.addEventListener("change", (e) =>
-				this.handleTimelineChange(e),
-			);
+			this.timelineSelect.addEventListener("change", (e) => {
+				this.handleTimelineChange(e);
+			});
 		}
 		if (this.playTimelineBtn) {
-			this.playTimelineBtn.addEventListener("click", () =>
-				this.toggleTimeline(),
-			);
+			this.playTimelineBtn.addEventListener("click", () => {
+				this.toggleTimeline();
+			}, { passive: true });
 		}
 		if (this.pauseTimelineBtn) {
-			this.pauseTimelineBtn.addEventListener("click", () =>
-				this.pauseTimeline(),
-			);
+			this.pauseTimelineBtn.addEventListener("click", () => {
+				this.pauseTimeline();
+			}, { passive: true });
 		}
 
 		// State machine events
 		if (this.stateMachineSelect) {
-			this.stateMachineSelect.addEventListener("change", (e) =>
-				this.handleStateMachineChange(e),
-			);
+			this.stateMachineSelect.addEventListener("change", (e) => {
+				this.handleStateMachineChange(e);
+			});
 		}
 		if (this.playStateMachineBtn) {
-			this.playStateMachineBtn.addEventListener("click", () =>
-				this.toggleStateMachine(),
-			);
+			this.playStateMachineBtn.addEventListener("click", () => {
+				this.toggleStateMachine();
+			}, { passive: true });
 		}
 
 		// Display control events
 		if (this.backgroundColorInput) {
-			this.backgroundColorInput.addEventListener("input", (e) =>
-				this.updateBackgroundColor(e),
-			);
+			this.backgroundColorInput.addEventListener("input", (e) => {
+				this.updateBackgroundColor(e);
+			});
 		}
 		if (this.fitSelect) {
-			this.fitSelect.addEventListener("change", (e) =>
-				this.updateFitMode(e),
-			);
+			this.fitSelect.addEventListener("change", (e) => {
+				this.updateFitMode(e);
+			});
 		}
 		if (this.alignmentSelect) {
-			this.alignmentSelect.addEventListener("change", (e) =>
-				this.updateAlignment(e),
-			);
+			this.alignmentSelect.addEventListener("change", (e) => {
+				this.updateAlignment(e);
+			});
 		}
 		if (this.scaleInput) {
-			this.scaleInput.addEventListener("input", (e) =>
-				this.updateScale(e),
-			);
+			this.scaleInput.addEventListener("input", (e) => {
+				this.updateScale(e);
+			});
 		}
 		if (this.scaleUpBtn) {
-			this.scaleUpBtn.addEventListener("click", () =>
-				this.handleScaleUp(),
-			);
+			this.scaleUpBtn.addEventListener("click", () => {
+				this.handleScaleUp();
+			}, { passive: true });
 		}
 		if (this.scaleDownBtn) {
-			this.scaleDownBtn.addEventListener("click", () =>
-				this.handleScaleDown(),
-			);
+			this.scaleDownBtn.addEventListener("click", () => {
+				this.handleScaleDown();
+			}, { passive: true });
 		}
 
 		// Keyboard shortcuts
-		document.addEventListener("keydown", (e) =>
-			this.handleKeyboardShortcuts(e),
-			{ passive: true }
-		);
+		document.addEventListener("keydown", (e) => {
+			this.handleKeyboardShortcuts(e);
+		}, { passive: true });
 	}
 
 	// File Management
@@ -3325,6 +3327,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// Make it globally accessible for debugging
 	window.riveControlInterface = riveControlInterface;
-});
+}, { passive: true });
 
 export default RiveControlInterface;

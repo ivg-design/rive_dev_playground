@@ -1439,7 +1439,7 @@ try {
 	) {
 		initDebugControls();
 	} else {
-		document.addEventListener("DOMContentLoaded", initDebugControls);
+		document.addEventListener("DOMContentLoaded", initDebugControls, { passive: true });
 	}
 } catch (error) {
 	// Silently handle initialization errors

@@ -424,18 +424,25 @@ const componentFactories = {
 				// Set up clear button
 				const clearBtn = content.querySelector("#clearEventConsoleBtn");
 				if (clearBtn) {
-					clearBtn.addEventListener("click", () => {
-						// Clear the event console messages
-						if (window.clearEventConsole) {
-							window.clearEventConsole();
-						} else {
-							// Fallback: clear the content directly
-							const consoleContent = content.querySelector("#eventConsoleContent");
-							if (consoleContent) {
-								consoleContent.textContent = "Event console cleared.";
+					clearBtn.addEventListener(
+						"click",
+						() => {
+							// Clear the event console messages
+							if (window.clearEventConsole) {
+								window.clearEventConsole();
+							} else {
+								// Fallback: clear the content directly
+								const consoleContent = content.querySelector(
+									"#eventConsoleContent"
+								);
+								if (consoleContent) {
+									consoleContent.textContent =
+										"Event console cleared.";
+								}
 							}
-						}
-					});
+						},
+						{ passive: true }
+					);
 				}
 			}, 50); // Reduced timeout for faster initialization
 
@@ -481,13 +488,13 @@ const componentFactories = {
 						if (fitViewBtn) {
 							fitViewBtn.addEventListener("click", () => {
 								window.graphVisualizerIntegration.fitView();
-							});
+							}, { passive: true });
 						}
 						
 						if (exportBtn) {
 							exportBtn.addEventListener("click", () => {
 								window.graphVisualizerIntegration.exportImage();
-							});
+							}, { passive: true });
 						}
 						
 						if (toggleOptionsBtn) {
@@ -496,7 +503,7 @@ const componentFactories = {
 								if (optionsPanel) {
 									optionsPanel.style.display = optionsPanel.style.display === "none" ? "block" : "none";
 								}
-							});
+							}, { passive: true });
 						}
 						
 						// Set up options checkboxes
@@ -513,9 +520,9 @@ const componentFactories = {
 							window.graphVisualizerIntegration.updateOptions(options);
 						};
 						
-						if (includeAssetsOption) includeAssetsOption.addEventListener("change", updateOptions);
-						if (includeEnumsOption) includeEnumsOption.addEventListener("change", updateOptions);
-						if (includeInputsOption) includeInputsOption.addEventListener("change", updateOptions);
+						if (includeAssetsOption) includeAssetsOption.addEventListener("change", updateOptions, { passive: true });
+						if (includeEnumsOption) includeEnumsOption.addEventListener("change", updateOptions, { passive: true });
+						if (includeInputsOption) includeInputsOption.addEventListener("change", updateOptions, { passive: true });
 						
 					} catch (error) {
 						logger.error("Failed to initialize graph visualizer:", error);
@@ -1142,7 +1149,7 @@ function addRestoreMenu() {
 			btn.addEventListener("click", (e) => {
 				const componentName = e.target.dataset.component;
 				restoreComponent(componentName);
-			});
+			}, { passive: true });
 		});
 	}
 
@@ -1151,14 +1158,14 @@ function addRestoreMenu() {
 	if (docsBtn) {
 		docsBtn.addEventListener("click", () => {
 			openDocumentation();
-		});
+		}, { passive: true });
 	}
 
 	const resetBtn = bar.querySelector("#layoutResetBtn");
 	if (resetBtn) {
 		resetBtn.addEventListener("click", () => {
 			resetLayoutToDefault();
-		});
+		}, { passive: true });
 	}
 
 	// Insert into the dedicated restore bar container

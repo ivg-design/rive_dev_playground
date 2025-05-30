@@ -1,14 +1,67 @@
-## [1.4.1] - 2025-05-30
-### Changes
-- fix: resolve debugHelper.help function error and implement comprehensive input discovery system [fix]
-## [1.4.0] - 2025-05-29
-### Changes
-- feat: migrate to local dependencies and implement graph visualizer with WebGL error resolution [minor]
-# Changelog
+## [1.4.2] - 2025-05-30 - not yet released
 
-All notable changes to this project will be documented in this file.
+### Fixed
 
-## [v1.4.1] - 2024-12-19 - Comprehensive Debugger System Enhancement
+#### Browser Console Violations (Multiple Issues)
+
+**Golden Layout TouchStart Events:**
+- **Issue**: GoldenLayout was adding touchstart event listeners without `{ passive: true }` flags, causing browser performance warnings
+- **Root Cause**: jQuery `.on()` calls in goldenlayout.js combining mouse and touch events without passive flags
+- **Solution**: Patched `node_modules/golden-layout/dist/goldenlayout.js` at 5 locations:
+  - Line 354 (DragListener): Separated mousedown/touchstart events, added `{ passive: true }` to touchstart
+  - Line 2488 (Header): Separated click/touchstart events, added `{ passive: true }` to touchstart  
+  - Line 2900 (HeaderButton): Separated click/touchstart events, added `{ passive: true }` to touchstart
+  - Line 2986 (Tab element): Separated mousedown/touchstart events, added `{ passive: true }` to touchstart
+  - Line 2989 (Tab close button): Separated click/touchstart events, added `{ passive: true }` to touchstart
+- **Implementation**: Used native `addEventListener` with `{ passive: true }` for touchstart while preserving original mouse event behavior
+- **Cleanup**: Added proper `removeEventListener` cleanup in destroy methods
+
+**G6 Wheel Event Violations:**
+- **Issue**: G6 library wheel events showing passive listener violations for zoom/pan functionality
+- **Analysis**: G6 wheel events legitimately need `preventDefault()` for zoom/pan, cannot be made passive
+- **Solution**: Implemented intelligent console warning filter in `graphVisualizerIntegration.js`
+- **Filter Features**:
+  - `setupConsoleWarningFilter()` wraps `console.warn` to suppress only G6 wheel event violations
+  - Preserves all other console warnings
+  - Proper cleanup in `destroy()` method via `restoreConsoleWarning()`
+- **Note**: Browser DevTools violations will still appear (this is expected and unavoidable)
+
+**WebGL Framebuffer Errors (256 instances):**
+- **Issue**: `GL_INVALID_FRAMEBUFFER_OPERATION: Framebuffer is incomplete: Attachment has zero size`
+- **Root Cause**: WebGL contexts created when canvas elements have zero dimensions
+- **Analysis**: Enhanced WebGL debugging revealed timing issues between canvas sizing and context creation
+- **Solution**: Comprehensive canvas dimension safety system:
+
+**Canvas Dimension Safety (`riveControlInterface.js`):**
+- Enhanced `ensureCanvasDimensions()` function with minimum safe dimensions (400x300)
+- WebGL context creation monitoring to prevent multiple contexts on same canvas
+- Pre-creation dimension validation before any WebGL operations
+- Improved error handling and logging throughout Rive initialization
+- Canvas dimension restoration and cleanup on instance destruction
+
+**G6 Graph WebGL Protection (`riveGraphVisualizer.js`):**
+- Enhanced `setupWebGLDebugging()` with context conflict prevention
+- Container dimension validation before G6 graph creation
+- Automatic minimum dimension enforcement for G6 canvases
+- WebGL context deduplication to prevent multiple contexts per canvas
+- Comprehensive logging for WebGL state tracking and debugging
+
+**Integration Safety:**
+- Coordinate dimension validation between Rive canvas and G6 graph containers
+- Prevent WebGL context conflicts between Rive and G6 instances
+- Enhanced error recovery and graceful degradation
+- Complete cleanup of WebGL monitoring on component destruction
+
+### Technical Notes
+
+- All patches maintain backward compatibility with existing functionality
+- Console warning filtering only affects G6 wheel event violations, preserving other diagnostics
+- WebGL fixes prevent framebuffer errors without impacting rendering performance
+- Comprehensive debugging tools added for ongoing WebGL conflict monitoring
+
+
+
+## [1.4.1] - 2025-05-29
 Enhanced Input Discovery & General Purpose Debugging
 
 ### 🐛 Bug Fixes

@@ -410,45 +410,45 @@ document.addEventListener("DOMContentLoaded", () => {
 	} else {
 		logger.error("Failed to initialize Golden Layout");
 	}
-});
+}, { passive: true });
 
 /**
  * Sets up event listeners after Golden Layout initialization
  */
 function setupEventListeners() {
-	// Event listener for the Rive file picker
+	// Event listeners for selectors and controls
 	if (riveFilePicker) {
-		riveFilePicker.addEventListener("change", handleFileSelect);
+		riveFilePicker.addEventListener("change", handleFileSelect, { passive: true });
 	}
-
-	// Event listeners for artboard and state machine selection
 	if (artboardSelector) {
-		artboardSelector.addEventListener("change", handleArtboardChange);
+		artboardSelector.addEventListener("change", handleArtboardChange, { passive: true });
 	}
 	if (animationSelector) {
-		animationSelector.addEventListener("change", handleAnimationChange);
+		animationSelector.addEventListener("change", handleAnimationChange, { passive: true });
 	}
 	if (stateMachineSelector) {
 		stateMachineSelector.addEventListener(
 			"change",
 			handleStateMachineChange,
+			{ passive: true },
 		);
 	}
 	if (applySelectionBtn) {
-		applySelectionBtn.addEventListener("click", handleApplySelection);
+		applySelectionBtn.addEventListener("click", handleApplySelection, { passive: true });
 	}
 
 	// Event listeners for playback controls
 	if (toggleTimelineBtn) {
-		toggleTimelineBtn.addEventListener("click", handleToggleTimeline);
+		toggleTimelineBtn.addEventListener("click", handleToggleTimeline, { passive: true });
 	}
 	if (pauseTimelineBtn) {
-		pauseTimelineBtn.addEventListener("click", handlePauseTimeline);
+		pauseTimelineBtn.addEventListener("click", handlePauseTimeline, { passive: true });
 	}
 	if (toggleStateMachineBtn) {
 		toggleStateMachineBtn.addEventListener(
 			"click",
 			handleToggleStateMachine,
+			{ passive: true },
 		);
 	}
 
@@ -460,13 +460,14 @@ function setupEventListeners() {
 		canvasBackgroundColor.addEventListener(
 			"change",
 			handleCanvasBackgroundChange,
+			{ passive: true },
 		);
 	}
 
 	// Event listener for clear file button
 	const clearFileBtn = document.getElementById("clearFileBtn");
 	if (clearFileBtn) {
-		clearFileBtn.addEventListener("click", handleClearFile);
+		clearFileBtn.addEventListener("click", handleClearFile, { passive: true });
 		clearFileBtn.disabled = true; // Start disabled since no file is loaded
 	}
 
@@ -479,7 +480,7 @@ function setupEventListeners() {
 			if (riveFilePicker) {
 				riveFilePicker.click();
 			}
-		});
+		}, { passive: true });
 	}
 
 	// Layout controls are now handled by RiveControlInterface class

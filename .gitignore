@@ -10,3 +10,5 @@ Logs/
 _site/
 dist/
 _test-deployment/
+# Generated diagram files
+diagram_*.json

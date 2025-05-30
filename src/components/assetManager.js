@@ -309,7 +309,7 @@ function createAssetItem(asset, assetName, index) {
 			} else {
 				assetItem.classList.add("expanded");
 			}
-		});
+		}); // No passive flag since this might preventDefault in some cases
 	}
 
 	return assetItem;
@@ -328,7 +328,7 @@ function setupAssetItemEventListeners(assetItem, asset, assetName, index) {
 	if (fileInput) {
 		fileInput.addEventListener("change", (event) => {
 			handleFileReplacement(event, asset, assetName, index);
-		});
+		}, { passive: true });
 	}
 
 	// URL apply button
@@ -344,7 +344,7 @@ function setupAssetItemEventListeners(assetItem, asset, assetName, index) {
 					index,
 				);
 			}
-		});
+		}, { passive: true });
 	}
 
 	// URL input enter key
@@ -367,7 +367,7 @@ function setupAssetItemEventListeners(assetItem, asset, assetName, index) {
 	if (resetBtn) {
 		resetBtn.addEventListener("click", () => {
 			handleAssetReset(asset, assetName, index);
-		});
+		}, { passive: true });
 	}
 
 	// Info button
@@ -375,7 +375,7 @@ function setupAssetItemEventListeners(assetItem, asset, assetName, index) {
 	if (infoBtn) {
 		infoBtn.addEventListener("click", () => {
 			showAssetInfo(asset, assetName, index);
-		});
+		}, { passive: true });
 	}
 }
 

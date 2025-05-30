@@ -53,7 +53,7 @@
 		<!-- Main Application Container -->
 		<div
 			id="appContainer"
-			style="display: flex; flex-direction: column; height: 100vh"
+			style="display: flex; flex-direction: column; height: calc(100vh - 40px)"
 		>
 			<!-- Restore Bar Container (will be populated by Golden Layout manager) -->
 			<div id="restoreBarContainer"></div>
@@ -460,7 +460,7 @@
 		<script src="./node_modules/jquery/dist/jquery.min.js"></script>
 
 		<!-- Golden Layout JS (Local) -->
-		<script src="./node_modules/golden-layout/dist/goldenlayout.min.js"></script>
+		<script src="./node_modules/golden-layout/dist/goldenlayout.js"></script>
 
 		<!-- JSONEditor JS (Ensure it's loaded before scripts that use it) -->
 		<script src="./node_modules/jsoneditor/dist/jsoneditor.min.js"></script>

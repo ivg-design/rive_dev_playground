@@ -141,25 +141,13 @@ I have personally examined:
 
 This directory contains the MkDocs source files for the Rive Tester documentation.
 
-## 🚀 Quick Start with VS Code Live Server
+## 📝 Documentation is Built Automatically
 
-### 1. Build the Documentation
+**Documentation is built via GitHub Actions** when changes are pushed to the main branch. You don't need to build locally.
 
-```bash
-# Option 1: Use the build script
-./build-docs.sh
-
-# Option 2: Use VS Code tasks (Ctrl/Cmd + Shift + P → "Tasks: Run Task" → "Build Documentation")
-
-# Option 3: Manual build
-python3 -m mkdocs build -f mkdocs-local.yml
-```
-
-### 2. Serve with Live Server
-
-1. **Start Live Server** from your project root (right-click `index.html`)
-2. **Navigate to** `http://127.0.0.1:5501/mkdocs_site/` in your browser
-3. **Or directly open** `http://127.0.0.1:5501/mkdocs_site/index.html`
+- **Source Files**: Edit Markdown files in `source_docs/`
+- **Live Documentation**: Available at your GitHub Pages URL after push
+- **Local Preview**: Use MkDocs serve if needed for complex changes
 
 ## 📁 File Structure
 
@@ -181,16 +169,14 @@ source_docs/
 ## 🔄 Development Workflow
 
 1. **Edit** Markdown files in the `source_docs/` directory
-2. **Build** using `./build-docs.sh` or VS Code task
-3. **Refresh** your browser (Live Server auto-reloads)
-4. **Repeat** as needed
+2. **Commit & Push** to main branch
+3. **GitHub Actions** automatically builds and deploys documentation
+4. **View** the updated docs at your GitHub Pages URL
 
 ## ⚙️ Configuration Files
 
-- `mkdocs.yml` - Production configuration (GitHub Pages)
-- `mkdocs-local.yml` - Local development configuration
-- `.vscode/settings.json` - VS Code Live Server settings
-- `.vscode/tasks.json` - VS Code build tasks
+- `mkdocs.yml` - Production configuration (used by GitHub Actions)
+- `mkdocs-local.yml` - Local development configuration (if needed)
 
 ## 🎨 Styling
 
@@ -208,16 +194,18 @@ The documentation uses MkDocs Material theme with custom CSS:
 - Use admonitions for tips, warnings, notes
 - Link between pages using relative paths
 
-## 🐛 Troubleshooting
+## 🔍 Local Preview (Optional)
 
-**Live Server not working?**
+If you need to preview changes locally for complex edits:
 
-- Ensure you've built the documentation first
-- Check that `mkdocs_site/index.html` exists
-- Try refreshing VS Code and rebuilding
+```bash
+# Install MkDocs (if not already installed)
+pip install mkdocs mkdocs-material
 
-**Missing pages warnings?**
+# Serve locally
+mkdocs serve -f mkdocs-local.yml
 
-- These are normal during development
-- Create placeholder files or remove from navigation
-- Use `mkdocs build --quiet` to suppress warnings
+# View at http://127.0.0.1:8000
+```
+
+**Note**: This is optional since GitHub Actions handles all documentation building and deployment.
