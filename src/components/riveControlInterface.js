@@ -508,17 +508,13 @@ function createControlForProperty(property, vmContext = null) {
 			case "string":
 				ctrl = document.createElement("textarea");
 				if (isPlaceholder) {
-					ctrl.value = (property.value || "").replace(/\\n/g, "\n");
+					ctrl.value = property.value || "";
 					ctrl.disabled = true;
 				} else {
-					const initialRiveValue = (liveProperty.value || "").replace(
-						/\\n/g,
-						"\n",
-					);
-					ctrl.value = initialRiveValue;
+					ctrl.value = liveProperty.value || "";
 
 					ctrl.addEventListener("input", () => {
-						const newValue = ctrl.value.replace(/\n/g, "\\\\n");
+						const newValue = ctrl.value;
 						logger.debug(
 							`[App] Event: Attempting to set ${name} to:`,
 							newValue,
@@ -2356,7 +2352,7 @@ function updateControlValueFromRive(propNameForLogging, controlElement, path) {
 				liveProperty.value === null || liveProperty.value === undefined
 					? ""
 					: String(liveProperty.value)
-			).replace(/\\n/g, "\n");
+			);
 			if (controlElement.value !== riveTextValue) {
 				// console.log(`[Polling Path] Updating TEXTAREA for '${path}'...`);
 				controlElement.value = riveTextValue;
@@ -2562,7 +2558,7 @@ class RiveControlInterface {
 		// Keyboard shortcuts
 		document.addEventListener("keydown", (e) => {
 			this.handleKeyboardShortcuts(e);
-		}, { passive: true });
+		});
 	}
 
 	// File Management

@@ -484,6 +484,7 @@ const componentFactories = {
 						const fitViewBtn = content.querySelector("#fitViewBtn");
 						const exportBtn = content.querySelector("#exportGraphBtn");
 						const toggleOptionsBtn = content.querySelector("#toggleOptionsBtn");
+						const loadTestDataBtn = content.querySelector("#loadTestDataBtn");
 						
 						if (fitViewBtn) {
 							fitViewBtn.addEventListener("click", () => {
@@ -502,6 +503,16 @@ const componentFactories = {
 								const optionsPanel = content.querySelector("#graphOptions");
 								if (optionsPanel) {
 									optionsPanel.style.display = optionsPanel.style.display === "none" ? "block" : "none";
+								}
+							}, { passive: true });
+						}
+						
+						if (loadTestDataBtn) {
+							loadTestDataBtn.addEventListener("click", async () => {
+								try {
+									await window.graphVisualizerIntegration.loadTestData();
+								} catch (error) {
+									logger.error("Failed to load test data:", error);
 								}
 							}, { passive: true });
 						}

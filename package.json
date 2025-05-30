@@ -16,8 +16,10 @@
 		"@antv/g6": "^5.0.48",
 		"@fortawesome/fontawesome-free": "^6.7.2",
 		"@rive-app/webgl2": "^2.27.2",
+		"flatted": "^3.3.3",
 		"golden-layout": "^1.5.9",
 		"jquery": "^3.6.0",
-		"jsoneditor": "^10.2.0"
+		"jsoneditor": "^10.2.0",
+		"serialize-javascript": "^6.0.2"
 	}
 }

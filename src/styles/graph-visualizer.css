@@ -157,6 +157,20 @@
   border-color: #007bff;
 }
 
+/* Test Data Button - Special Styling */
+.graph-control-btn-test {
+  background: rgba(156, 39, 176, 0.9) !important;
+  color: white !important;
+  border-color: #9c27b0 !important;
+}
+
+.graph-control-btn-test:hover {
+  background: rgba(156, 39, 176, 1) !important;
+  border-color: #7b1fa2 !important;
+  color: white !important;
+  transform: scale(1.05);
+}
+
 /* Graph Statistics */
 .graph-stats {
   position: absolute;
@@ -484,4 +498,17 @@
 
 .jsoneditor-dark .error-retry-btn:hover {
   background: #f56565;
+}
+
+/* Dark Theme Test Data Button */
+.jsoneditor-dark .graph-control-btn-test {
+  background: rgba(186, 85, 211, 0.9) !important;
+  color: white !important;
+  border-color: #ba55d3 !important;
+}
+
+.jsoneditor-dark .graph-control-btn-test:hover {
+  background: rgba(186, 85, 211, 1) !important;
+  border-color: #9932cc !important;
+  color: white !important;
 } 

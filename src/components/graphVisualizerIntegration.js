@@ -1,7 +1,6 @@
 // Graph Visualizer Integration for Golden Layout
-// This file handles the integration of the G6 graph visualizer with the main app
+// Simplified integration that properly handles initialization timing
 
-// Import debugger
 import { createLogger } from '../utils/debugger/debugLogger.js';
 const logger = createLogger('graphVisualizerIntegration');
 
@@ -9,107 +8,49 @@ class GraphVisualizerIntegration {
   constructor() {
     this.visualizer = null;
     this.container = null;
-    this.isInitialized = false;
     this.currentData = null;
   }
 
   async initialize(container) {
     this.container = container;
+    logger.info('Graph visualizer integration starting...');
     
-    // Debug container dimensions
-    logger.debug('Container element:', container);
-    logger.debug('Container dimensions:', {
-      offsetWidth: container.offsetWidth,
-      offsetHeight: container.offsetHeight,
-      clientWidth: container.clientWidth,
-      clientHeight: container.clientHeight,
-      getBoundingClientRect: container.getBoundingClientRect()
-    });
-    
-    // Validate container has minimum dimensions before proceeding
-    if (container.offsetWidth < 10 || container.offsetHeight < 10) {
-      logger.warn('Container dimensions too small, showing generate button instead of initializing graph');
-      this.showGenerateButton();
-      return true; // Don't initialize graph yet, wait for proper sizing
+    // Validate container
+    if (!container) {
+      throw new Error('Container element is required');
     }
+
+    // Setup container immediately
+    this.setupContainer();
     
-    // Ensure container has proper styling for full height
-    container.style.width = '100%';
-    container.style.height = '100%';
-    container.style.minHeight = '400px'; // Fallback minimum height
-    container.style.position = 'relative';
-    container.style.display = 'block';
+    // Wait for G6 library
+    await this.waitForG6();
     
-    // Force container to take up space if it's not sized yet
-    if (container.offsetHeight < 50) {
-      logger.warn('Container height is too small, forcing minimum height');
-      container.style.height = '400px';
-    }
+    // Setup app integration hooks
+    this.setupMainAppIntegration();
     
-    try {
-      // Wait for G6 to be available
-      await this.waitForG6();
-      
-      // Wait longer for the container to be properly sized by Golden Layout
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Check dimensions again after waiting
-      logger.debug('Container dimensions after wait:', {
-        offsetWidth: container.offsetWidth,
-        offsetHeight: container.offsetHeight,
-        clientWidth: container.clientWidth,
-        clientHeight: container.clientHeight,
-        getBoundingClientRect: container.getBoundingClientRect()
-      });
-      
-      // Final validation before creating graph
-      if (container.offsetWidth < 10 || container.offsetHeight < 10) {
-        logger.warn('Container still has invalid dimensions after wait, showing generate button');
-        this.showGenerateButton();
-        return true;
-      }
-      
-      // If still no height, force it
-      if (container.offsetHeight < 50) {
-        logger.warn('Container still has no height after wait, forcing 400px');
-        container.style.height = '400px';
-        container.style.minHeight = '400px';
-        
-        // Wait a bit more for the forced height to take effect
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
-      // Import the visualizer module
-      const { RiveGraphVisualizer } = await import('./riveGraphVisualizer.js');
-      
-      // Create visualizer instance only if container has valid dimensions
-      this.visualizer = new RiveGraphVisualizer(container, {
-        includeAssets: true,
-        includeEnums: true,
-        includeInputs: true
-      });
-      
-      this.isInitialized = true;
-      logger.info('Graph visualizer integration initialized successfully');
-      
-      // Set up event listeners for the main app
-      this.setupMainAppIntegration();
-      
-      // Set up a resize observer on the parent Golden Layout container
-      this.setupParentResizeObserver(container);
-      
-      return true;
-      
-    } catch (error) {
-      logger.error('Failed to initialize graph visualizer integration:', error);
-      this.showError(container, 'Failed to initialize graph visualizer: ' + error.message);
-      return false;
-    }
+    // Show the generate button initially
+    this.showGenerateButton();
+    
+    logger.info('Graph visualizer integration initialized');
+    return true;
+  }
+
+  setupContainer() {
+    // Ensure container has proper base styling
+    this.container.style.width = '100%';
+    this.container.style.height = '100%';
+    this.container.style.position = 'relative';
+    this.container.style.display = 'block';
+    this.container.style.backgroundColor = '#111827';
+    this.container.style.border = '1px solid #374151';
+    this.container.style.borderRadius = '8px';
   }
 
   waitForG6() {
     return new Promise((resolve, reject) => {
       if (typeof window.G6 !== 'undefined') {
+        logger.debug('G6 library already available');
         resolve();
         return;
       }
@@ -120,9 +61,10 @@ class GraphVisualizerIntegration {
       const checkG6 = () => {
         attempts++;
         if (typeof window.G6 !== 'undefined') {
+          logger.debug('G6 library became available');
           resolve();
         } else if (attempts >= maxAttempts) {
-          reject(new Error('G6 library not available'));
+          reject(new Error('G6 library not available after timeout'));
         } else {
           setTimeout(checkG6, 100);
         }
@@ -133,79 +75,52 @@ class GraphVisualizerIntegration {
   }
 
   setupMainAppIntegration() {
-    // Listen for parser data updates from the main app
-    if (window.riveParserHandler) {
-      // Hook into the parser handler's data update events
-      const originalUpdateData = window.riveParserHandler.updateData;
-      if (originalUpdateData) {
-        window.riveParserHandler.updateData = (data) => {
-          // Call original method
-          originalUpdateData.call(window.riveParserHandler, data);
-          
-          // Store data but don't auto-generate graph
-          this.currentData = data;
-          this.showGenerateButton();
-        };
-      }
-    }
-
-    // Listen for custom events from the main app
-    document.addEventListener('riveDataUpdated', (event) => {
-      if (event.detail && event.detail.data) {
-        this.currentData = event.detail.data;
-        this.showGenerateButton();
-      }
-    });
-
     // Listen for JSON Editor updates (primary data source)
     document.addEventListener('jsonEditorUpdated', (event) => {
       if (event.detail && event.detail.data) {
-        logger.debug('Graph visualizer received JSON Editor data:', event.detail.data);
+        logger.debug('Received JSON Editor data update');
         this.currentData = event.detail.data;
         this.showGenerateButton();
       }
     });
 
-    // Hook into the Golden Layout JSON Editor updates
+    // Hook into Golden Layout JSON Editor updates
     const originalUpdateJSONEditor = window.updateJSONEditor;
     if (originalUpdateJSONEditor) {
       window.updateJSONEditor = (data) => {
-        // Call original method
         originalUpdateJSONEditor(data);
         
-        // Store data but don't auto-generate graph
         if (data && typeof data === 'object' && !data.message) {
-          logger.debug('Graph visualizer updating from JSON Editor data:', data);
+          logger.debug('Updating data from JSON Editor hook');
           this.currentData = data;
           this.showGenerateButton();
         }
       };
     }
 
-    // Also check if there's already parsed data available
-    setTimeout(() => {
-      this.checkForExistingData();
-    }, 500);
+    // Check for existing data after a brief delay
+    setTimeout(() => this.checkForExistingData(), 500);
   }
 
   checkForExistingData() {
-    // Try to get data from the JSON Editor if it exists
+    // Try JSON Editor first
     if (window.jsonEditorInstance && window.jsonEditorInstance.get) {
       try {
         const existingData = window.jsonEditorInstance.get();
         if (existingData && typeof existingData === 'object' && !existingData.message) {
-          logger.debug('Graph visualizer found existing JSON Editor data:', existingData);
+          logger.debug('Found existing JSON Editor data');
           this.currentData = existingData;
           this.showGenerateButton();
+          return;
         }
       } catch (error) {
-        logger.warn('Could not get existing data from JSON Editor:', error);
+        logger.debug('Could not get data from JSON Editor:', error.message);
       }
     }
 
-    // Try to get data from global variables if available
+    // Try global variables
     if (window.currentParsedData) {
-      logger.debug('Graph visualizer found existing parsed data:', window.currentParsedData);
+      logger.debug('Found existing global parsed data');
       this.currentData = window.currentParsedData;
       this.showGenerateButton();
     }
@@ -214,7 +129,6 @@ class GraphVisualizerIntegration {
   showGenerateButton() {
     if (!this.container) return;
 
-    // Clear container and show generate button
     this.container.innerHTML = `
       <div class="graph-generate-prompt">
         <div class="generate-icon">🌳</div>
@@ -227,99 +141,109 @@ class GraphVisualizerIntegration {
       </div>
     `;
 
-    // Add event listener for generate button
     const generateBtn = this.container.querySelector('#generateGraphBtn');
     if (generateBtn) {
       generateBtn.addEventListener('click', () => {
         this.generateGraph();
-      });
+      }, { passive: true });
     }
   }
 
-  generateGraph() {
+  async generateGraph() {
     if (!this.currentData) {
-      logger.warn('No data available to generate graph');
-      this.showError(this.container, 'No data available to generate graph. Please load a Rive file first.');
+      logger.warn('No data available for graph generation');
+      this.showError('No data available to generate graph. Please load a Rive file first.');
       return;
     }
 
+    logger.info('Starting graph generation...');
+    
     // Show loading state
+    this.showLoading();
+
+    try {
+      // Create visualizer if needed
+      if (!this.visualizer) {
+        await this.createVisualizer();
+      }
+      
+      // Load data
+      await this.visualizer.loadData(this.currentData);
+      
+      logger.info('Graph generation completed successfully');
+      
+    } catch (error) {
+      logger.error('Graph generation failed:', error);
+      this.showError(`Failed to generate graph: ${error.message}`);
+    }
+  }
+
+  showLoading() {
     this.container.innerHTML = `
       <div class="graph-loading">
         <div class="loading-spinner"></div>
         <p>Generating graph visualization...</p>
       </div>
     `;
-
-    // Generate graph after a short delay to show loading state
-    setTimeout(async () => {
-      try {
-        // If visualizer is not initialized, initialize it now
-        if (!this.isInitialized || !this.visualizer) {
-          logger.info('Visualizer not initialized, initializing now for graph generation');
-          
-          // Clear the loading state and prepare container for graph
-          this.container.innerHTML = '';
-          
-          // Ensure container has proper dimensions
-          this.container.style.width = '100%';
-          this.container.style.height = '100%';
-          this.container.style.minHeight = '400px';
-          this.container.style.position = 'relative';
-          this.container.style.display = 'block';
-          
-          // Force layout if needed
-          if (this.container.offsetHeight < 50) {
-            this.container.style.height = '400px';
-          }
-          
-          // Wait for container to be properly sized
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // Validate dimensions one more time
-          const rect = this.container.getBoundingClientRect();
-          if (rect.width < 10 || rect.height < 10) {
-            throw new Error(`Container dimensions still too small: ${rect.width}x${rect.height}`);
-          }
-          
-          // Import and create visualizer
-          const { RiveGraphVisualizer } = await import('./riveGraphVisualizer.js');
-          this.visualizer = new RiveGraphVisualizer(this.container, {
-            includeAssets: true,
-            includeEnums: true,
-            includeInputs: true
-          });
-          
-          this.isInitialized = true;
-          logger.info('Graph visualizer initialized successfully for graph generation');
-        }
-        
-        // Now update with data
-        await this.updateData(this.currentData);
-        
-      } catch (error) {
-        logger.error('Failed to generate graph:', error);
-        this.showError(this.container, 'Failed to generate graph: ' + error.message);
-      }
-    }, 100);
   }
 
-  async updateData(riveData) {
-    if (!this.isInitialized || !this.visualizer) {
-      logger.warn('Graph visualizer not initialized, cannot update data');
-      return;
-    }
+  async createVisualizer() {
+    logger.info('Creating graph visualizer...');
+    
+    // Clear container
+    this.container.innerHTML = '';
+    
+    // Import visualizer class
+    const { RiveGraphVisualizer } = await import('./riveGraphVisualizer.js');
+    
+    // Create visualizer instance
+    this.visualizer = new RiveGraphVisualizer(this.container, {
+      includeAssets: true,
+      includeEnums: true,
+      includeInputs: true
+    });
+    
+    // Initialize it - this handles all the timing and validation
+    await this.visualizer.initialize();
+    
+    logger.info('Graph visualizer created and initialized');
+  }
 
-    try {
-      this.currentData = riveData;
-      await this.visualizer.updateData(riveData);
-      
-      // Update statistics in the main app if available
-      this.updateMainAppStatistics();
-      
-    } catch (error) {
-      logger.error('Failed to update graph visualizer data:', error);
-      this.showError(this.container, 'Failed to update graph: ' + error.message);
+  showError(message) {
+    this.container.innerHTML = `
+      <div class="graph-visualizer-error">
+        <div class="error-icon">⚠️</div>
+        <div class="error-title">Graph Visualizer Error</div>
+        <div class="error-message">${message}</div>
+        <button class="error-retry-btn" id="retryBtn">
+          Retry
+        </button>
+      </div>
+    `;
+    
+    const retryBtn = this.container.querySelector('#retryBtn');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', () => {
+        this.generateGraph();
+      }, { passive: true });
+    }
+  }
+
+  // Public API methods
+  async updateData(riveData) {
+    this.currentData = riveData;
+    
+    if (this.visualizer) {
+      try {
+        await this.visualizer.loadData(riveData);
+        this.updateMainAppStatistics();
+      } catch (error) {
+        logger.error('Failed to update graph data:', error);
+        this.showError(`Failed to update graph: ${error.message}`);
+      }
+    } else {
+      // Just show the generate button if visualizer not created yet
+      this.showGenerateButton();
     }
   }
 
@@ -329,215 +253,148 @@ class GraphVisualizerIntegration {
     try {
       const stats = this.visualizer.getStatistics();
       
-      // Update graph statistics in the main app UI if elements exist
       const nodeCountEl = document.getElementById('nodeCount');
       const edgeCountEl = document.getElementById('edgeCount');
-      const comboCountEl = document.getElementById('comboCount');
       
       if (nodeCountEl) nodeCountEl.textContent = stats.nodes;
       if (edgeCountEl) edgeCountEl.textContent = stats.edges;
-      if (comboCountEl) comboCountEl.textContent = stats.combos;
       
     } catch (error) {
-      logger.warn('Failed to update main app statistics:', error);
-    }
-  }
-
-  async updateOptions(options) {
-    if (!this.isInitialized || !this.visualizer) return;
-
-    try {
-      this.visualizer.updateOptions(options);
-      
-      // Reload current data with new options
-      if (this.currentData) {
-        await this.visualizer.updateData(this.currentData);
-      }
-      
-    } catch (error) {
-      logger.error('Failed to update graph visualizer options:', error);
+      logger.debug('Could not update statistics:', error.message);
     }
   }
 
   fitView() {
-    if (!this.isInitialized || !this.visualizer || !this.visualizer.graph) return;
-
-    try {
-      if (this.visualizer.graph.fitView) {
-        this.visualizer.graph.fitView();
-      }
-    } catch (error) {
-      logger.warn('Failed to fit view:', error);
+    if (this.visualizer) {
+      this.visualizer.fitView();
     }
   }
 
   exportImage(format = 'png') {
-    if (!this.isInitialized || !this.visualizer) return false;
-
-    try {
+    if (this.visualizer) {
       return this.visualizer.exportImage(format);
-    } catch (error) {
-      logger.error('Failed to export graph:', error);
-      return false;
     }
-  }
-
-  refresh() {
-    if (!this.isInitialized || !this.visualizer || !this.visualizer.graph) return;
-
-    try {
-      if (this.visualizer.graph.render) {
-        this.visualizer.graph.render();
-      }
-    } catch (error) {
-      logger.warn('Failed to refresh graph:', error);
-    }
-  }
-
-  clear() {
-    if (!this.isInitialized || !this.visualizer || !this.visualizer.graph) return;
-
-    try {
-      if (this.visualizer.graph.clear) {
-        this.visualizer.graph.clear();
-      } else {
-        // Fallback: set empty data
-        this.visualizer.graph.setData({ nodes: [], edges: [] });
-        this.visualizer.graph.render();
-      }
-      
-      this.currentData = null;
-      this.updateMainAppStatistics();
-      
-    } catch (error) {
-      logger.error('Failed to clear graph:', error);
-    }
+    return null;
   }
 
   resize() {
-    if (!this.isInitialized || !this.visualizer) return;
-
-    try {
+    if (this.visualizer) {
       this.visualizer.resize();
-    } catch (error) {
-      logger.warn('Failed to resize graph:', error);
     }
   }
 
   getStatistics() {
-    if (!this.isInitialized || !this.visualizer) {
-      return { nodes: 0, edges: 0, combos: 0 };
-    }
-
-    try {
+    if (this.visualizer) {
       return this.visualizer.getStatistics();
-    } catch (error) {
-      logger.warn('Failed to get graph statistics:', error);
-      return { nodes: 0, edges: 0, combos: 0 };
     }
+    return { nodes: 0, edges: 0 };
   }
 
-  testMethods() {
-    if (!this.isInitialized || !this.visualizer) return {};
-
-    try {
-      return this.visualizer.testAllMethods();
-    } catch (error) {
-      logger.error('Failed to test methods:', error);
-      return {};
-    }
-  }
-
-  getGraphInfo() {
-    if (!this.isInitialized || !this.visualizer) return null;
-
-    try {
-      return this.visualizer.getGraphInfo();
-    } catch (error) {
-      logger.error('Failed to get graph info:', error);
-      return null;
-    }
-  }
-
-  showError(container, message) {
-    // Clear container
-    container.innerHTML = '';
+  clear() {
+    this.currentData = null;
     
-    // Create error display
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'graph-visualizer-error';
-    errorDiv.innerHTML = `
-      <div class="error-icon">⚠️</div>
-      <div class="error-title">Graph Visualizer Error</div>
-      <div class="error-message">${message}</div>
-      <button class="error-retry-btn" onclick="window.graphVisualizerIntegration?.initialize(this.closest('.graph-visualizer-container'))">
-        Retry
-      </button>
-    `;
+    if (this.visualizer) {
+      this.visualizer.destroy();
+      this.visualizer = null;
+    }
     
-    container.appendChild(errorDiv);
+    this.showGenerateButton();
   }
 
   destroy() {
-    // Clean up parent resize observer
-    if (this.parentResizeObserver) {
-      this.parentResizeObserver.disconnect();
-      this.parentResizeObserver = null;
-    }
+    logger.info('Destroying graph visualizer integration...');
     
     if (this.visualizer) {
-      try {
-        this.visualizer.destroy();
-      } catch (error) {
-        logger.warn('Error destroying visualizer:', error);
-      }
+      this.visualizer.destroy();
+      this.visualizer = null;
     }
     
-    this.visualizer = null;
     this.container = null;
-    this.isInitialized = false;
     this.currentData = null;
+    
+    logger.info('Graph visualizer integration destroyed');
   }
 
-  setupParentResizeObserver(container) {
-    // Find the Golden Layout content container
-    let parentContainer = container.parentElement;
-    while (parentContainer && !parentContainer.classList.contains('lm_content')) {
-      parentContainer = parentContainer.parentElement;
-    }
+  // Test function to load JSON data directly
+  async loadTestData(jsonUrl = '/assets/reference/diagram_v5_parsed-data_2025-05-30T14-03-10.json') {
+    logger.info('Loading test data from:', jsonUrl);
     
-    if (parentContainer && window.ResizeObserver) {
-      logger.debug('Setting up parent resize observer on:', parentContainer);
+    try {
+      // Show loading message
+      this.showMessage('Loading test data...', 'info');
       
-      this.parentResizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const { width, height } = entry.contentRect;
-          if (width > 0 && height > 0) {
-            logger.debug('Parent container resized:', { width, height });
-            
-            // Update our container to match
-            container.style.width = '100%';
-            container.style.height = '100%';
-            
-            // Trigger visualizer resize
-            if (this.visualizer && this.visualizer.resize) {
-              setTimeout(() => {
-                this.visualizer.resize();
-              }, 50);
-            }
-          }
-        }
-      });
+      // Fetch the JSON data
+      const response = await fetch(jsonUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch test data: ${response.statusText}`);
+      }
       
-      this.parentResizeObserver.observe(parentContainer);
+      const testData = await response.json();
+      logger.info('Test data loaded successfully, size:', Object.keys(testData).length);
+      
+      // Load into visualizer
+      await this.updateData(testData);
+      
+      this.showMessage('Test data loaded successfully! Click nodes to expand/collapse them.', 'success');
+      
+    } catch (error) {
+      logger.error('Failed to load test data:', error);
+      this.showError(`Failed to load test data: ${error.message}`);
     }
+  }
+
+  // Helper method to show different types of messages
+  showMessage(message, type = 'info') {
+    if (this.container) {
+      const messageEl = document.createElement('div');
+      messageEl.className = `graph-message graph-message-${type}`;
+      messageEl.innerHTML = `
+        <div class="message-content">
+          <span class="message-icon">${this.getMessageIcon(type)}</span>
+          <span class="message-text">${message}</span>
+        </div>
+      `;
+      
+      // Style the message
+      messageEl.style.cssText = `
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        background: ${type === 'error' ? '#dc2626' : type === 'success' ? '#059669' : '#3b82f6'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        font-size: 14px;
+        max-width: 400px;
+        text-align: center;
+      `;
+      
+      this.container.appendChild(messageEl);
+      
+      // Auto-remove after delay
+      setTimeout(() => {
+        if (messageEl.parentNode) {
+          messageEl.parentNode.removeChild(messageEl);
+        }
+      }, type === 'error' ? 8000 : 4000);
+    }
+  }
+
+  getMessageIcon(type) {
+    const icons = {
+      info: 'ℹ️',
+      success: '✅',
+      error: '❌',
+      warning: '⚠️'
+    };
+    return icons[type] || icons.info;
   }
 }
 
-// Create global instance for the main app
+// Create global instance
 window.graphVisualizerIntegration = new GraphVisualizerIntegration();
 
-// Export for module usage
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = GraphVisualizerIntegration;
-} 
+export default GraphVisualizerIntegration; 
