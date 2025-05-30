@@ -1,3 +1,6 @@
+## [1.4.2] - 2025-05-30
+### Changes
+- [fix]: resolve browser console violations and WebGL framebuffer errors
 ## [1.4.2] - 2025-05-30 - not yet released
 
 ### Fixed
