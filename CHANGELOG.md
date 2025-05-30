@@ -1,3 +1,6 @@
+## [1.4.3] - 2025-05-30
+### Changes
+- feat: enhance graph visualizer with interactive features and improved styling
 ## [1.4.3] - 2025-01-03 - Enhanced Graph Visualizer
 
 ### ✨ Major Enhancements - Graph Visualizer
