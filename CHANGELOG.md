@@ -1,3 +1,6 @@
+## [1.4.1] - 2025-05-30
+### Changes
+- fix: resolve debugHelper.help function error and implement comprehensive input discovery system [fix]
 ## [1.4.0] - 2025-05-29
 ### Changes
 - feat: migrate to local dependencies and implement graph visualizer with WebGL error resolution [minor]
