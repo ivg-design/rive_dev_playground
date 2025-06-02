@@ -4,6 +4,8 @@
  */
 
 import { LoggerAPI, LogLevel } from "./debugLogger.js";
+// Import the enhanced formatter service
+import RiveFormatterService from "./riveInstanceFormatter.js";
 
 // Module names that are available for debugging
 const MODULES = [
@@ -144,6 +146,29 @@ export function initDebugControls() {
 			// === API ACCESS ===
 			api: LoggerAPI,
 			
+			// === ENHANCED OBJECT FORMATTING ===
+			objectFormatter: RiveFormatterService.formatObject,
+			manualAssetSearch: RiveFormatterService.manualAssetSearch,
+			exploreObject: (obj, maxDepth = 3) => {
+				console.group('🔍 Deep Object Explorer');
+				if (!obj) {
+					console.log('❌ No object provided');
+					console.groupEnd();
+					return;
+				}
+				console.log('Object:', obj);
+				console.log('Type:', typeof obj);
+				console.log('Constructor:', obj.constructor?.name || 'Unknown');
+				if (RiveFormatterService.isRiveInstance(obj)) {
+					console.log('✅ Detected as Rive Instance');
+					const assets = RiveFormatterService.findAssets(obj);
+					const inputs = RiveFormatterService.findInputs(obj);
+					console.log('Assets found:', assets);
+					console.log('Inputs found:', inputs);
+				}
+				console.groupEnd();
+			},
+			
 			// === COMPREHENSIVE INPUT DEBUGGING ===
 			enableInputDebug: enableInputDebugging,
 			discoverInputs: discoverAllInputs,
@@ -153,12 +178,6 @@ export function initDebugControls() {
 			testAllInputs: testAllInputs,
 			addInputType: addInputType,
 			getInputTypes: getInputTypes,
-			
-			// === LEGACY TRIGGER DEBUGGING (backwards compatibility) ===
-			enableTriggerDebug: enableTriggerDebugging,
-			listTriggers: listTriggers,
-			testTrigger: testTrigger,
-			testAllTriggers: testAllTriggers,
 			
 			// === COMPREHENSIVE HELP ===
 			help: showDebugHelp,
@@ -213,6 +232,29 @@ export function initDebugControls() {
 			// === API ACCESS ===
 			api: LoggerAPI,
 			
+			// === ENHANCED OBJECT FORMATTING ===
+			objectFormatter: RiveFormatterService.formatObject,
+			manualAssetSearch: RiveFormatterService.manualAssetSearch,
+			exploreObject: (obj, maxDepth = 3) => {
+				console.group('🔍 Deep Object Explorer');
+				if (!obj) {
+					console.log('❌ No object provided');
+					console.groupEnd();
+					return;
+				}
+				console.log('Object:', obj);
+				console.log('Type:', typeof obj);
+				console.log('Constructor:', obj.constructor?.name || 'Unknown');
+				if (RiveFormatterService.isRiveInstance(obj)) {
+					console.log('✅ Detected as Rive Instance');
+					const assets = RiveFormatterService.findAssets(obj);
+					const inputs = RiveFormatterService.findInputs(obj);
+					console.log('Assets found:', assets);
+					console.log('Inputs found:', inputs);
+				}
+				console.groupEnd();
+			},
+			
 			// === COMPREHENSIVE INPUT DEBUGGING ===
 			enableInputDebug: enableInputDebugging,
 			discoverInputs: discoverAllInputs,
@@ -222,12 +264,6 @@ export function initDebugControls() {
 			testAllInputs: testAllInputs,
 			addInputType: addInputType,
 			getInputTypes: getInputTypes,
-			
-			// === LEGACY TRIGGER DEBUGGING (backwards compatibility) ===
-			enableTriggerDebug: enableTriggerDebugging,
-			listTriggers: listTriggers,
-			testTrigger: testTrigger,
-			testAllTriggers: testAllTriggers,
 			
 			// === COMPREHENSIVE HELP ===
 			help: showDebugHelp,
@@ -911,88 +947,97 @@ function enableInputDebugging() {
 }
 
 /**
- * Discover all available inputs of all types
+ * Enhanced input discovery using RiveFormatterService
  */
-function discoverAllInputs() {
-	console.group('🔍 Discovering All Rive Inputs');
+function discoverAllInputsEnhanced() {
+	console.group('🔍 Enhanced Input Discovery');
 	
 	const discovered = {
-		viewModel: {},
-		stateMachine: {},
-		windowObjects: {}
+		riveInstances: [],
+		viewModelInputs: [],
+		stateMachineInputs: [],
+		totalCount: 0
 	};
 	
-	// Discover ViewModel inputs
-	if (window.vm || window.stageVM) {
-		const vm = window.vm || window.stageVM;
-		console.log('📋 Scanning ViewModel inputs...');
-		
-		Object.entries(RIVE_INPUT_TYPES).forEach(([type, config]) => {
-			if (config.getFromVM) {
-				try {
-					const inputs = config.getFromVM(vm);
-					if (inputs.length > 0) {
-						discovered.viewModel[type] = inputs;
-						console.log(`  ✅ Found ${inputs.length} ${config.displayName.toLowerCase()}`);
-						
-						// Expose on window for easy access
-						inputs.forEach((inputData, index) => {
-							const name = inputData.name || inputData;
-							const windowKey = `${config.windowPrefix}${name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-							window[windowKey] = inputData.input || inputData;
-						});
-					} else {
-						console.log(`  ⚪ No ${config.displayName.toLowerCase()} found`);
-					}
-				} catch (e) {
-					console.warn(`  ❌ Error scanning ${config.displayName}:`, e);
-				}
-			}
-		});
-	} else {
-		console.log('⚠️ No ViewModel found (window.vm or window.stageVM)');
+	// Find all Rive instances
+	const riveInstances = [
+		window.riveInstanceGlobal,
+		window.r,
+		window.rive,
+		window.riveInstance
+	].filter(instance => instance && RiveFormatterService.isRiveInstance(instance));
+	
+	// Also search window for other potential Rive instances
+	Object.keys(window).forEach(key => {
+		const obj = window[key];
+		if (obj && RiveFormatterService.isRiveInstance(obj) && !riveInstances.includes(obj)) {
+			riveInstances.push(obj);
+		}
+	});
+	
+	discovered.riveInstances = riveInstances.map((instance, index) => `riveInstance_${index}`);
+	
+	if (riveInstances.length === 0) {
+		console.log('❌ No Rive instances found');
+		console.log('💡 Load a Rive file first to create an instance');
+		console.groupEnd();
+		return discovered;
 	}
 	
-	// Discover State Machine inputs
-	if (window.r || window.rive || window.riveInstance) {
-		const rive = window.r || window.rive || window.riveInstance;
-		console.log('🎰 Scanning State Machine inputs...');
+	console.log(`✅ Found ${riveInstances.length} Rive instances`);
+	
+	// Use RiveFormatterService to discover inputs from each instance
+	riveInstances.forEach((riveInstance, index) => {
+		console.group(`🎯 Analyzing Rive Instance ${index + 1}`);
 		
 		try {
-			// Try to access state machines
-			if (rive.stateMachines || rive.stateMachine) {
-				const stateMachines = rive.stateMachines || [rive.stateMachine];
-				stateMachines.forEach((sm, smIndex) => {
-					const smInputs = RIVE_INPUT_TYPES.stateMachineInputs.getFromStateMachine(sm);
-					if (smInputs.length > 0) {
-						discovered.stateMachine[`sm_${smIndex}`] = smInputs;
-						console.log(`  ✅ Found ${smInputs.length} inputs in state machine ${smIndex}`);
-						
-						// Expose on window
-						smInputs.forEach(inputData => {
-							const windowKey = `sm_${inputData.name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-							window[windowKey] = inputData.input;
-						});
-					}
-				});
+			const inputs = RiveFormatterService.findInputs(riveInstance);
+			
+			if (inputs.viewModelInputs.length > 0) {
+				console.log(`✅ Found ${inputs.viewModelInputs.length} view model inputs`);
+				discovered.viewModelInputs.push(...inputs.viewModelInputs);
 			}
-		} catch (e) {
-			console.warn('  ❌ Error scanning State Machine:', e);
+			
+			if (inputs.stateMachineInputs.length > 0) {
+				console.log(`✅ Found ${inputs.stateMachineInputs.length} state machine inputs`);
+				discovered.stateMachineInputs.push(...inputs.stateMachineInputs);
+			}
+			
+			// Also discover assets for completeness
+			const assets = RiveFormatterService.findAssets(riveInstance);
+			const totalAssets = assets.images.length + assets.fonts.length + assets.audio.length + assets.others.length;
+			if (totalAssets > 0) {
+				console.log(`📦 Found ${totalAssets} assets (${assets.images.length} images, ${assets.fonts.length} fonts, ${assets.audio.length} audio, ${assets.others.length} others)`);
+			}
+			
+		} catch (error) {
+			console.warn(`❌ Error analyzing Rive instance ${index + 1}:`, error);
 		}
+		
+		console.groupEnd();
+	});
+	
+	// Expose discovered inputs on window for easy access
+	discovered.viewModelInputs.forEach(inputData => {
+		const prefix = getInputPrefix(inputData.type);
+		const cleanName = inputData.name.replace(/[^a-zA-Z0-9_]/g, '_');
+		const windowKey = `${prefix}${cleanName}`;
+		window[windowKey] = inputData.input;
+	});
+	
+	discovered.stateMachineInputs.forEach(inputData => {
+		const cleanName = inputData.name.replace(/[^a-zA-Z0-9_]/g, '_');
+		const windowKey = `sm_${cleanName}`;
+		window[windowKey] = inputData.input;
+	});
+	
+	discovered.totalCount = discovered.viewModelInputs.length + discovered.stateMachineInputs.length;
+	
+	if (discovered.totalCount > 0) {
+		console.log(`✅ Total discovered: ${discovered.totalCount} inputs`);
+		console.log('💡 Inputs exposed on window with prefixes: vm_, sm_, trigger_, bool_, num_');
 	} else {
-		console.log('⚠️ No Rive instance found (window.r, window.rive, or window.riveInstance)');
-	}
-	
-	// List existing window objects
-	const existingInputs = Object.keys(window).filter(key => 
-		Object.values(RIVE_INPUT_TYPES).some(config => 
-			config.windowPrefix && key.startsWith(config.windowPrefix)
-		)
-	);
-	
-	if (existingInputs.length > 0) {
-		discovered.windowObjects = existingInputs;
-		console.log(`📦 Found ${existingInputs.length} existing input objects on window`);
+		console.log('❌ No inputs found in any Rive instances');
 	}
 	
 	console.groupEnd();
@@ -1004,47 +1049,73 @@ function discoverAllInputs() {
 }
 
 /**
+ * Get appropriate prefix for input type
+ */
+function getInputPrefix(inputType) {
+	const prefixMap = {
+		'triggers': 'trigger_',
+		'booleans': 'bool_',
+		'numbers': 'num_',
+		'enums': 'enum_',
+		'detected': 'vm_',
+		'inputs': 'vm_',
+		'_inputs': 'vm_'
+	};
+	return prefixMap[inputType] || 'vm_';
+}
+
+/**
+ * Discover all available inputs of all types
+ */
+function discoverAllInputs() {
+	// Use the enhanced discovery
+	return discoverAllInputsEnhanced();
+}
+
+/**
  * List all discovered inputs with details
  */
 function listAllInputs() {
-	const discovered = window._discoveredInputs || discoverAllInputs();
+	const discovered = window._discoveredInputs || discoverAllInputsEnhanced();
 	
 	console.group('📋 All Available Rive Inputs');
 	
 	let totalCount = 0;
 	
 	// ViewModel inputs
-	Object.entries(discovered.viewModel).forEach(([type, inputs]) => {
-		const config = RIVE_INPUT_TYPES[type];
-		if (inputs.length > 0) {
-			console.group(`${config.displayName} (${inputs.length})`);
-			inputs.forEach(inputData => {
-				const name = inputData.name || inputData;
-				const windowKey = `${config.windowPrefix}${name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-				console.log(`${name} → window.${windowKey}`);
-				totalCount++;
-			});
-			console.groupEnd();
-		}
-	});
+	if (discovered.viewModelInputs.length > 0) {
+		console.group(`View Model Inputs (${discovered.viewModelInputs.length})`);
+		discovered.viewModelInputs.forEach(inputData => {
+			const prefix = getInputPrefix(inputData.type);
+			const cleanName = inputData.name.replace(/[^a-zA-Z0-9_]/g, '_');
+			const windowKey = `${prefix}${cleanName}`;
+			console.log(`${inputData.name} (${inputData.type}) → window.${windowKey}`);
+			totalCount++;
+		});
+		console.groupEnd();
+	}
 	
 	// State Machine inputs
-	Object.entries(discovered.stateMachine).forEach(([smKey, inputs]) => {
-		if (inputs.length > 0) {
-			console.group(`State Machine Inputs (${inputs.length})`);
-			inputs.forEach(inputData => {
-				const windowKey = `sm_${inputData.name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-				console.log(`${inputData.name} (${inputData.type}) → window.${windowKey}`);
-				totalCount++;
-			});
-			console.groupEnd();
-		}
-	});
+	if (discovered.stateMachineInputs.length > 0) {
+		console.group(`State Machine Inputs (${discovered.stateMachineInputs.length})`);
+		discovered.stateMachineInputs.forEach(inputData => {
+			const cleanName = inputData.name.replace(/[^a-zA-Z0-9_]/g, '_');
+			const windowKey = `sm_${cleanName}`;
+			console.log(`${inputData.name} (${inputData.type}) → window.${windowKey}`);
+			totalCount++;
+		});
+		console.groupEnd();
+	}
 	
-	// Window objects
-	if (discovered.windowObjects?.length > 0) {
-		console.group(`Existing Window Objects (${discovered.windowObjects.length})`);
-		discovered.windowObjects.forEach(key => {
+	// List existing window objects with input prefixes
+	const inputPrefixes = ['trigger_', 'bool_', 'num_', 'enum_', 'vm_', 'sm_'];
+	const existingInputs = Object.keys(window).filter(key => 
+		inputPrefixes.some(prefix => key.startsWith(prefix))
+	);
+	
+	if (existingInputs.length > 0) {
+		console.group(`Existing Window Objects (${existingInputs.length})`);
+		existingInputs.forEach(key => {
 			console.log(`window.${key}`);
 		});
 		console.groupEnd();
@@ -1074,13 +1145,22 @@ function testInput(inputKey) {
 	// Find the input object
 	let input = window[inputKey];
 	let inputName = inputKey;
-	let inputType = null;
+	let inputType = 'detected';
 	
 	// Determine input type from window key prefix
-	for (const [type, config] of Object.entries(RIVE_INPUT_TYPES)) {
-		if (config.windowPrefix && inputKey.startsWith(config.windowPrefix)) {
+	const prefixes = {
+		'trigger_': 'trigger',
+		'bool_': 'boolean',
+		'num_': 'number',
+		'enum_': 'enum',
+		'vm_': 'viewModel',
+		'sm_': 'stateMachine'
+	};
+	
+	for (const [prefix, type] of Object.entries(prefixes)) {
+		if (inputKey.startsWith(prefix)) {
 			inputType = type;
-			inputName = inputKey.replace(config.windowPrefix, '').replace(/_/g, ' ');
+			inputName = inputKey.replace(prefix, '').replace(/_/g, ' ');
 			break;
 		}
 	}
@@ -1091,31 +1171,46 @@ function testInput(inputKey) {
 		return false;
 	}
 	
-	console.group(`🧪 Testing Input: ${inputName} (${inputType || 'unknown'})`);
+	console.group(`🧪 Testing Input: ${inputName} (${inputType})`);
 	console.log('Input object:', input);
 	
 	try {
 		let result = { success: false, reason: 'No test method available' };
 		
-		if (inputType && RIVE_INPUT_TYPES[inputType]?.testInput) {
-			result = RIVE_INPUT_TYPES[inputType].testInput(input, inputName);
-		} else {
-			// Try common testing patterns
-			if (typeof input.trigger === 'function') {
-				input.trigger();
-				result = { success: true, method: 'trigger()' };
-			} else if (typeof input.fire === 'function') {
-				input.fire();
-				result = { success: true, method: 'fire()' };
-			} else if (input.hasOwnProperty('value')) {
-				const oldValue = input.value;
-				if (typeof oldValue === 'boolean') {
-					input.value = !oldValue;
-					result = { success: true, method: 'value toggle', details: `${oldValue} → ${!oldValue}` };
-				} else if (typeof oldValue === 'number') {
-					input.value = oldValue + 1;
-					result = { success: true, method: 'value increment', details: `${oldValue} → ${oldValue + 1}` };
+		// Try common testing patterns based on type and available methods
+		if (typeof input.trigger === 'function') {
+			input.trigger();
+			result = { success: true, method: 'trigger()' };
+		} else if (typeof input.fire === 'function') {
+			input.fire();
+			result = { success: true, method: 'fire()' };
+		} else if (input.hasOwnProperty('value')) {
+			const oldValue = input.value;
+			if (typeof oldValue === 'boolean') {
+				input.value = !oldValue;
+				result = { success: true, method: 'value toggle', details: `${oldValue} → ${!oldValue}` };
+			} else if (typeof oldValue === 'number') {
+				input.value = oldValue + 1;
+				result = { success: true, method: 'value increment', details: `${oldValue} → ${oldValue + 1}` };
+			} else if (typeof oldValue === 'string') {
+				input.value = oldValue + '_test';
+				result = { success: true, method: 'value append', details: `"${oldValue}" → "${oldValue}_test"` };
+			}
+		} else if (typeof input.setValue === 'function') {
+			// Try setValue method
+			try {
+				if (inputType === 'boolean' || inputType === 'trigger') {
+					input.setValue(true);
+					result = { success: true, method: 'setValue(true)' };
+				} else if (inputType === 'number') {
+					input.setValue(Math.random() * 100);
+					result = { success: true, method: 'setValue(random)' };
+				} else {
+					input.setValue(true);
+					result = { success: true, method: 'setValue(true)' };
 				}
+			} catch (setValueError) {
+				result = { success: false, reason: `setValue failed: ${setValueError.message}` };
 			}
 		}
 		
@@ -1143,25 +1238,23 @@ function testInput(inputKey) {
  * Test all available inputs with staggered timing
  */
 function testAllInputs() {
-	const discovered = window._discoveredInputs || discoverAllInputs();
+	const discovered = window._discoveredInputs || discoverAllInputsEnhanced();
 	
 	let allInputs = [];
 	
-	// Collect all inputs
-	Object.entries(discovered.viewModel).forEach(([type, inputs]) => {
-		const config = RIVE_INPUT_TYPES[type];
-		inputs.forEach(inputData => {
-			const name = inputData.name || inputData;
-			const windowKey = `${config.windowPrefix}${name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-			allInputs.push({ windowKey, name, type });
-		});
+	// Collect all view model inputs
+	discovered.viewModelInputs.forEach(inputData => {
+		const prefix = getInputPrefix(inputData.type);
+		const cleanName = inputData.name.replace(/[^a-zA-Z0-9_]/g, '_');
+		const windowKey = `${prefix}${cleanName}`;
+		allInputs.push({ windowKey, name: inputData.name, type: inputData.type });
 	});
 	
-	Object.entries(discovered.stateMachine).forEach(([smKey, inputs]) => {
-		inputs.forEach(inputData => {
-			const windowKey = `sm_${inputData.name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-			allInputs.push({ windowKey, name: inputData.name, type: 'stateMachine' });
-		});
+	// Collect all state machine inputs
+	discovered.stateMachineInputs.forEach(inputData => {
+		const cleanName = inputData.name.replace(/[^a-zA-Z0-9_]/g, '_');
+		const windowKey = `sm_${cleanName}`;
+		allInputs.push({ windowKey, name: inputData.name, type: inputData.type });
 	});
 	
 	if (allInputs.length === 0) {
@@ -1188,7 +1281,12 @@ function addInputType(typeName, definition) {
 		return false;
 	}
 	
-	RIVE_INPUT_TYPES[typeName] = definition;
+	// Store in a simple registry
+	if (!window._customInputTypes) {
+		window._customInputTypes = {};
+	}
+	
+	window._customInputTypes[typeName] = definition;
 	console.log(`✅ Added new input type: ${typeName}`);
 	console.log('💡 Use debugHelper.discoverInputs() to scan for the new type');
 	return true;
@@ -1199,16 +1297,41 @@ function addInputType(typeName, definition) {
  */
 function getInputTypes() {
 	console.group('🔧 Available Input Type Definitions');
-	Object.entries(RIVE_INPUT_TYPES).forEach(([type, config]) => {
+	
+	const builtInTypes = {
+		'triggers': { displayName: 'Triggers', windowPrefix: 'trigger_' },
+		'booleans': { displayName: 'Boolean Inputs', windowPrefix: 'bool_' },
+		'numbers': { displayName: 'Number Inputs', windowPrefix: 'num_' },
+		'enums': { displayName: 'Enum Inputs', windowPrefix: 'enum_' },
+		'viewModel': { displayName: 'View Model Inputs', windowPrefix: 'vm_' },
+		'stateMachine': { displayName: 'State Machine Inputs', windowPrefix: 'sm_' }
+	};
+	
+	console.group('Built-in Types');
+	Object.entries(builtInTypes).forEach(([type, config]) => {
 		console.group(config.displayName);
 		console.log('Type key:', type);
 		console.log('Window prefix:', config.windowPrefix);
-		console.log('Has VM getter:', !!config.getFromVM);
-		console.log('Has test method:', !!config.testInput);
 		console.groupEnd();
 	});
 	console.groupEnd();
-	return RIVE_INPUT_TYPES;
+	
+	const customTypes = window._customInputTypes || {};
+	if (Object.keys(customTypes).length > 0) {
+		console.group('Custom Types');
+		Object.entries(customTypes).forEach(([type, config]) => {
+			console.group(config.displayName || type);
+			console.log('Type key:', type);
+			console.log('Window prefix:', config.windowPrefix);
+			console.log('Has VM getter:', !!config.getFromVM);
+			console.log('Has test method:', !!config.testInput);
+			console.groupEnd();
+		});
+		console.groupEnd();
+	}
+	
+	console.groupEnd();
+	return { builtInTypes, customTypes };
 }
 
 /**
@@ -1240,9 +1363,14 @@ function showDebugHelp() {
   debugHelper.clearSettings()   - Clear all saved debug settings
   debugHelper.test()           - Test all debug modules
 
+🔍 ENHANCED OBJECT FORMATTING & ANALYSIS:
+  debugHelper.objectFormatter(obj)     - Enhanced object inspection with Rive detection
+  debugHelper.manualAssetSearch(rive)  - Deep asset search and analysis
+  debugHelper.exploreObject(obj)       - Deep object explorer with Rive intelligence
+
 🔍 COMPREHENSIVE INPUT DISCOVERY & TESTING:
   debugHelper.enableInputDebug()  - Enable debugging for all input types
-  debugHelper.discoverInputs()    - Discover all available Rive inputs
+  debugHelper.discoverInputs()    - Discover all available Rive inputs (enhanced)
   debugHelper.listInputs()        - List all discovered inputs with details
   debugHelper.listAllInputs()     - Same as listInputs() (alias)
   debugHelper.testInput("name")   - Test specific input by name or window key
@@ -1252,18 +1380,14 @@ function showDebugHelp() {
   debugHelper.addInputType("name", config) - Add new input type definition
   debugHelper.getInputTypes()              - View all available input type definitions
 
-📋 SUPPORTED INPUT TYPES:
-  • Triggers (ViewModel & State Machine)
-  • Boolean Inputs (ViewModel & State Machine)  
-  • Number Inputs (ViewModel & State Machine)
-  • Enum Inputs (ViewModel)
-  • Custom Types (via addInputType)
-
-🔥 LEGACY TRIGGER DEBUGGING (backwards compatibility):
-  debugHelper.enableTriggerDebug() - Enable trigger debugging (deprecated)
-  debugHelper.listTriggers()       - List trigger objects (deprecated)
-  debugHelper.testTrigger("name")  - Test specific trigger (deprecated)
-  debugHelper.testAllTriggers()    - Test all triggers (deprecated)
+📋 ENHANCED FEATURES:
+  • Auto-detects Rive instances across window object
+  • Deep asset map exploration with closure access attempts
+  • Enhanced view model input discovery using multiple paths
+  • State machine input detection from animator
+  • Smart Rive instance detection with comprehensive property checking
+  • Specialized formatting for different asset types
+  • Automatic window exposure with logical prefixes
 
 🔧 API ACCESS:
   debugHelper.api.setModuleLevel("module", level) - Set specific module level
@@ -1276,36 +1400,50 @@ function showDebugHelp() {
   debugHelper.commands()  - List all available commands
 
 🚀 QUICK START:
-  1. Load a Rive file with inputs
-  2. debugHelper.discoverInputs()  - Scan for all inputs
-  3. debugHelper.listInputs()      - See what was found
-  4. debugHelper.testInput("name") - Test specific inputs
-  5. debugHelper.testAllInputs()   - Test everything
+  1. Load a Rive file with inputs/assets
+  2. debugHelper.discoverInputs()        - Scan for all inputs (enhanced)
+  3. debugHelper.objectFormatter(window.riveInstanceGlobal) - Analyze Rive instance
+  4. debugHelper.manualAssetSearch(window.riveInstanceGlobal) - Find all assets
+  5. debugHelper.listInputs()            - See what inputs were found
+  6. debugHelper.testInput("name")       - Test specific inputs
+  7. debugHelper.testAllInputs()         - Test everything
 
-💡 EXTENSIBILITY EXAMPLE:
-  // Add support for new Rive input type
-  debugHelper.addInputType("myNewType", {
-    displayName: "My New Input Type",
-    windowPrefix: "mynew_",
-    getFromVM: (vm) => { /* discovery logic */ },
-    testInput: (input, name) => { /* test logic */ }
-  });
+💡 OBJECT ANALYSIS EXAMPLES:
+  // Analyze any Rive instance
+  debugHelper.objectFormatter(window.riveInstanceGlobal)
+  
+  // Deep exploration with Rive intelligence
+  debugHelper.exploreObject(window.riveInstanceGlobal)
+  
+  // Find assets with closure access attempts
+  debugHelper.manualAssetSearch(window.riveInstanceGlobal)
 
-💡 INPUT TYPES ARE AUTOMATICALLY EXPOSED ON WINDOW:
-  • Triggers: window.trigger_*
-  • Booleans: window.boolean_*
-  • Numbers: window.number_*
-  • Enums: window.enum_*
+💡 INPUT DISCOVERY EXAMPLES:
+  // Enhanced discovery using RiveFormatterService
+  const discovered = debugHelper.discoverInputs()
+  
+  // Test specific input types
+  debugHelper.testInput("trigger_myTrigger")
+  debugHelper.testInput("bool_myBoolean")
+  debugHelper.testInput("sm_stateMachineInput")
+
+💡 INPUT PREFIXES (Auto-exposed on window):
+  • View Model Triggers: window.trigger_*
+  • View Model Booleans: window.bool_*
+  • View Model Numbers: window.num_*
+  • View Model Enums: window.enum_*
+  • View Model Others: window.vm_*
   • State Machine: window.sm_*
   
 💡 TIPS:
-  - All input types are discovered automatically
+  - Enhanced asset detection with deep traversal and closure scope attempts
+  - View model input discovery using user-specified paths plus fallbacks
+  - Smart Rive instance detection across all window properties
+  - All input types are discovered automatically from live Rive instances
   - Objects are exposed on window for easy console access
-  - Legacy trigger functions still work for backwards compatibility
-  - Add new input types as Rive adds functionality
-  - Use enableInputDebug() to see detailed discovery logs
-  - Input discovery works with both ViewModel and State Machine inputs
-  - Test functions are staggered to avoid overwhelming the animation
+  - Enhanced formatter provides 10+ organized analysis sections
+  - Asset explorer shows detailed asset information including CDN UUIDs
+  - Manual asset search helps troubleshoot hard-to-find data
 
 💡 TIP: Use debugHelper.commands() for a quick list of all methods
 	`);
@@ -1333,16 +1471,15 @@ function listAllCommands() {
 		'⚙️ Settings & Status': [
 			'currentSettings()', 'clearSettings()', 'test()'
 		],
+		'🔍 Enhanced Object Formatting & Analysis': [
+			'objectFormatter(obj)', 'manualAssetSearch(rive)', 'exploreObject(obj)'
+		],
 		'🔍 Comprehensive Input Discovery & Testing': [
 			'enableInputDebug()', 'discoverInputs()', 'listInputs()', 'listAllInputs()',
 			'testInput("name")', 'testAllInputs()'
 		],
 		'🔧 Extensibility & Development': [
 			'addInputType("name", config)', 'getInputTypes()'
-		],
-		'🔥 Legacy Trigger Debugging': [
-			'enableTriggerDebug() [deprecated]', 'listTriggers() [deprecated]',
-			'testTrigger("name") [deprecated]', 'testAllTriggers() [deprecated]'
 		],
 		'🔧 API Access': [
 			'api.setModuleLevel("module", level)', 'api.setAllLevels(level)',
@@ -1353,31 +1490,16 @@ function listAllCommands() {
 		]
 	};
 
-	Object.entries(commands).forEach(([category, funcs]) => {
-		console.group(category);
-		funcs.forEach(func => {
-			const funcName = func.split('(')[0];
-			const hasFunc = typeof helper[funcName] === 'function' || 
-			               (funcName.includes('.') && typeof helper.api?.[funcName.split('.')[1]] === 'function');
-			const status = hasFunc ? '✅' : '❌';
-			console.log(`${status} debugHelper.${func}`);
+	Object.entries(commands).forEach(([category, commandList]) => {
+		console.group(`${category}:`);
+		commandList.forEach(cmd => {
+			const funcName = cmd.split('(')[0];
+			const isAvailable = typeof helper[funcName] === 'function';
+			const status = isAvailable ? '✅' : '❌';
+			console.log(`${status} debugHelper.${cmd}`);
 		});
 		console.groupEnd();
 	});
-
-	console.log('\n💡 SUPPORTED INPUT TYPES:');
-	console.log('• Triggers (ViewModel & State Machine)');
-	console.log('• Boolean Inputs (ViewModel & State Machine)');
-	console.log('• Number Inputs (ViewModel & State Machine)');
-	console.log('• Enum Inputs (ViewModel)');
-	console.log('• Custom Types (via addInputType)');
-
-	console.log('\n💡 AUTO-EXPOSED WINDOW OBJECTS:');
-	console.log('• window.trigger_* (Triggers)');
-	console.log('• window.boolean_* (Boolean inputs)');
-	console.log('• window.number_* (Number inputs)');
-	console.log('• window.enum_* (Enum inputs)');
-	console.log('• window.sm_* (State Machine inputs)');
 
 	console.groupEnd();
 	console.log('\n💡 Usage: debugHelper.functionName()');
