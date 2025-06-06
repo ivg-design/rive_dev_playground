@@ -2,6 +2,7 @@
 ### Changes
 - feat: integrate FPS counter and enhance API documentation [fix]
 - feat: add enhanced debugging controls and Rive instance formatter
+- fix: add enum parsing to Rive file parser output [fix]
 ## [1.4.4] - 2025-01-06 - FPS Counter & API Documentation
 
 ### ✨ New Features
@@ -66,6 +67,16 @@
 4. **API Reference**: Access comprehensive Rive API documentation in Advanced → Rive API Reference
 
 This update significantly enhances the debugging and monitoring capabilities of Rive Tester while providing comprehensive API documentation for developers working with Rive animations.
+
+### 🔧 Bug Fixes
+
+#### **📋 Enum Parsing Integration**
+- **Missing Enum Data**: Fixed parser not including global enum definitions in output
+- **Implementation**: Added comprehensive enum parsing using `riveInstance.enums()` method
+- **Data Structure**: Enums now included in parser result with `name` and `values` properties
+- **Error Handling**: Robust error handling prevents WASM aborts during enum access
+- **Logging**: Added detailed debug logging for enum parsing process
+- **Integration**: Enums now available in graph visualizer and other components that consume parsed data
 
 ## [1.4.3] - 2025-05-30
 ### Changes
