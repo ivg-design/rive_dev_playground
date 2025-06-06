@@ -1,4 +1,4 @@
-## [1.4.4] - 2025-06-06
+## [1.4.5] - 2025-06-06
 ### Changes
 - feat: integrate FPS counter and enhance API documentation [fix]
 - feat: add enhanced debugging controls and Rive instance formatter
