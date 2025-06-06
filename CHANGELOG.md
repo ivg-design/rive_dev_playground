@@ -1,3 +1,68 @@
+## [1.4.4] - 2025-01-06 - FPS Counter & API Documentation
+
+### ✨ New Features
+
+#### **📊 FPS Counter Integration**
+- **Real-time Performance Monitoring**: Added comprehensive FPS counter functionality to the dynamic control interface
+- **Visual FPS Display**: Custom FPS counter positioned in upper-right corner of animation canvas with:
+  - **Color-coded Performance Indicators**:
+    - 🟢 Green: Excellent performance (≥50 FPS)
+    - 🟠 Orange: Moderate performance (30-49 FPS) 
+    - 🔴 Red: Poor performance (<30 FPS)
+  - **Professional Styling**: Monospace font, semi-transparent background, subtle glow effects
+  - **Smooth Transitions**: Color and styling transitions for performance state changes
+
+#### **🎛️ Performance Monitoring Controls**
+- **Master Toggle**: Added "Performance Monitoring" section to dynamic controls with FPS counter toggle
+- **Persistent Settings**: FPS counter preference saved to localStorage and restored on page reload
+- **Help Integration**: Comprehensive help button with performance tips and usage guidance
+- **Status Feedback**: Brief confirmation messages when toggling FPS counter on/off
+
+#### **🔧 Technical Implementation**
+- **Rive API Integration**: Uses native `enableFPSCounter()` and `disableFPSCounter()` methods
+- **WebGL2 Renderer Compatibility**: Handles both standard and WebGL2 renderer differences
+- **Automatic Application**: FPS counter settings automatically applied to new Rive instances
+- **Error Handling**: Graceful fallbacks for unsupported Rive versions
+- **Memory Management**: Proper cleanup of FPS display elements and event handlers
+
+#### **📚 Comprehensive API Documentation**
+- **Complete Rive API Reference**: Added comprehensive `rive_api.md` documentation covering:
+  - All public and private Rive instance methods
+  - ViewModels and ViewModelInstance methods
+  - Animation control, state machine management
+  - Text manipulation, layout and rendering
+  - Event management and property access
+  - Asset loading functions and cleanup methods
+- **Documentation Integration**: Added API reference to MkDocs navigation under Advanced section
+- **Usage Examples**: Extensive code examples and best practices for all methods
+
+### 🔧 Technical Improvements
+
+#### **Enhanced Control Interface Architecture**
+- **Modular FPS Management**: Separated FPS counter logic into reusable `applyFpsCounterSetting()` function
+- **Improved Settings Loading**: Enhanced localStorage loading with comprehensive debug logging
+- **Better Error Handling**: Improved error messages and fallback behavior for FPS counter operations
+
+#### **Styling Enhancements**
+- **New CSS Module**: Added dedicated `rive-fps-counter.css` for FPS display styling
+- **Performance-based Theming**: Dynamic CSS classes for different performance levels
+- **Visual Polish**: Enhanced visual design with borders, shadows, and smooth transitions
+
+### 📁 Files Modified
+- `src/components/riveControlInterface.js` - Added FPS counter functionality and controls (+416 lines)
+- `index.html` - Added FPS counter CSS import
+- `mkdocs.yml` - Added API reference to documentation navigation
+- `source_docs/advanced/rive_api.md` - New comprehensive API documentation (37KB)
+- `src/styles/rive-fps-counter.css` - New FPS counter styling
+
+### 🚀 Usage
+1. **Enable FPS Counter**: Toggle "Show FPS Counter" in the Performance Monitoring section
+2. **Monitor Performance**: Watch real-time FPS display in upper-right corner of canvas
+3. **Performance Assessment**: Use color coding to quickly assess animation performance
+4. **API Reference**: Access comprehensive Rive API documentation in Advanced → Rive API Reference
+
+This update significantly enhances the debugging and monitoring capabilities of Rive Tester while providing comprehensive API documentation for developers working with Rive animations.
+
 ## [1.4.3] - 2025-05-30
 ### Changes
 - feat: enhance graph visualizer with interactive features and improved styling
@@ -98,7 +163,7 @@ This update transforms the graph visualizer from a basic tree view into a compre
 - **Removed Complex Timing Logic**: No more arbitrary timeouts or dimension forcing
 
 **3. Container and WebGL Safety:**
-- **Minimum Dimension Enforcement**: All WebGL contexts created with minimum 400x300 safe dimensions
+- **Minimum Dimension Enforcement**: All WebGL contexts created with minimum 400x300px safe dimensions
 - **Proper Container Styling**: Immediate container setup prevents dimension race conditions
 - **Progressive Enhancement**: Generate button → Loading state → Graph creation → Data loading
 - **Clean Destruction**: Proper cleanup of WebGL contexts and resize observers

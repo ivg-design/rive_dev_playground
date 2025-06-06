@@ -93,6 +93,7 @@ nav:
       - Debugger Fixes: advanced/debugger-fixes.md
       - Runtime Controls: advanced/runtime-controls.md
       - Event Mapper: advanced/event-mapper.md
+      - Rive API Reference: advanced/rive_api.md
   - Development:
       - Versioning: development/versioning.md
   - Deployment:

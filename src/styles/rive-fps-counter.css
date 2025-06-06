@@ -1,0 +1,37 @@
+/* Rive FPS Counter Styles */
+.rive-fps-display {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.75);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 1000;
+    pointer-events: none;
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 2px rgba(0, 255, 0, 0.5);
+    transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
+}
+
+/* FPS Performance States */
+.rive-fps-display.fps-excellent {
+    color: #00ff00;
+    border-color: rgba(0, 255, 0, 0.3);
+    text-shadow: 0 0 2px rgba(0, 255, 0, 0.5);
+}
+
+.rive-fps-display.fps-moderate {
+    color: #ffaa00;
+    border-color: rgba(255, 170, 0, 0.3);
+    text-shadow: 0 0 2px rgba(255, 170, 0, 0.5);
+}
+
+.rive-fps-display.fps-poor {
+    color: #ff0000;
+    border-color: rgba(255, 0, 0, 0.3);
+    text-shadow: 0 0 2px rgba(255, 0, 0, 0.5);
+} 

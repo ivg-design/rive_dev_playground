@@ -35,6 +35,9 @@ let logSystemEvents = false; // Track whether to log system events - DEFAULT OFF
 let logFrameEvents = false; // Track whether to log frame-level events (Draw, Advance) - DEFAULT OFF
 let eventConsoleMessages = []; // Store event console messages
 
+// Performance monitoring configuration
+let fpsCounterEnabled = false; // Track whether FPS counter is enabled - DEFAULT OFF
+
 // Event throttling to prevent browser crashes
 let eventThrottleMap = new Map(); // Track last event time by type
 const EVENT_THROTTLE_MS = 100; // Minimum time between same event types
@@ -961,6 +964,116 @@ function createControlForProperty(property, vmContext = null) {
 }
 
 /**
+ * Applies the FPS counter setting to a Rive instance if it was previously enabled
+ * @param {Object} rive - The Rive instance to apply settings to
+ */
+function applyFpsCounterSetting(rive) {
+	if (!rive) {
+		logger.debug("[controlInterface] No Rive instance provided to applyFpsCounterSetting");
+		return;
+	}
+
+	// Check if FPS counter methods are available
+	const hasEnableFPS = typeof rive.enableFPSCounter === 'function';
+	
+	if (!hasEnableFPS) {
+		logger.warn("[controlInterface] Rive instance doesn't support enableFPSCounter method - FPS counter not available in this version");
+		return;
+	}
+
+	// Store reference to FPS display element for WebGL2 renderer workaround
+	let currentFpsDisplay = null;
+
+	if (fpsCounterEnabled) {
+		try {
+			// Create custom FPS callback to display in upper right corner of canvas
+			const createFPSDisplay = () => {
+				// Remove existing FPS display if any
+				const existingDisplay = document.getElementById('rive-fps-display');
+				if (existingDisplay) {
+					existingDisplay.remove();
+				}
+				
+				// Get the canvas container
+				const canvasContainer = document.getElementById('canvasContainer') || document.getElementById('rive-canvas')?.parentElement;
+				if (!canvasContainer) {
+					logger.warn("[controlInterface] Canvas container not found for FPS display");
+					return null;
+				}
+				
+				// Create FPS display element
+				const fpsDisplay = document.createElement('div');
+				fpsDisplay.id = 'rive-fps-display';
+				fpsDisplay.className = 'rive-fps-display fps-excellent';
+				fpsDisplay.textContent = 'FPS: --';
+				
+				// Ensure container has relative positioning
+				const containerStyle = window.getComputedStyle(canvasContainer);
+				if (containerStyle.position === 'static') {
+					canvasContainer.style.position = 'relative';
+				}
+				
+				canvasContainer.appendChild(fpsDisplay);
+				return fpsDisplay;
+			};
+			
+			currentFpsDisplay = createFPSDisplay();
+			
+			// Enable FPS counter with custom callback
+			rive.enableFPSCounter((fps) => {
+				if (currentFpsDisplay && fpsCounterEnabled) {
+					// Format FPS with color coding using CSS classes
+					const fpsValue = Math.round(fps);
+					
+					// Remove existing performance classes
+					currentFpsDisplay.classList.remove('fps-excellent', 'fps-moderate', 'fps-poor');
+					
+					// Add appropriate performance class
+					if (fpsValue < 30) {
+						currentFpsDisplay.classList.add('fps-poor');
+					} else if (fpsValue < 50) {
+						currentFpsDisplay.classList.add('fps-moderate');
+					} else {
+						currentFpsDisplay.classList.add('fps-excellent');
+					}
+					
+					currentFpsDisplay.textContent = `FPS: ${fpsValue}`;
+				}
+			});
+			
+			logger.debug("[controlInterface] FPS counter enabled on new Rive instance");
+		} catch (error) {
+			logger.error("[controlInterface] Error enabling FPS counter:", error);
+		}
+	} else {
+		// For WebGL2 renderer: Since disableFPSCounter() doesn't exist, we handle disable differently
+		// We simply remove the display element and the callback will stop updating it
+		const hasDisableFPS = typeof rive.disableFPSCounter === 'function';
+		
+		if (hasDisableFPS) {
+			// Standard renderer - use the proper disable method
+			try {
+				rive.disableFPSCounter();
+				logger.debug("[controlInterface] FPS counter disabled using disableFPSCounter() method");
+			} catch (error) {
+				logger.warn("[controlInterface] Error disabling FPS counter:", error);
+			}
+		} else {
+			// WebGL2 renderer workaround - remove display element and let callback naturally stop
+			logger.debug("[controlInterface] WebGL2 renderer detected - disabling FPS counter by removing display element");
+		}
+		
+		// Remove the FPS display element for both renderers
+		const existingDisplay = document.getElementById('rive-fps-display');
+		if (existingDisplay) {
+				existingDisplay.remove();
+			}
+		
+		logger.info("[controlInterface] FPS counter disabled and display removed");
+	}
+}
+
+/**
  * Initializes and builds the dynamic control UI based on the parsed data.
  * This function will now create its own Rive instance.
  *
@@ -977,76 +1090,61 @@ export function initDynamicControls(parsedDataFromHandler) {
 	updateEventConsole();
 	logger.debug("[controlInterface] Event console cleared on initialization");
 
-	// Load saved event logging settings FIRST before setting any console messages
+	// Load saved event logging settings from localStorage
 	try {
-		const savedDisplayEvents = localStorage.getItem("riveDisplayEvents");
+		const savedDisplayEvents = localStorage.getItem('riveDisplayEvents');
 		if (savedDisplayEvents !== null) {
 			displayRiveEvents = JSON.parse(savedDisplayEvents);
-			logger.debug(
-				`[controlInterface] Loaded saved event display setting: ${displayRiveEvents}`
-			);
+		}
+		
+		const savedCustomEvents = localStorage.getItem('riveLogCustomEvents');
+		if (savedCustomEvents !== null) {
+			logCustomEvents = JSON.parse(savedCustomEvents);
+		}
+		
+		const savedStateChangeEvents = localStorage.getItem('riveLogStateChangeEvents');
+		if (savedStateChangeEvents !== null) {
+			logStateChangeEvents = JSON.parse(savedStateChangeEvents);
+		}
+		
+		const savedNestedViewModelEvents = localStorage.getItem('riveLogNestedViewModelEvents');
+		if (savedNestedViewModelEvents !== null) {
+			logNestedViewModelEvents = JSON.parse(savedNestedViewModelEvents);
+		}
+		
+		const savedPlaybackEvents = localStorage.getItem('riveLogPlaybackEvents');
+		if (savedPlaybackEvents !== null) {
+			logPlaybackEvents = JSON.parse(savedPlaybackEvents);
+		}
+		
+		const savedSystemEvents = localStorage.getItem('riveLogSystemEvents');
+		if (savedSystemEvents !== null) {
+			logSystemEvents = JSON.parse(savedSystemEvents);
+		}
+		
+		const savedFrameEvents = localStorage.getItem('riveLogFrameEvents');
+		if (savedFrameEvents !== null) {
+			logFrameEvents = JSON.parse(savedFrameEvents);
 		}
 
-		const savedLogCustomEvents = localStorage.getItem(
-			"riveLogCustomEvents"
-		);
-		if (savedLogCustomEvents !== null) {
-			logCustomEvents = JSON.parse(savedLogCustomEvents);
-			logger.debug(
-				`[controlInterface] Loaded saved custom events setting: ${logCustomEvents}`
-			);
+		// Load saved FPS counter setting from localStorage
+		const savedFpsCounterEnabled = localStorage.getItem('riveFpsCounterEnabled');
+		if (savedFpsCounterEnabled !== null) {
+			fpsCounterEnabled = JSON.parse(savedFpsCounterEnabled);
 		}
-
-		const savedLogStateChangeEvents = localStorage.getItem(
-			"riveLogStateChangeEvents"
-		);
-		if (savedLogStateChangeEvents !== null) {
-			logStateChangeEvents = JSON.parse(savedLogStateChangeEvents);
-			logger.debug(
-				`[controlInterface] Loaded saved state change events setting: ${logStateChangeEvents}`
-			);
-		}
-
-		const savedLogNestedViewModelEvents = localStorage.getItem(
-			"riveLogNestedViewModelEvents"
-		);
-		if (savedLogNestedViewModelEvents !== null) {
-			logNestedViewModelEvents = JSON.parse(
-				savedLogNestedViewModelEvents
-			);
-			logger.debug(
-				`[controlInterface] Loaded saved nested ViewModel events setting: ${logNestedViewModelEvents}`
-			);
-		}
-
-		const savedLogPlaybackEvents = localStorage.getItem(
-			"riveLogPlaybackEvents"
-		);
-		if (savedLogPlaybackEvents !== null) {
-			logPlaybackEvents = JSON.parse(savedLogPlaybackEvents);
-			logger.debug(
-				`[controlInterface] Loaded saved playback events setting: ${logPlaybackEvents}`
-			);
-		}
-
-		const savedLogSystemEvents = localStorage.getItem('riveLogSystemEvents');
-		if (savedLogSystemEvents !== null) {
-			logSystemEvents = JSON.parse(savedLogSystemEvents);
-			logger.debug(`[controlInterface] Loaded saved system events setting: ${logSystemEvents}`);
-		}
-
-		const savedLogFrameEvents = localStorage.getItem("riveLogFrameEvents");
-		if (savedLogFrameEvents !== null) {
-			logFrameEvents = JSON.parse(savedLogFrameEvents);
-			logger.debug(
-				`[controlInterface] Loaded saved frame events setting: ${logFrameEvents}`
-			);
-		}
+		
+		logger.debug("[controlInterface] Loaded settings from localStorage:", {
+			displayRiveEvents,
+			logCustomEvents,
+			logStateChangeEvents,
+			logNestedViewModelEvents,
+			logPlaybackEvents,
+			logSystemEvents,
+			logFrameEvents,
+			fpsCounterEnabled
+		});
 	} catch (e) {
-		logger.warn(
-			"[controlInterface] Error loading saved event logging settings:",
-			e
-		);
+		logger.warn("[controlInterface] Error loading settings from localStorage:", e);
 	}
 
 	// Note: Event console initialization is now handled by Golden Layout component factory
@@ -1399,6 +1497,9 @@ export function initDynamicControls(parsedDataFromHandler) {
 				error
 			);
 		}
+
+		// Apply FPS counter setting
+		applyFpsCounterSetting(riveInstance);
 	});
 
 	riveInstance.on(EventType.LoadError, (err) => {
@@ -1903,19 +2004,261 @@ function buildControlsUI() {
 	systemEventsRow.appendChild(systemEventsLabel);
 	eventLoggingSection.appendChild(systemEventsRow);
 
-	// Add help button event listener
-	setTimeout(() => {
-		const helpBtn = document.getElementById("eventLoggingHelpBtn");
-		if (helpBtn) {
-			helpBtn.addEventListener("click", (e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				showEventLoggingHelp();
-			});// no passive : true flag since it's a help button and uses preventDefault and stopPropagation
+	// Frame Events toggle (high frequency events)
+	const frameEventsRow = document.createElement("div");
+	frameEventsRow.className = "toggle-row";
+	
+	const frameEventsToggle = document.createElement("label");
+	frameEventsToggle.className = "toggle-switch compact";
+	frameEventsToggle.innerHTML = `
+		<input type="checkbox" id="logFrameEventsCheckbox" ${logFrameEvents ? 'checked' : ''}>
+		<span class="toggle-slider"></span>
+	`;
+	
+	const frameEventsCheckbox = frameEventsToggle.querySelector('input');
+	frameEventsCheckbox.addEventListener("change", () => {
+		logFrameEvents = frameEventsCheckbox.checked;
+		logger.info(`[controlInterface] Frame event logging ${logFrameEvents ? 'enabled' : 'disabled'}`);
+		
+		// Save the setting to localStorage
+		try {
+			localStorage.setItem('riveLogFrameEvents', JSON.stringify(logFrameEvents));
+		} catch (e) {
+			logger.warn("[controlInterface] Error saving frame events setting:", e);
 		}
-	}, 100);
+		
+		// Re-setup event listeners to include/exclude frame events
+		if (riveInstance) {
+			setupEventListeners();
+		}
+	}, { passive: true });
+
+	const frameEventsLabel = document.createElement("label");
+	frameEventsLabel.htmlFor = "logFrameEventsCheckbox";
+	frameEventsLabel.className = "toggle-label";
+	frameEventsLabel.textContent = "Log Frame Events (High Frequency)";
+
+	frameEventsRow.appendChild(frameEventsToggle);
+	frameEventsRow.appendChild(frameEventsLabel);
+	eventLoggingSection.appendChild(frameEventsRow);
+
+	// Event Console Controls
+	const eventConsoleControlsRow = document.createElement("div");
+	eventConsoleControlsRow.className = "toggle-row";
+	eventConsoleControlsRow.style.justifyContent = "space-between";
+	eventConsoleControlsRow.style.paddingTop = "8px";
+	eventConsoleControlsRow.style.borderTop = "1px solid rgba(255,255,255,0.1)";
+	eventConsoleControlsRow.style.marginTop = "8px";
+
+	const clearConsoleBtn = document.createElement("button");
+	clearConsoleBtn.textContent = "Clear Console";
+	clearConsoleBtn.className = "ctrl-btn ctrl-btn-secondary";
+	clearConsoleBtn.style.fontSize = "0.75em";
+	clearConsoleBtn.style.padding = "4px 8px";
+	clearConsoleBtn.addEventListener("click", clearEventConsole, { passive: true });
+
+	const resetSystemBtn = document.createElement("button");
+	resetSystemBtn.textContent = "Reset System";
+	resetSystemBtn.className = "ctrl-btn ctrl-btn-danger";
+	resetSystemBtn.style.fontSize = "0.75em";
+	resetSystemBtn.style.padding = "4px 8px";
+	resetSystemBtn.addEventListener("click", resetEventSystem, { passive: true });
+
+	eventConsoleControlsRow.appendChild(clearConsoleBtn);
+	eventConsoleControlsRow.appendChild(resetSystemBtn);
+	eventLoggingSection.appendChild(eventConsoleControlsRow);
+
+	// Add help button event listener
+	const helpButton = eventLoggingSection.querySelector("#eventLoggingHelpBtn");
+	if (helpButton) {
+		helpButton.addEventListener("click", showEventLoggingHelp, { passive: true });
+	}
 
 	controlsContainer.appendChild(eventLoggingSection);
+
+	// Add Performance Monitoring section
+	const performanceSection = document.createElement("details");
+	performanceSection.className = "control-section";
+	performanceSection.open = false;
+
+	const performanceSummary = document.createElement("summary");
+	performanceSummary.innerHTML = `
+		Performance Monitoring
+		<button class="help-button" id="performanceHelpBtn" title="Help">
+			<span>?</span>
+		</button>
+	`;
+	performanceSection.appendChild(performanceSummary);
+
+	// FPS Counter toggle
+	const fpsCounterRow = document.createElement("div");
+	fpsCounterRow.className = "toggle-row";
+	
+	const fpsCounterToggle = document.createElement("label");
+	fpsCounterToggle.className = "toggle-switch master-toggle";
+	fpsCounterToggle.innerHTML = `
+		<input type="checkbox" id="fpsCounterCheckbox" ${fpsCounterEnabled ? 'checked' : ''}>
+		<span class="toggle-slider"></span>
+	`;
+	
+	const fpsCounterCheckbox = fpsCounterToggle.querySelector('input');
+	fpsCounterCheckbox.addEventListener("change", () => {
+		fpsCounterEnabled = fpsCounterCheckbox.checked;
+		logger.info(`[controlInterface] FPS counter ${fpsCounterEnabled ? 'enabled' : 'disabled'}`);
+		
+		// Save the setting to localStorage
+		try {
+			localStorage.setItem('riveFpsCounterEnabled', JSON.stringify(fpsCounterEnabled));
+		} catch (e) {
+			logger.warn("[controlInterface] Error saving FPS counter setting:", e);
+		}
+		
+		// Enable/disable FPS counter on Rive instance
+		if (riveInstance && typeof riveInstance.enableFPSCounter === 'function' && typeof riveInstance.disableFPSCounter === 'function') {
+			if (fpsCounterEnabled) {
+				// Create custom FPS callback to display in upper right corner of canvas
+				const createFPSDisplay = () => {
+					// Remove existing FPS display if any
+					const existingDisplay = document.getElementById('rive-fps-display');
+					if (existingDisplay) {
+						existingDisplay.remove();
+					}
+					
+					// Get the canvas container
+					const canvasContainer = document.getElementById('canvasContainer') || document.getElementById('rive-canvas')?.parentElement;
+					if (!canvasContainer) {
+						logger.warn("[controlInterface] Canvas container not found for FPS display");
+						return null;
+					}
+					
+					// Create FPS display element
+					const fpsDisplay = document.createElement('div');
+					fpsDisplay.id = 'rive-fps-display';
+					fpsDisplay.className = 'rive-fps-display fps-excellent';
+					fpsDisplay.textContent = 'FPS: --';
+					
+					// Ensure container has relative positioning
+					const containerStyle = window.getComputedStyle(canvasContainer);
+					if (containerStyle.position === 'static') {
+						canvasContainer.style.position = 'relative';
+					}
+					
+					canvasContainer.appendChild(fpsDisplay);
+					return fpsDisplay;
+				};
+				
+				const fpsDisplay = createFPSDisplay();
+				
+				// Enable FPS counter with custom callback
+				riveInstance.enableFPSCounter((fps) => {
+					if (fpsDisplay && fpsCounterEnabled) {
+						// Format FPS with color coding using CSS classes
+						const fpsValue = Math.round(fps);
+						
+						// Remove existing performance classes
+						fpsDisplay.classList.remove('fps-excellent', 'fps-moderate', 'fps-poor');
+						
+						// Add appropriate performance class
+						if (fpsValue < 30) {
+							fpsDisplay.classList.add('fps-poor');
+						} else if (fpsValue < 50) {
+							fpsDisplay.classList.add('fps-moderate');
+						} else {
+							fpsDisplay.classList.add('fps-excellent');
+						}
+						
+						fpsDisplay.textContent = `FPS: ${fpsValue}`;
+					}
+				});
+				
+				logger.debug("[controlInterface] FPS counter enabled on new Rive instance");
+			} else {
+				// Disable FPS counter and remove display
+				if (typeof riveInstance.disableFPSCounter === 'function') {
+					try {
+						riveInstance.disableFPSCounter();
+						logger.debug("[controlInterface] FPS counter disabled on Rive instance");
+					} catch (error) {
+						logger.warn("[controlInterface] Error disabling FPS counter:", error);
+					}
+				} else {
+					logger.debug("[controlInterface] disableFPSCounter method not available, just removing display");
+				}
+				
+				const existingDisplay = document.getElementById('rive-fps-display');
+				if (existingDisplay) {
+					existingDisplay.remove();
+				}
+				logger.info("[controlInterface] FPS counter disabled and display removed");
+			}
+		} else {
+			logger.warn("[controlInterface] Rive instance not available or FPS counter methods not found");
+		}
+		
+		// Show a brief confirmation in status bar
+		const statusMessageDiv = document.getElementById("statusMessage");
+		if (statusMessageDiv) {
+			statusMessageDiv.textContent = `📊 FPS counter ${fpsCounterEnabled ? 'enabled' : 'disabled'}`;
+			setTimeout(() => {
+				if (statusMessageDiv.textContent.includes('FPS counter')) {
+					statusMessageDiv.textContent = "Ready";
+				}
+			}, 2000);
+		}
+	}, { passive: true });
+
+	const fpsCounterLabel = document.createElement("label");
+	fpsCounterLabel.htmlFor = "fpsCounterCheckbox";
+	fpsCounterLabel.className = "toggle-label";
+	fpsCounterLabel.textContent = "Show FPS Counter";
+
+	fpsCounterRow.appendChild(fpsCounterToggle);
+	fpsCounterRow.appendChild(fpsCounterLabel);
+	performanceSection.appendChild(fpsCounterRow);
+
+	// Performance info display
+	const performanceInfoRow = document.createElement("div");
+	performanceInfoRow.className = "toggle-row";
+	performanceInfoRow.style.fontSize = "0.85em";
+	performanceInfoRow.style.color = "#999";
+	performanceInfoRow.style.marginTop = "8px";
+	performanceInfoRow.style.paddingTop = "8px";
+	performanceInfoRow.style.borderTop = "1px solid rgba(255,255,255,0.1)";
+	performanceInfoRow.innerHTML = `
+		<div style="line-height: 1.4;">
+			<div>📊 FPS counter displays in the upper-right corner of the animation canvas</div>
+			<div>🟢 Green: Good performance (≥50 FPS)</div>
+			<div>🟠 Orange: Moderate performance (30-49 FPS)</div>
+			<div>🔴 Red: Poor performance (&lt;30 FPS)</div>
+		</div>
+	`;
+	performanceSection.appendChild(performanceInfoRow);
+
+	// Add performance help button event listener
+	const performanceHelpButton = performanceSection.querySelector("#performanceHelpBtn");
+	if (performanceHelpButton) {
+		performanceHelpButton.addEventListener("click", () => {
+			logger.info("[controlInterface] Performance monitoring help requested");
+			alert(`Performance Monitoring Help:
+
+FPS Counter:
+• Shows real-time frames per second in the upper-right corner of the animation canvas
+• Color-coded for easy performance assessment:
+  - Green (≥50 FPS): Excellent performance
+  - Orange (30-49 FPS): Moderate performance  
+  - Red (<30 FPS): Poor performance
+• Automatically updates during animation playback
+• Uses Rive's built-in FPS reporting system
+
+Tips for Better Performance:
+• Keep animation complexity reasonable
+• Monitor FPS during state machine interactions
+• Consider reducing animation detail if FPS drops consistently
+• FPS may vary based on device capabilities and browser performance`);
+		}, { passive: true });
+	}
+
+	controlsContainer.appendChild(performanceSection);
 
 	// Add header with active information
 	const infoDiv = document.createElement("div");
@@ -2677,6 +3020,9 @@ class RiveControlInterface {
 		this.showNotification("Rive file loaded successfully", "success");
 		this.populateArtboards();
 		this.applyDisplaySettings();
+		
+		// Apply FPS counter setting to the new instance
+		applyFpsCounterSetting(this.riveInstance);
 	}
 
 	populateArtboards() {
