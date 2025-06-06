@@ -1,5 +1,9 @@
 ## [1.4.5] - 2025-06-06
 ### Changes
+- [fix] add enum parsing to Rive file parser output - Add enums field to parser result structure - Implement comprehensive enum parsing using riveInstance.enums() - Extract enum name and values for each global enum definition - Add robust error handling to prevent WASM aborts - Include detailed debug logging for enum parsing process - Enums now available in graph visualizer and parsed data output"
+- [fix] add enum parsing to Rive file parser output - Add enums field to parser result structure - Implement comprehensive enum parsing using riveInstance.enums() - Extract enum name and values for each global enum definition - Add robust error handling to prevent WASM aborts - Include detailed debug logging for enum parsing process - Enums now available in graph visualizer and parsed data output
+## [1.4.5] - 2025-06-06
+### Changes
 - feat: integrate FPS counter and enhance API documentation [fix]
 - feat: add enhanced debugging controls and Rive instance formatter
 - fix: add enum parsing to Rive file parser output [fix]
