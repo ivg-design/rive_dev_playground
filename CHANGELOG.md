@@ -1,4 +1,7 @@
 ## [1.4.6] - 2025-06-06
+### Changes
+- [fix]: enhance ViewModel discovery error handling in parser
+## [1.4.6] - 2025-06-06
 ### Fixed
 
 #### **🔧 ViewModel Discovery Error Handling**
