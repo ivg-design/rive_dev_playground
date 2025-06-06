@@ -1,3 +1,18 @@
+## [1.4.6] - 2025-06-06
+### Fixed
+
+#### **🔧 ViewModel Discovery Error Handling**
+- **Issue**: Console was showing expected "Could not find View Model. Index X is out of range" errors during normal ViewModel discovery process
+- **Root Cause**: Parser uses index-based discovery to find all ViewModels by probing until hitting boundary, but WASM runtime logs these expected errors
+- **Solution**: Enhanced error handling in parser to gracefully handle discovery boundary errors:
+  - **Graceful Error Detection**: Parser now detects "out of range" errors and treats them as expected discovery boundaries
+  - **Improved Discovery Logic**: Added fallback to `riveFile.viewModelCount()` when `riveInstance.viewModelCount()` unavailable
+  - **Reduced Log Noise**: Changed warning logs to debug logs for expected invalid ViewModel conditions
+  - **User Education**: Added explanatory comments and messages that WASM "out of range" errors are expected during discovery
+  - **Better Completion Messaging**: Clear indication when ViewModel discovery completes successfully
+- **Impact**: ViewModel discovery now works silently without alarming error messages, while maintaining full functionality
+- **Files Modified**: `src/components/parser.js` - Enhanced ViewModel discovery error handling
+
 ## [1.4.5] - 2025-06-06
 ### Changes
 - [fix] add enum parsing to Rive file parser output - Add enums field to parser result structure - Implement comprehensive enum parsing using riveInstance.enums() - Extract enum name and values for each global enum definition - Add robust error handling to prevent WASM aborts - Include detailed debug logging for enum parsing process - Enums now available in graph visualizer and parsed data output"

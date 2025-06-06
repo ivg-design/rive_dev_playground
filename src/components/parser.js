@@ -620,10 +620,12 @@ function runOriginalClientParser(
 				const MAX_VM_DEFS_TO_PROBE = 10;
 
 				// Test ViewModel access methods safely
+				// NOTE: During ViewModel discovery, you may see "Could not find View Model. Index X is out of range" 
+				// errors in the console. These are expected and come from the WASM runtime during the discovery process.
 				try {
 					logger.debug(logPrefix + "Testing ViewModel access methods...");
 					
-					// Test viewModelCount first
+					// Test viewModelCount first - try multiple approaches
 					if (typeof riveInstance.viewModelCount === "function") {
 						try {
 							vmDefinitionCount = riveInstance.viewModelCount();
@@ -632,8 +634,16 @@ function runOriginalClientParser(
 							logger.error(logPrefix + "Error calling viewModelCount():", vmCountError);
 							vmDefinitionCount = 0;
 						}
+					} else if (riveFile && typeof riveFile.viewModelCount === "function") {
+						try {
+							vmDefinitionCount = riveFile.viewModelCount();
+							logger.debug(logPrefix + `riveFile.viewModelCount() returned: ${vmDefinitionCount}`);
+						} catch (vmCountError) {
+							logger.error(logPrefix + "Error calling riveFile.viewModelCount():", vmCountError);
+							vmDefinitionCount = 0;
+						}
 					} else {
-						logger.warn(logPrefix + "viewModelCount() method not available");
+						logger.warn(logPrefix + "viewModelCount() method not available on riveInstance or riveFile");
 					}
 
 					// Test viewModelByIndex access
@@ -652,12 +662,18 @@ function runOriginalClientParser(
 										name: vmDef.name,
 									});
 								} else {
-									logger.warn(logPrefix + `ViewModel ${vmdIndex} has no name or is invalid`);
+									logger.debug(logPrefix + `ViewModel ${vmdIndex} has no name or is invalid`);
 								}
 							} catch (vmDefError) {
-								logger.error(logPrefix + `CRITICAL ERROR accessing ViewModel ${vmdIndex}:`, vmDefError);
-								// This might be where the WASM abort occurs
-								throw new Error(`ViewModel access failed at index ${vmdIndex}: ${vmDefError.message}`);
+								// Check if this is an expected "out of range" error from WASM discovery
+								if (vmDefError.message && vmDefError.message.includes("Could not find View Model") && vmDefError.message.includes("out of range")) {
+									logger.debug(logPrefix + `Reached end of ViewModels at index ${vmdIndex} (expected discovery boundary)`);
+									break; // This is expected - we've found all available ViewModels
+								} else {
+									logger.error(logPrefix + `CRITICAL ERROR accessing ViewModel ${vmdIndex}:`, vmDefError);
+									// This might be where the WASM abort occurs
+									throw new Error(`ViewModel access failed at index ${vmdIndex}: ${vmDefError.message}`);
+								}
 							}
 						}
 					} else if (riveFile && typeof riveFile.viewModelByIndex === "function") {
@@ -688,17 +704,23 @@ function runOriginalClientParser(
 									logger.debug(logPrefix + `riveFile ViewModel ${vmdIndex} name: ${vmDef.name}`);
 								} else {
 									consecutiveDefinitionErrors++;
-									logger.warn(logPrefix + `riveFile ViewModel ${vmdIndex} invalid, consecutive errors: ${consecutiveDefinitionErrors}`);
+									logger.debug(logPrefix + `riveFile ViewModel ${vmdIndex} invalid, consecutive errors: ${consecutiveDefinitionErrors}`);
 								}
 								vmdIndex++;
 							} catch (e) {
-								logger.error(
-									logPrefix +
-										`Error in riveFile.viewModelByIndex loop (index ${vmdIndex}):`,
-									e,
-								);
-								// If one errors, we might not want to continue if count is unreliable
-								throw new Error(`riveFile ViewModel access failed at index ${vmdIndex}: ${e.message}`);
+								// Check if this is an expected "out of range" error from WASM discovery
+								if (e.message && e.message.includes("Could not find View Model") && e.message.includes("out of range")) {
+									logger.debug(logPrefix + `Reached end of ViewModels at index ${vmdIndex} (expected discovery boundary)`);
+									break; // This is expected - we've found all available ViewModels
+								} else {
+									logger.error(
+										logPrefix +
+											`Unexpected error in riveFile.viewModelByIndex loop (index ${vmdIndex}):`,
+										e,
+									);
+									// If it's an unexpected error, we might not want to continue
+									throw new Error(`riveFile ViewModel access failed at index ${vmdIndex}: ${e.message}`);
+								}
 							}
 						}
 					} else {
@@ -708,7 +730,7 @@ function runOriginalClientParser(
 						);
 					}
 
-					logger.debug(logPrefix + `ViewModel definitions parsing completed. Found ${allFoundViewModelDefinitions.length} definitions.`);
+					logger.info(logPrefix + `ViewModel discovery completed. Found ${allFoundViewModelDefinitions.length} definitions. (Note: Any "out of range" errors above are expected during discovery)`);
 
 				} catch (vmParsingError) {
 					logger.error(logPrefix + "CRITICAL ERROR during ViewModel parsing:", vmParsingError);
